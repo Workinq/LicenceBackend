@@ -10,7 +10,7 @@ public interface ISessionRefreshTokenRepository
     ///     Atomically marks <paramref name="oldTokenId" /> revoked with <c>replaced_by = newToken.Id</c>
     ///     and inserts <paramref name="newToken" />, in a single transaction. Returns <c>true</c> if the
     ///     old row was actually revoked by this call (UPDATE affected one row), <c>false</c> if the row
-    ///     was already revoked when the UPDATE ran (race loss — caller should treat as reuse).
+    ///     was already revoked when the UPDATE ran (race loss  - caller should treat as reuse).
     /// </summary>
     Task<bool> RotateAsync(
         Guid oldTokenId,
