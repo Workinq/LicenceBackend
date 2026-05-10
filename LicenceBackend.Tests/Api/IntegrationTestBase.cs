@@ -25,6 +25,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected const string AdminEmail = "admin@test.local";
     protected const string AdminPassword = "admin-integration-test-pw!";
 
+    private static readonly Uri HttpsBaseAddress = new("https://localhost");
+
     private string? _connectionString;
     protected Guid AdminUserId;
     protected HttpClient AuthedClient = null!;
@@ -111,7 +113,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         ApplyPreFactoryEnvironment();
 
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
-        UnauthedClient = Factory.CreateClient();
+        UnauthedClient = Factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = HttpsBaseAddress,
+            HandleCookies = true
+        });
         AuthedClient = await CreateLoggedInClientAsync(AdminEmail, AdminPassword);
     }
 
@@ -159,7 +165,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     protected HttpClient ClientFromIp(string ip)
     {
-        var client = Factory!.CreateClient();
+        var client = Factory!.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = HttpsBaseAddress,
+            HandleCookies = true
+        });
         client.DefaultRequestHeaders.Add("X-Forwarded-For", ip);
         return client;
     }
@@ -182,7 +192,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     protected async Task<HttpClient> CreateLoggedInClientAsync(string email, string password)
     {
-        var loginClient = Factory!.CreateClient();
+        var loginClient = Factory!.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = HttpsBaseAddress,
+            HandleCookies = true
+        });
         var response = await loginClient.PostAsJsonAsync("/sessions", new { email, password });
         if (!response.IsSuccessStatusCode)
         {
