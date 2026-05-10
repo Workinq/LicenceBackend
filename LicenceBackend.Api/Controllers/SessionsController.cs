@@ -136,6 +136,7 @@ public sealed class SessionsController(
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         if (TryGetSessionId(out var sessionId)) await refreshTokens.RevokeByIdAsync(sessionId, cancellationToken);
+        Response.Cookies.Delete(RefreshCookie.Name, RefreshCookie.BuildExpiring());
         return NoContent();
     }
 
@@ -148,6 +149,7 @@ public sealed class SessionsController(
         if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
 
         await refreshTokens.RevokeAllForUserAsync(userId, cancellationToken);
+        Response.Cookies.Delete(RefreshCookie.Name, RefreshCookie.BuildExpiring());
         return NoContent();
     }
 

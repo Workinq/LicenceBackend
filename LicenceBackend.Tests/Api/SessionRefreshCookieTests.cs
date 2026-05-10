@@ -66,6 +66,46 @@ public sealed class SessionRefreshCookieTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [SkippableFact]
+    public async Task Logout_clears_refresh_cookie()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var loginResponse = await UnauthedClient.PostAsJsonAsync("/sessions", new { email = AdminEmail, password = AdminPassword });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var body = await loginResponse.Content.ReadFromJsonAsync<LoginBody>();
+        Assert.NotNull(body);
+
+        UnauthedClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", body.AccessToken);
+        var logout = await UnauthedClient.DeleteAsync("/sessions");
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+        Assert.True(logout.Headers.TryGetValues("Set-Cookie", out var clearHeaders), "Expected Set-Cookie clearing the refresh cookie on logout.");
+        Assert.Contains(clearHeaders!, h => h.StartsWith("refresh_token=", StringComparison.Ordinal) && h.Contains("expires=", StringComparison.OrdinalIgnoreCase));
+
+        UnauthedClient.DefaultRequestHeaders.Authorization = null;
+        var refresh = await UnauthedClient.PostAsync("/sessions/refresh", content: null);
+        Assert.Equal(HttpStatusCode.Unauthorized, refresh.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Logout_all_clears_refresh_cookie()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var loginResponse = await UnauthedClient.PostAsJsonAsync("/sessions", new { email = AdminEmail, password = AdminPassword });
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var body = await loginResponse.Content.ReadFromJsonAsync<LoginBody>();
+        Assert.NotNull(body);
+
+        UnauthedClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", body.AccessToken);
+        var logout = await UnauthedClient.DeleteAsync("/sessions/all");
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+        Assert.True(logout.Headers.TryGetValues("Set-Cookie", out var clearHeaders), "Expected Set-Cookie clearing the refresh cookie on logout-all.");
+        Assert.Contains(clearHeaders!, h => h.StartsWith("refresh_token=", StringComparison.Ordinal));
+    }
+
     private sealed record LoginBody(
         string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
