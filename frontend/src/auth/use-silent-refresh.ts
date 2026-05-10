@@ -67,5 +67,5 @@ export function useSilentRefresh(): void {
       stopInterval();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 }

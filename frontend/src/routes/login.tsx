@@ -67,7 +67,7 @@ function LoginPage() {
           Sign in
         </h1>
 
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} noValidate className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
               Email

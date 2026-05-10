@@ -36,5 +36,20 @@ export default tseslint.config(
     },
     settings: { react: { version: 'detect' } },
   },
+  // TanStack Router route files must co-locate Route export and component in the same file.
+  // The react-refresh rule does not understand this pattern, so we silence it for route files.
+  {
+    files: ['src/routes/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  // Test files use async act() callbacks that may not contain top-level await expressions.
+  {
+    files: ['src/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/require-await': 'off',
+    },
+  },
   prettierConfig,
 );
