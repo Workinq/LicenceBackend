@@ -34,7 +34,7 @@ public sealed class ProductsController(
         if (existing is not null)
             return Problem(
                 statusCode: StatusCodes.Status409Conflict,
-                title: "slug_already_exists",
+                title: ProblemTitles.SlugAlreadyExists,
                 detail: $"A product with slug '{request.Slug}' already exists."
             );
 
@@ -75,7 +75,7 @@ public sealed class ProductsController(
         if (product is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "product_not_found",
+                title: ProblemTitles.ProductNotFound,
                 detail: $"No product with id '{id}'."
             );
 

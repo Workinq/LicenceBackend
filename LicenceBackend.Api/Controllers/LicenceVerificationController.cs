@@ -116,6 +116,7 @@ public sealed class LicenceVerificationController(
                     presentedHwidHmac = raceHmac;
                     break;
                 case PinHwidResult.NotFound:
+                    break;
                 default:
                     denialReason = VerificationDenialReason.LicenceNotUsable;
                     presentedHwidHmac = pendingFirstPin.Value.Hmac;
@@ -184,25 +185,21 @@ public sealed class LicenceVerificationController(
     [EnableRateLimiting(RateLimiterPolicyNames.VerifyPublicKey)]
     [ProducesResponseType(typeof(JwksResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public IActionResult PublicKey()
+    public ObjectResult PublicKey()
     {
-        var entries = new List<JwkEntry>();
-        foreach (var securityKey in signingKeySet.AllSecurityKeys)
-        {
-            var parameters = securityKey.ECDsa.ExportParameters(false);
-            entries.Add(
-                new JwkEntry(
-                    "EC",
-                    "P-256",
-                    Base64UrlEncoder.Encode(parameters.Q.X!),
-                    Base64UrlEncoder.Encode(parameters.Q.Y!),
-                    securityKey.KeyId,
-                    SigningAlgorithm,
-                    "sig"
-                )
-            );
-        }
-
+        var entries = (
+            from securityKey in signingKeySet.AllSecurityKeys
+            let parameters = securityKey.ECDsa.ExportParameters(false)
+            select new JwkEntry(
+                "EC",
+                "P-256",
+                Base64UrlEncoder.Encode(parameters.Q.X!),
+                Base64UrlEncoder.Encode(parameters.Q.Y!),
+                securityKey.KeyId,
+                SigningAlgorithm,
+                "sig"
+            )
+        ).ToList();
         return Ok(new JwksResponse(entries));
     }
 
@@ -274,7 +271,7 @@ public sealed class LicenceVerificationController(
     {
         return Problem(
             statusCode: StatusCodes.Status400BadRequest,
-            title: "invalid_licence",
+            title: ProblemTitles.InvalidLicence,
             detail: "The licence key is not valid for this request."
         );
     }

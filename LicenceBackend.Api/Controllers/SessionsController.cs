@@ -55,7 +55,7 @@ public sealed class SessionsController(
             passwordHasher.VerifyDummy(request.Password);
             return Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
-                title: "invalid_credentials",
+                title: ProblemTitles.InvalidCredentials,
                 detail: "Email or password is incorrect."
             );
         }
@@ -63,14 +63,14 @@ public sealed class SessionsController(
         if (!passwordHasher.Verify(request.Password, user.PasswordHash))
             return Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
-                title: "invalid_credentials",
+                title: ProblemTitles.InvalidCredentials,
                 detail: "Email or password is incorrect."
             );
 
         if (user.Status == UserStatus.Suspended)
             return Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
-                title: "account_suspended",
+                title: ProblemTitles.AccountSuspended,
                 detail: "This account is suspended. Contact an administrator."
             );
 
@@ -196,7 +196,7 @@ public sealed class SessionsController(
     {
         return Problem(
             statusCode: StatusCodes.Status401Unauthorized,
-            title: "invalid_refresh",
+            title: ProblemTitles.InvalidRefresh,
             detail: "The refresh token is not valid."
         );
     }

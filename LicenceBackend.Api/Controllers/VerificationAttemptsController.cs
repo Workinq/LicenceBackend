@@ -32,7 +32,7 @@ public sealed class VerificationAttemptsController(ILicenceVerificationAttemptRe
         if (!LicencesController.TryParseOutcomeFilter(outcome, out var filter))
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "invalid_outcome",
+                title: ProblemTitles.InvalidOutcome,
                 detail: "outcome must be 'approved' or 'denied'."
             );
 

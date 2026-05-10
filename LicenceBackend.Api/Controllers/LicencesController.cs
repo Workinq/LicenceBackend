@@ -53,13 +53,13 @@ public sealed class LicencesController(
             case false when !hasEmail:
                 return Problem(
                     statusCode: StatusCodes.Status400BadRequest,
-                    title: "missing_owner",
+                    title: ProblemTitles.MissingOwner,
                     detail: "Provide either 'userId' or 'email' to identify the licence owner."
                 );
             case true when hasEmail:
                 return Problem(
                     statusCode: StatusCodes.Status400BadRequest,
-                    title: "ambiguous_owner",
+                    title: ProblemTitles.AmbiguousOwner,
                     detail: "Provide exactly one of 'userId' or 'email', not both."
                 );
         }
@@ -70,7 +70,7 @@ public sealed class LicencesController(
         if (owner is null)
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "owner_not_found",
+                title: ProblemTitles.OwnerNotFound,
                 detail: hasUserId
                             ? $"No user with id '{request.UserId}'."
                             : $"No user with email '{request.Email}'."
@@ -80,14 +80,14 @@ public sealed class LicencesController(
         if (product is null)
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "product_not_found",
+                title: ProblemTitles.ProductNotFound,
                 detail: $"No product with id '{request.ProductId}'."
             );
 
         if (request.ExpiresAt is { } expiresAt && expiresAt <= time.GetUtcNow())
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "invalid_expires_at",
+                title: ProblemTitles.InvalidExpiresAt,
                 detail: "expiresAt must be in the future."
             );
 
@@ -147,7 +147,7 @@ public sealed class LicencesController(
             if (!Enum.TryParse<LicenceStatus>(status, true, out var s))
                 return Problem(
                     statusCode: StatusCodes.Status400BadRequest,
-                    title: "invalid_status",
+                    title: ProblemTitles.InvalidStatus,
                     detail: "status must be one of: active, suspended, revoked."
                 );
             parsedStatus = s;
@@ -191,7 +191,7 @@ public sealed class LicencesController(
         if (licence is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
@@ -224,7 +224,7 @@ public sealed class LicencesController(
         if (updated is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
@@ -248,7 +248,7 @@ public sealed class LicencesController(
         if (licence is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
@@ -292,7 +292,7 @@ public sealed class LicencesController(
         if (!string.IsNullOrEmpty(request.Hwid))
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "invalid_hwid",
+                title: ProblemTitles.InvalidHwid,
                 detail: "Only clearing is supported: send { \"hwid\": null }. HWIDs are pinned via first-use verify."
             );
 
@@ -306,7 +306,7 @@ public sealed class LicencesController(
         if (cleared is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
@@ -330,14 +330,14 @@ public sealed class LicencesController(
             if (request.Cidrs.Count == 0)
                 return Problem(
                     statusCode: StatusCodes.Status400BadRequest,
-                    title: "invalid_ip_allowlist",
+                    title: ProblemTitles.InvalidIpAllowlist,
                     detail: "cidrs must be null (to unrestrict) or a non-empty list."
                 );
 
             if (request.Cidrs.Count > MaxIpAllowlistEntries)
                 return Problem(
                     statusCode: StatusCodes.Status400BadRequest,
-                    title: "invalid_ip_allowlist",
+                    title: ProblemTitles.InvalidIpAllowlist,
                     detail: $"cidrs must contain at most {MaxIpAllowlistEntries} entries."
                 );
 
@@ -347,7 +347,7 @@ public sealed class LicencesController(
                 if (string.IsNullOrWhiteSpace(raw) || !IPNetwork.TryParse(raw, out _))
                     return Problem(
                         statusCode: StatusCodes.Status400BadRequest,
-                        title: "invalid_ip_allowlist",
+                        title: ProblemTitles.InvalidIpAllowlist,
                         detail: $"'{raw}' is not a valid CIDR."
                     );
                 normalised.Add(raw.Trim());
@@ -367,7 +367,7 @@ public sealed class LicencesController(
         if (updated is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
@@ -388,7 +388,7 @@ public sealed class LicencesController(
         if (licence is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
@@ -415,14 +415,14 @@ public sealed class LicencesController(
         if (licence is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
         if (!TryParseOutcomeFilter(outcome, out var filter))
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "invalid_outcome",
+                title: ProblemTitles.InvalidOutcome,
                 detail: "outcome must be 'approved' or 'denied'."
             );
 

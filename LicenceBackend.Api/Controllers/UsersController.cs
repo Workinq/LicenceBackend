@@ -44,7 +44,7 @@ public sealed class UsersController(
         if (await users.ExistsByEmailAsync(request.Email, cancellationToken))
             return Problem(
                 statusCode: StatusCodes.Status409Conflict,
-                title: "email_already_exists",
+                title: ProblemTitles.EmailAlreadyExists,
                 detail: $"A user with email '{request.Email}' already exists."
             );
 
@@ -97,7 +97,7 @@ public sealed class UsersController(
         if (user is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "user_not_found",
+                title: ProblemTitles.UserNotFound,
                 detail: $"No user with id '{id}'."
             );
 
@@ -122,7 +122,7 @@ public sealed class UsersController(
         if (currentUserId == id && newStatus == UserStatus.Suspended)
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "cannot_suspend_self",
+                title: ProblemTitles.CannotSuspendSelf,
                 detail: "An admin cannot suspend their own account."
             );
 
@@ -136,7 +136,7 @@ public sealed class UsersController(
         if (updated is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "user_not_found",
+                title: ProblemTitles.UserNotFound,
                 detail: $"No user with id '{id}'."
             );
 
@@ -159,7 +159,7 @@ public sealed class UsersController(
         if (user is null)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "user_not_found",
+                title: ProblemTitles.UserNotFound,
                 detail: $"No user with id '{id}'."
             );
 
@@ -221,7 +221,7 @@ public sealed class UsersController(
             if (!Enum.TryParse<LicenceStatus>(status, true, out var s))
                 return Problem(
                     statusCode: StatusCodes.Status400BadRequest,
-                    title: "invalid_status",
+                    title: ProblemTitles.InvalidStatus,
                     detail: "status must be one of: active, suspended, revoked."
                 );
             parsedStatus = s;
@@ -269,7 +269,7 @@ public sealed class UsersController(
         if (licence is null || licence.UserId != userId)
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "licence_not_found",
+                title: ProblemTitles.LicenceNotFound,
                 detail: $"No licence with id '{id}'."
             );
 
