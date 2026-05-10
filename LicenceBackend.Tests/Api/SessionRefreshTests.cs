@@ -1,29 +1,28 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace LicenceBackend.Tests.Api;
 
 public sealed class SessionRefreshTests : IntegrationTestBase
 {
     [SkippableFact]
-    public async Task Refresh_returns_new_access_and_refresh_tokens()
+    public async Task Refresh_returns_new_access_and_rotates_cookie()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var first = await LoginAsync(AdminEmail, AdminPassword);
+        using var first = await LoginAsync(AdminEmail, AdminPassword);
 
-        var response = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", first.RefreshToken);
+        var response = await first.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
         var second = await response.Content.ReadFromJsonAsync<SessionPayload>();
         Assert.NotNull(second);
-        Assert.NotEqual(first.AccessToken, second.AccessToken);
-        Assert.NotEqual(first.RefreshToken, second.RefreshToken);
+        Assert.NotEqual(first.Payload.AccessToken, second.AccessToken);
 
-        using var client = Factory!.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", second.AccessToken);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/me")).StatusCode);
+        using var probe = NewClient(handleCookies: true);
+        probe.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", second.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, (await probe.GetAsync("/me")).StatusCode);
     }
 
     [SkippableFact]
@@ -31,19 +30,18 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var first = await LoginAsync(AdminEmail, AdminPassword);
+        using var first = await LoginAsync(AdminEmail, AdminPassword);
+        var originalCookieValue = first.RefreshCookieValue;
 
-        // Rotate once
-        var rotate = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", first.RefreshToken);
-        var second = await rotate.Content.ReadFromJsonAsync<SessionPayload>();
-        Assert.NotNull(second);
+        var rotate = await first.Client.PostAsync("/sessions/refresh", content: null);
+        Assert.Equal(HttpStatusCode.OK, rotate.StatusCode);
 
-        // Try reuse the original refresh
-        var reuse = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", first.RefreshToken);
+        using var replay = NewClient(handleCookies: false);
+        replay.DefaultRequestHeaders.Add("Cookie", $"refresh_token={originalCookieValue}");
+        var reuse = await replay.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, reuse.StatusCode);
 
-        // The second refresh should be dead
-        var after = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", second.RefreshToken);
+        var after = await first.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, after.StatusCode);
     }
 
@@ -52,7 +50,9 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var response = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", "not-a-real-refresh-token");
+        using var client = NewClient(handleCookies: false);
+        client.DefaultRequestHeaders.Add("Cookie", "refresh_token=not-a-real-refresh-token");
+        var response = await client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -61,22 +61,19 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        // Login twice
-        var firstLogin = await LoginAsync(AdminEmail, AdminPassword);
-        var secondLogin = await LoginAsync(AdminEmail, AdminPassword);
+        using var firstLogin = await LoginAsync(AdminEmail, AdminPassword);
+        using var secondLogin = await LoginAsync(AdminEmail, AdminPassword);
 
-        using var firstClient = Factory!.CreateClient();
-        firstClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstLogin.AccessToken);
-
-        var logout = await firstClient.DeleteAsync("/sessions");
+        firstLogin.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", firstLogin.Payload.AccessToken);
+        var logout = await firstLogin.Client.DeleteAsync("/sessions");
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
-        // Logged-out refresh is dead
-        var dead = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", firstLogin.RefreshToken);
+        // After logout, the cookie container has been told to clear the cookie via Set-Cookie + past expiry.
+        // Subsequent refresh on the same client sends no cookie → 401.
+        var dead = await firstLogin.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, dead.StatusCode);
 
-        // Second refresh is unaffected
-        var alive = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", secondLogin.RefreshToken);
+        var alive = await secondLogin.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.OK, alive.StatusCode);
     }
 
@@ -85,24 +82,22 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        // Create a regular user so we don't stomp on the shared admin client
         var email = "logout-all@test.local";
         var password = "logout-all-pw-12345";
         var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
-        var loginA = await LoginAsync(email, password);
-        var loginB = await LoginAsync(email, password);
+        using var loginA = await LoginAsync(email, password);
+        using var loginB = await LoginAsync(email, password);
 
-        using var client = Factory!.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginA.AccessToken);
-        var logoutAll = await client.DeleteAsync("/sessions/all");
+        loginA.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginA.Payload.AccessToken);
+        var logoutAll = await loginA.Client.DeleteAsync("/sessions/all");
         Assert.Equal(HttpStatusCode.NoContent, logoutAll.StatusCode);
 
-        var aDead = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", loginA.RefreshToken);
+        var aDead = await loginA.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, aDead.StatusCode);
 
-        var bDead = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", loginB.RefreshToken);
+        var bDead = await loginB.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, bDead.StatusCode);
     }
 
@@ -111,16 +106,25 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        // Use a dedicated user so we don't interfere with the shared admin's session state
         var email = "race-refresh@test.local";
         var password = "race-refresh-pw-12345";
         var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
-        var login = await LoginAsync(email, password);
+        using var login = await LoginAsync(email, password);
+        var cookieValue = login.RefreshCookieValue;
 
         const int parallel = 5;
-        var tasks = Enumerable.Range(0, parallel).Select(_ => UnauthedClient.PostAsJsonAsync("/sessions/refresh", login.RefreshToken)).ToArray();
+        var tasks = Enumerable.Range(0, parallel).Select(_ =>
+        {
+            var c = NewClient(handleCookies: false);
+            c.DefaultRequestHeaders.Add("Cookie", $"refresh_token={cookieValue}");
+            return c.PostAsync("/sessions/refresh", content: null).ContinueWith(t =>
+            {
+                c.Dispose();
+                return t.Result;
+            });
+        }).ToArray();
         var responses = await Task.WhenAll(tasks);
 
         var ok = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
@@ -128,12 +132,12 @@ public sealed class SessionRefreshTests : IntegrationTestBase
         Assert.Equal(1, ok);
         Assert.Equal(parallel - 1, unauthorised);
 
-        var winnerResponse = responses.Single(r => r.StatusCode == HttpStatusCode.OK);
-        var winnerSession = await winnerResponse.Content.ReadFromJsonAsync<SessionPayload>();
-        Assert.NotNull(winnerSession);
-
-        var afterCascade = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", winnerSession.RefreshToken);
-        Assert.Equal(HttpStatusCode.Unauthorized, afterCascade.StatusCode);
+        // Cascade check: the original cookie value must now be dead even on the winner's chain
+        // (because the loser race triggers RevokeAllForUserAsync).
+        using var probe = NewClient(handleCookies: false);
+        probe.DefaultRequestHeaders.Add("Cookie", $"refresh_token={cookieValue}");
+        var probeResponse = await probe.PostAsync("/sessions/refresh", content: null);
+        Assert.Equal(HttpStatusCode.Unauthorized, probeResponse.StatusCode);
 
         foreach (var response in responses) response.Dispose();
     }
@@ -150,29 +154,46 @@ public sealed class SessionRefreshTests : IntegrationTestBase
         var user = await create.Content.ReadFromJsonAsync<UserMini>();
         Assert.NotNull(user);
 
-        var login = await LoginAsync(email, password);
+        using var login = await LoginAsync(email, password);
 
         var suspend = await AuthedClient.PatchAsJsonAsync($"/users/{user.Id}/status", new { status = "suspended", reason = "test" });
         Assert.Equal(HttpStatusCode.OK, suspend.StatusCode);
 
-        var dead = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", login.RefreshToken);
+        var dead = await login.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, dead.StatusCode);
     }
 
-    private async Task<SessionPayload> LoginAsync(string email, string password)
+    private async Task<LoggedInSession> LoginAsync(string email, string password)
     {
-        var response = await UnauthedClient.PostAsJsonAsync("/sessions", new { email, password });
+        var client = NewClient(handleCookies: true);
+        var response = await client.PostAsJsonAsync("/sessions", new { email, password });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payload = await response.Content.ReadFromJsonAsync<SessionPayload>();
         Assert.NotNull(payload);
-        return payload;
+
+        var setCookie = response.Headers.GetValues("Set-Cookie").Single(h => h.StartsWith("refresh_token=", StringComparison.Ordinal));
+        var rawValue = setCookie["refresh_token=".Length..setCookie.IndexOf(';')];
+
+        return new LoggedInSession(client, payload, rawValue);
+    }
+
+    private HttpClient NewClient(bool handleCookies)
+    {
+        return Factory!.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+            HandleCookies = handleCookies
+        });
+    }
+
+    private sealed record LoggedInSession(HttpClient Client, SessionPayload Payload, string RefreshCookieValue) : IDisposable
+    {
+        public void Dispose() => Client.Dispose();
     }
 
     private sealed record SessionPayload(
         string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
-        string RefreshToken,
-        DateTimeOffset RefreshTokenExpiresAt,
         UserMini User
     );
 
