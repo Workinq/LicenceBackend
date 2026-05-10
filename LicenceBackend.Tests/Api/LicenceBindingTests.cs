@@ -203,6 +203,22 @@ public sealed class LicenceBindingTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task Ip_allowlist_rejects_oversized_array()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var (_, _, licenceId, _) = await CreateProductAndLicenceAsync("ip-oversized");
+
+        var oversized = Enumerable.Range(0, 257).Select(_ => "10.0.0.0/24").ToArray();
+        var response = await AuthedClient.PutAsJsonAsync(
+                           $"/licences/{licenceId}/ip-allowlist",
+                           new { cidrs = oversized });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("invalid_ip_allowlist", json);
+    }
+
+    [SkippableFact]
     public async Task Ip_allowlist_null_unrestricts()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");

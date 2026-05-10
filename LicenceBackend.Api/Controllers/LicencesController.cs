@@ -37,6 +37,7 @@ public sealed class LicencesController(
 {
     private const int DefaultLimit = 50;
     private const int MaxLimit = 200;
+    private const int MaxIpAllowlistEntries = 256;
 
     [HttpPost]
     [ProducesResponseType(typeof(LicenceCreatedResponse), StatusCodes.Status201Created)]
@@ -331,6 +332,13 @@ public sealed class LicencesController(
                     statusCode: StatusCodes.Status400BadRequest,
                     title: "invalid_ip_allowlist",
                     detail: "cidrs must be null (to unrestrict) or a non-empty list."
+                );
+
+            if (request.Cidrs.Count > MaxIpAllowlistEntries)
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "invalid_ip_allowlist",
+                    detail: $"cidrs must contain at most {MaxIpAllowlistEntries} entries."
                 );
 
             var normalised = new List<string>(request.Cidrs.Count);
