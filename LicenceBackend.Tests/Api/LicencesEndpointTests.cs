@@ -110,6 +110,18 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task Post_without_productId_is_rejected_at_deserialization()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var response = await AuthedClient.PostAsJsonAsync(
+                           "/licences",
+                           new { userId = AdminUserId });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [SkippableFact]
     public async Task Post_with_past_expires_at_returns_400()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");

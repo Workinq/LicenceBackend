@@ -42,7 +42,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine($"error: {ex.Message}");
+    await Console.Error.WriteLineAsync($"error: {ex.Message}");
     return 1;
 }
 
@@ -96,8 +96,11 @@ async Task<int> InitSecretsAsync(string[] cmdArgs)
     var existing = new[] { sessionV1, licenceVerifyV1, pepperV1 }.Where(File.Exists).ToArray();
     if (existing.Length > 0 && !force)
     {
-        Console.Error.WriteLine("Refusing to overwrite existing v1 secret files. Pass --force to regenerate, or use rotate-* to add new versions:");
-        foreach (var f in existing) Console.Error.WriteLine($"  {f}");
+        await Console.Error.WriteLineAsync("Refusing to overwrite existing v1 secret files. Pass --force to regenerate, or use rotate-* to add new versions:");
+        foreach (var f in existing)
+        {
+            await Console.Error.WriteLineAsync($"  {f}");
+        }
         return 1;
     }
 
@@ -151,7 +154,7 @@ async Task<int> RotateSigningKeyAsync(string[] cmdArgs, string sectionName, stri
 
     if (File.Exists(newPath))
     {
-        Console.Error.WriteLine($"Refusing to overwrite existing key at {newPath}.");
+        await Console.Error.WriteLineAsync($"Refusing to overwrite existing key at {newPath}.");
         return 1;
     }
 
@@ -185,7 +188,7 @@ async Task<int> RotatePepperAsync(string[] cmdArgs)
             }
             else
             {
-                Console.Error.WriteLine("--version must be a positive integer.");
+                await Console.Error.WriteLineAsync("--version must be a positive integer.");
                 return 2;
             }
         }
@@ -195,7 +198,7 @@ async Task<int> RotatePepperAsync(string[] cmdArgs)
 
     if (File.Exists(newPath))
     {
-        Console.Error.WriteLine($"Refusing to overwrite existing pepper at {newPath}.");
+        await Console.Error.WriteLineAsync($"Refusing to overwrite existing pepper at {newPath}.");
         return 1;
     }
 
@@ -235,7 +238,7 @@ async Task<int> MigrateAsync()
     var connectionString = RequireConnectionString();
     if (!Directory.Exists(defaultMigrationsPath))
     {
-        Console.Error.WriteLine($"Migrations directory not found at {defaultMigrationsPath}. Run from the repository root.");
+        await Console.Error.WriteLineAsync($"Migrations directory not found at {defaultMigrationsPath}. Run from the repository root.");
         return 1;
     }
 
@@ -244,8 +247,8 @@ async Task<int> MigrateAsync()
     var result = SchemaMigrator.Run(connectionString, defaultMigrationsPath);
     if (!result.Successful)
     {
-        Console.Error.WriteLine($"Migration failed in script: {result.ErrorScript?.Name}");
-        Console.Error.WriteLine(result.Error.ToString());
+        await Console.Error.WriteLineAsync($"Migration failed in script: {result.ErrorScript?.Name}");
+        await Console.Error.WriteLineAsync(result.Error.ToString());
         return 1;
     }
 
@@ -411,7 +414,7 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
             case "--email":
                 if (i + 1 >= cmdArgs.Length)
                 {
-                    Console.Error.WriteLine("--email requires a value.");
+                    await Console.Error.WriteLineAsync("--email requires a value.");
                     return 2;
                 }
 
@@ -420,7 +423,7 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
             case "--password":
                 if (i + 1 >= cmdArgs.Length)
                 {
-                    Console.Error.WriteLine("--password requires a value.");
+                    await Console.Error.WriteLineAsync("--password requires a value.");
                     return 2;
                 }
 
@@ -430,13 +433,13 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
                 force = true;
                 break;
             default:
-                Console.Error.WriteLine($"unknown flag: {cmdArgs[i]}");
+                await Console.Error.WriteLineAsync($"unknown flag: {cmdArgs[i]}");
                 return 2;
         }
 
     if (string.IsNullOrWhiteSpace(email))
     {
-        Console.Error.WriteLine("--email is required.");
+        await Console.Error.WriteLineAsync("--email is required.");
         return 2;
     }
 
@@ -448,7 +451,7 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
     }
     else if (password.Length < 12)
     {
-        Console.Error.WriteLine("Password must be at least 12 characters.");
+        await Console.Error.WriteLineAsync("Password must be at least 12 characters.");
         return 2;
     }
 
@@ -467,7 +470,7 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
 
     if (existingId.HasValue && !force)
     {
-        Console.Error.WriteLine($"A user with email '{emailTrimmed}' already exists. Use --force to update password and ensure admin role.");
+        await Console.Error.WriteLineAsync($"A user with email '{emailTrimmed}' already exists. Use --force to update password and ensure admin role.");
         return 1;
     }
 
@@ -518,7 +521,7 @@ async Task<int> ListUsersAsync(string[] cmdArgs)
             case "--limit":
                 if (i + 1 >= cmdArgs.Length || !int.TryParse(cmdArgs[++i], out limit) || limit <= 0)
                 {
-                    Console.Error.WriteLine("--limit must be a positive integer.");
+                    await Console.Error.WriteLineAsync("--limit must be a positive integer.");
                     return 2;
                 }
 
@@ -526,13 +529,13 @@ async Task<int> ListUsersAsync(string[] cmdArgs)
             case "--offset":
                 if (i + 1 >= cmdArgs.Length || !int.TryParse(cmdArgs[++i], out offset) || offset < 0)
                 {
-                    Console.Error.WriteLine("--offset must be a non-negative integer.");
+                    await Console.Error.WriteLineAsync("--offset must be a non-negative integer.");
                     return 2;
                 }
 
                 break;
             default:
-                Console.Error.WriteLine($"unknown flag: {cmdArgs[i]}");
+                await Console.Error.WriteLineAsync($"unknown flag: {cmdArgs[i]}");
                 return 2;
         }
 
@@ -570,13 +573,13 @@ async Task<int> DisableUserAsync(string[] cmdArgs)
         }
         else
         {
-            Console.Error.WriteLine($"unknown flag: {cmdArgs[i]}");
+            await Console.Error.WriteLineAsync($"unknown flag: {cmdArgs[i]}");
             return 2;
         }
 
     if (string.IsNullOrWhiteSpace(email))
     {
-        Console.Error.WriteLine("--email is required.");
+        await Console.Error.WriteLineAsync("--email is required.");
         return 2;
     }
 
@@ -591,7 +594,7 @@ async Task<int> DisableUserAsync(string[] cmdArgs)
 
     if (user is null)
     {
-        Console.Error.WriteLine($"No user with email '{email}'.");
+        await Console.Error.WriteLineAsync($"No user with email '{email}'.");
         return 1;
     }
 
@@ -638,7 +641,7 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
             case "--email":
                 if (i + 1 >= cmdArgs.Length)
                 {
-                    Console.Error.WriteLine("--email requires a value.");
+                    await Console.Error.WriteLineAsync("--email requires a value.");
                     return 2;
                 }
 
@@ -647,20 +650,20 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
             case "--password":
                 if (i + 1 >= cmdArgs.Length)
                 {
-                    Console.Error.WriteLine("--password requires a value.");
+                    await Console.Error.WriteLineAsync("--password requires a value.");
                     return 2;
                 }
 
                 password = cmdArgs[++i];
                 break;
             default:
-                Console.Error.WriteLine($"unknown flag: {cmdArgs[i]}");
+                await Console.Error.WriteLineAsync($"unknown flag: {cmdArgs[i]}");
                 return 2;
         }
 
     if (string.IsNullOrWhiteSpace(email))
     {
-        Console.Error.WriteLine("--email is required.");
+        await Console.Error.WriteLineAsync("--email is required.");
         return 2;
     }
 
@@ -672,7 +675,7 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
     }
     else if (password.Length < 12)
     {
-        Console.Error.WriteLine("Password must be at least 12 characters.");
+        await Console.Error.WriteLineAsync("Password must be at least 12 characters.");
         return 2;
     }
 
@@ -689,7 +692,7 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
                      new { EmailLower = emailLower });
     if (!userId.HasValue)
     {
-        Console.Error.WriteLine($"No user with email '{email}'.");
+        await Console.Error.WriteLineAsync($"No user with email '{email}'.");
         return 1;
     }
 
