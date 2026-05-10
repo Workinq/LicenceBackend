@@ -75,7 +75,7 @@ public sealed class SessionsController(
                 detail: "This account is suspended. Contact an administrator."
             );
 
-        var issued = await IssueSessionPairAsync(user, cancellationToken);
+        var issued = await IssueSessionAsync(user, cancellationToken);
         return Ok(ToResponse(issued, user));
     }
 
@@ -155,7 +155,7 @@ public sealed class SessionsController(
         return NoContent();
     }
 
-    private async Task<IssuedSession> IssueSessionPairAsync(User user, CancellationToken cancellationToken)
+    private async Task<IssuedSession> IssueSessionAsync(User user, CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
         var refresh = BuildRefreshToken(user.Id, now, out var rawRefresh);
