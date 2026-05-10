@@ -4,39 +4,17 @@ import { useAccessTokenStore, type AuthUser } from './access-token-store';
 // Single-flight refresh guard — ensures concurrent 401s fire only one refresh request.
 let refreshPromise: Promise<boolean> | null = null;
 
-interface ClientArgs {
-  url: string;
-  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
-  headers?: Record<string, string>;
-  data?: unknown;
-  params?: Record<string, string | number | boolean | undefined>;
-  signal?: AbortSignal;
-}
-
-export const apiClient = async <T>(args: ClientArgs): Promise<T> => {
-  const { url, method, headers, data, params, signal } = args;
-
-  const search = params
-    ? '?' +
-      new URLSearchParams(
-        Object.entries(params)
-          .filter(([, v]) => v !== undefined)
-          .map(([k, v]) => [k, String(v)]),
-      ).toString()
-    : '';
-
+// Fetch mutator used by orval-generated api.ts — signature: (url, init?) => Promise<T>
+export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const send = async (): Promise<Response> => {
     const accessToken = useAccessTokenStore.getState().accessToken;
-    return fetch(url + search, {
-      method: method.toUpperCase(),
+    return fetch(url, {
       credentials: 'include',
+      ...init,
       headers: {
-        ...(data !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...headers,
+        ...init?.headers,
       },
-      body: data !== undefined ? JSON.stringify(data) : undefined,
-      signal,
     });
   };
 
@@ -101,10 +79,12 @@ const safeJson = async (r: Response): Promise<unknown> => {
 };
 
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public body: unknown,
-  ) {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, body: unknown) {
     super(`API error ${status}`);
+    this.status = status;
+    this.body = body;
   }
 }

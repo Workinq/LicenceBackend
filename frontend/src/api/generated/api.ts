@@ -169,7 +169,7 @@ export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TErr
 
   const queryOptions = getGetHealthQueryOptions(options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -276,7 +276,7 @@ const {mutation: mutationOptions} = options ?
         {data: CreateLicenceRequest},
         TContext
       > => {
-      return useMutation(getPostLicencesMutationOptions(options), queryClient);
+      return useMutation(getPostLicencesMutationOptions(options));
     }
 
 export type getLicencesResponse200 = {
@@ -404,7 +404,7 @@ export function useGetLicences<TData = Awaited<ReturnType<typeof getLicences>>, 
 
   const queryOptions = getGetLicencesQueryOptions(params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -538,7 +538,7 @@ export function useGetLicencesId<TData = Awaited<ReturnType<typeof getLicencesId
 
   const queryOptions = getGetLicencesIdQueryOptions(id,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -651,7 +651,7 @@ const {mutation: mutationOptions} = options ?
         {id: string;data: UpdateLicenceStatusRequest},
         TContext
       > => {
-      return useMutation(getPatchLicencesIdStatusMutationOptions(options), queryClient);
+      return useMutation(getPatchLicencesIdStatusMutationOptions(options));
     }
 
 export type getLicencesIdStatusHistoryResponse200 = {
@@ -792,7 +792,7 @@ export function useGetLicencesIdStatusHistory<TData = Awaited<ReturnType<typeof 
 
   const queryOptions = getGetLicencesIdStatusHistoryQueryOptions(id,params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -905,7 +905,7 @@ const {mutation: mutationOptions} = options ?
         {id: string;data: UpdateLicenceHwidRequest},
         TContext
       > => {
-      return useMutation(getPutLicencesIdHwidMutationOptions(options), queryClient);
+      return useMutation(getPutLicencesIdHwidMutationOptions(options));
     }
 
 export type putLicencesIdIpAllowlistResponse204 = {
@@ -1010,7 +1010,7 @@ const {mutation: mutationOptions} = options ?
         {id: string;data: UpdateLicenceIpAllowlistRequest},
         TContext
       > => {
-      return useMutation(getPutLicencesIdIpAllowlistMutationOptions(options), queryClient);
+      return useMutation(getPutLicencesIdIpAllowlistMutationOptions(options));
     }
 
 export type getLicencesIdBindingHistoryResponse200 = {
@@ -1151,7 +1151,7 @@ export function useGetLicencesIdBindingHistory<TData = Awaited<ReturnType<typeof
 
   const queryOptions = getGetLicencesIdBindingHistoryQueryOptions(id,params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -1300,7 +1300,7 @@ export function useGetLicencesIdVerificationAttempts<TData = Awaited<ReturnType<
 
   const queryOptions = getGetLicencesIdVerificationAttemptsQueryOptions(id,params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -1397,7 +1397,7 @@ const {mutation: mutationOptions} = options ?
         {data: VerifyLicenceRequest},
         TContext
       > => {
-      return useMutation(getPostLicencesVerifyMutationOptions(options), queryClient);
+      return useMutation(getPostLicencesVerifyMutationOptions(options));
     }
 
 export type getLicencesVerifyPublicKeyResponse200 = {
@@ -1503,7 +1503,7 @@ export function useGetLicencesVerifyPublicKey<TData = Awaited<ReturnType<typeof 
 
   const queryOptions = getGetLicencesVerifyPublicKeyQueryOptions(options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -1610,7 +1610,7 @@ const {mutation: mutationOptions} = options ?
         {data: CreateProductRequest},
         TContext
       > => {
-      return useMutation(getPostProductsMutationOptions(options), queryClient);
+      return useMutation(getPostProductsMutationOptions(options));
     }
 
 export type getProductsResponse200 = {
@@ -1728,7 +1728,7 @@ export function useGetProducts<TData = Awaited<ReturnType<typeof getProducts>>, 
 
   const queryOptions = getGetProductsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -1852,7 +1852,7 @@ export function useGetProductsId<TData = Awaited<ReturnType<typeof getProductsId
 
   const queryOptions = getGetProductsIdQueryOptions(id,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -1954,7 +1954,7 @@ const {mutation: mutationOptions} = options ?
         {data: LoginRequest},
         TContext
       > => {
-      return useMutation(getPostSessionsMutationOptions(options), queryClient);
+      return useMutation(getPostSessionsMutationOptions(options));
     }
 
 export type deleteSessionsResponse204 = {
@@ -2037,7 +2037,7 @@ const {mutation: mutationOptions} = options ?
         void,
         TContext
       > => {
-      return useMutation(getDeleteSessionsMutationOptions(options), queryClient);
+      return useMutation(getDeleteSessionsMutationOptions(options));
     }
 
 export type postSessionsRefreshResponse200 = {
@@ -2125,7 +2125,7 @@ const {mutation: mutationOptions} = options ?
         void,
         TContext
       > => {
-      return useMutation(getPostSessionsRefreshMutationOptions(options), queryClient);
+      return useMutation(getPostSessionsRefreshMutationOptions(options));
     }
 
 export type deleteSessionsAllResponse204 = {
@@ -2208,7 +2208,7 @@ const {mutation: mutationOptions} = options ?
         void,
         TContext
       > => {
-      return useMutation(getDeleteSessionsAllMutationOptions(options), queryClient);
+      return useMutation(getDeleteSessionsAllMutationOptions(options));
     }
 
 export type postUsersResponse201 = {
@@ -2312,7 +2312,7 @@ const {mutation: mutationOptions} = options ?
         {data: CreateUserRequest},
         TContext
       > => {
-      return useMutation(getPostUsersMutationOptions(options), queryClient);
+      return useMutation(getPostUsersMutationOptions(options));
     }
 
 export type getUsersResponse200 = {
@@ -2435,7 +2435,7 @@ export function useGetUsers<TData = Awaited<ReturnType<typeof getUsers>>, TError
 
   const queryOptions = getGetUsersQueryOptions(params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -2564,7 +2564,7 @@ export function useGetUsersId<TData = Awaited<ReturnType<typeof getUsersId>>, TE
 
   const queryOptions = getGetUsersIdQueryOptions(id,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -2677,7 +2677,7 @@ const {mutation: mutationOptions} = options ?
         {id: string;data: UpdateUserStatusRequest},
         TContext
       > => {
-      return useMutation(getPatchUsersIdStatusMutationOptions(options), queryClient);
+      return useMutation(getPatchUsersIdStatusMutationOptions(options));
     }
 
 export type getUsersIdStatusHistoryResponse200 = {
@@ -2813,7 +2813,7 @@ export function useGetUsersIdStatusHistory<TData = Awaited<ReturnType<typeof get
 
   const queryOptions = getGetUsersIdStatusHistoryQueryOptions(id,params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -2932,7 +2932,7 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Pro
 
   const queryOptions = getGetMeQueryOptions(options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -3063,7 +3063,7 @@ export function useGetMeLicences<TData = Awaited<ReturnType<typeof getMeLicences
 
   const queryOptions = getGetMeLicencesQueryOptions(params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -3202,7 +3202,7 @@ export function useGetMeLicencesIdVerificationAttempts<TData = Awaited<ReturnTyp
 
   const queryOptions = getGetMeLicencesIdVerificationAttemptsQueryOptions(id,params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -3338,7 +3338,7 @@ export function useGetVerificationAttempts<TData = Awaited<ReturnType<typeof get
 
   const queryOptions = getGetVerificationAttemptsQueryOptions(params,options)
 
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }

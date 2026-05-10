@@ -4,7 +4,7 @@
  * LicenceBackend API
  * OpenAPI spec version: 1.0.0
  */
-export interface NullableOfJsonElement unknown | null
+export type NullableOfJsonElement = unknown | null
 
 export interface BindingHistoryEntryResponse {
   id: string;
