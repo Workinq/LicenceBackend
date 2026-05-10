@@ -18,7 +18,7 @@ namespace LicenceBackend.Tests.Api;
 public sealed class SessionsEndpointTests : IntegrationTestBase
 {
     [SkippableFact]
-    public async Task Login_with_valid_credentials_returns_access_and_refresh_tokens()
+    public async Task Login_with_valid_credentials_returns_access_token_and_user()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
@@ -28,9 +28,7 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadFromJsonAsync<SessionPayload>();
         Assert.NotNull(body);
         Assert.False(string.IsNullOrWhiteSpace(body.AccessToken));
-        Assert.False(string.IsNullOrWhiteSpace(body.RefreshToken));
         Assert.True(body.AccessTokenExpiresAt > DateTimeOffset.UtcNow);
-        Assert.True(body.RefreshTokenExpiresAt > body.AccessTokenExpiresAt);
         Assert.Equal(AdminEmail, body.User.Email);
         Assert.Equal("admin", body.User.Role);
     }
@@ -169,8 +167,6 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
     private sealed record SessionPayload(
         string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
-        string RefreshToken,
-        DateTimeOffset RefreshTokenExpiresAt,
         UserPayload User
     );
 
