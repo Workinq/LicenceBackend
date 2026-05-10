@@ -1,6 +1,7 @@
 // frontend/src/routes/_authed/route.tsx
 import { createFileRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useAccessTokenStore, type AuthUser } from '../../auth/access-token-store';
+import { useSilentRefresh } from '../../auth/use-silent-refresh';
 
 export const Route = createFileRoute('/_authed')({
   beforeLoad: async () => {
@@ -32,6 +33,7 @@ export const Route = createFileRoute('/_authed')({
 });
 
 function AuthedLayout() {
+  useSilentRefresh();
   const user = useAccessTokenStore((s) => s.user);
 
   const handleSignOut = async () => {
