@@ -103,7 +103,7 @@ public sealed class SessionRefreshCookieTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
         Assert.True(logout.Headers.TryGetValues("Set-Cookie", out var clearHeaders), "Expected Set-Cookie clearing the refresh cookie on logout-all.");
-        Assert.Contains(clearHeaders!, h => h.StartsWith("refresh_token=", StringComparison.Ordinal));
+        Assert.Contains(clearHeaders!, h => h.StartsWith("refresh_token=", StringComparison.Ordinal) && h.Contains("expires=", StringComparison.OrdinalIgnoreCase));
     }
 
     private sealed record LoginBody(

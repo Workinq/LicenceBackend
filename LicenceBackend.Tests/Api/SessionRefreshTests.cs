@@ -68,8 +68,8 @@ public sealed class SessionRefreshTests : IntegrationTestBase
         var logout = await firstLogin.Client.DeleteAsync("/sessions");
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
-        // The refresh token has been DB-revoked by logout; the cookie is still in the container
-        // but the server rejects it. (Cookie clearing via Set-Cookie is added in Task 8.)
+        // Logout cleared the cookie via past-expiry Set-Cookie AND DB-revoked the refresh token;
+        // either alone produces 401 here. The combination is the defense in depth.
         var dead = await firstLogin.Client.PostAsync("/sessions/refresh", content: null);
         Assert.Equal(HttpStatusCode.Unauthorized, dead.StatusCode);
 
