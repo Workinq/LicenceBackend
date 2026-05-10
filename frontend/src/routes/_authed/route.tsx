@@ -15,6 +15,7 @@ export const Route = createFileRoute('/_authed')({
       });
 
       if (!res.ok) {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({ to: '/login' });
       }
 
@@ -26,6 +27,7 @@ export const Route = createFileRoute('/_authed')({
       store.setSession(body.accessToken, new Date(body.accessTokenExpiresAt), body.user);
     } catch (err) {
       if (err instanceof Response || (err as { _isRedirect?: boolean })?._isRedirect) throw err;
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({ to: '/login' });
     }
   },
@@ -55,13 +57,13 @@ function AuthedLayout() {
         <div className="flex items-center gap-3">
           {user && <span className="text-sm text-ink-muted">{user.email}</span>}
           <button
-            onClick={handleSignOut}
+            onClick={() => { void handleSignOut(); }}
             className="rounded px-3 py-1.5 text-sm bg-ink text-surface-elevated hover:opacity-90"
           >
             Sign out
           </button>
           <button
-            onClick={handleSignOutAll}
+            onClick={() => { void handleSignOutAll(); }}
             className="rounded px-3 py-1.5 text-sm border border-border text-ink-muted hover:bg-surface-sunken"
           >
             Sign out everywhere

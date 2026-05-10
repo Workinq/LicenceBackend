@@ -11,7 +11,7 @@ beforeEach(() => {
     'fetch',
     vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         accessToken: 'new_tok',
         accessTokenExpiresAt: new Date(Date.now() + 900_000).toISOString(),
         user: {

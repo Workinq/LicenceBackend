@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/sessions': { target: 'https://localhost:5001', changeOrigin: true, secure: false },
+      '/sessions':  { target: 'https://localhost:5001', changeOrigin: true, secure: false },
       '/licences':  { target: 'https://localhost:5001', changeOrigin: true, secure: false },
       '/products':  { target: 'https://localhost:5001', changeOrigin: true, secure: false },
       '/users':     { target: 'https://localhost:5001', changeOrigin: true, secure: false },
