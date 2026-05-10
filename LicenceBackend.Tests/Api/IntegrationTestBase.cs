@@ -116,7 +116,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         UnauthedClient = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = HttpsBaseAddress,
-            HandleCookies = false
+            HandleCookies = true
         });
         AuthedClient = await CreateLoggedInClientAsync(AdminEmail, AdminPassword);
     }
