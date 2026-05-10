@@ -9,7 +9,7 @@ public sealed class MigrationFilenameConventionTests
     [Fact]
     public void Migration_filenames_match_NNN_snake_case_sql_pattern()
     {
-        var dir   = FindMigrationsDirectory();
+        var dir = FindMigrationsDirectory();
         var files = Directory.GetFiles(dir, "*.sql").Select(Path.GetFileName).ToList();
 
         Assert.NotEmpty(files);

@@ -8,9 +8,9 @@ namespace LicenceBackend.Infrastructure.Persistence;
 public sealed class UserStatusHistoryRepository(NpgsqlDataSource dataSource) : IUserStatusHistoryRepository
 {
     public async Task<PagedResult<UserStatusHistoryEntry>> ListForUserAsync(
-        Guid              userId,
-        int               limit,
-        int               offset,
+        Guid userId,
+        int limit,
+        int offset,
         CancellationToken cancellationToken)
     {
         const string sql = """
@@ -30,20 +30,20 @@ public sealed class UserStatusHistoryRepository(NpgsqlDataSource dataSource) : I
             new { UserId = userId, Limit = limit, Offset = offset },
             cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
-        var             rows  = (await multi.ReadAsync<HistoryRow>()).ToList();
-        var             total = await multi.ReadFirstAsync<int>();
+        var rows = (await multi.ReadAsync<HistoryRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<UserStatusHistoryEntry>(rows.Select(row => row.ToDomain()).ToList(), total);
     }
 
     private sealed record HistoryRow(
-        Guid     Id,
-        Guid     UserId,
-        string   PreviousStatus,
-        string   NewStatus,
-        Guid     ChangedBy,
+        Guid Id,
+        Guid UserId,
+        string PreviousStatus,
+        string NewStatus,
+        Guid ChangedBy,
         DateTime ChangedAt,
-        string?  Reason
+        string? Reason
     )
     {
         public UserStatusHistoryEntry ToDomain()
@@ -52,7 +52,7 @@ public sealed class UserStatusHistoryRepository(NpgsqlDataSource dataSource) : I
                 Id,
                 UserId,
                 Enum.Parse<UserStatus>(PreviousStatus, true),
-                Enum.Parse<UserStatus>(NewStatus,      true),
+                Enum.Parse<UserStatus>(NewStatus, true),
                 ChangedBy,
                 TimestampConversion.ToUtcOffset(ChangedAt),
                 Reason);

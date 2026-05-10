@@ -14,23 +14,23 @@ namespace LicenceBackend.Tests.Api;
 public sealed class PepperRotationTests : IntegrationTestBase
 {
     private byte[] _pepperV1Bytes = Array.Empty<byte>();
-    private string _pepperV1Path  = string.Empty;
+    private string _pepperV1Path = string.Empty;
     private byte[] _pepperV2Bytes = Array.Empty<byte>();
-    private string _pepperV2Path  = string.Empty;
+    private string _pepperV2Path = string.Empty;
 
     protected override void ApplyPreFactoryEnvironment()
     {
         _pepperV1Bytes = RandomNumberGenerator.GetBytes(32);
         _pepperV2Bytes = RandomNumberGenerator.GetBytes(32);
-        _pepperV1Path  = Path.Combine(TempDir, "pepper-v1.txt");
-        _pepperV2Path  = Path.Combine(TempDir, "pepper-v2.txt");
+        _pepperV1Path = Path.Combine(TempDir, "pepper-v1.txt");
+        _pepperV2Path = Path.Combine(TempDir, "pepper-v2.txt");
         File.WriteAllText(_pepperV1Path, Convert.ToBase64String(_pepperV1Bytes));
         File.WriteAllText(_pepperV2Path, Convert.ToBase64String(_pepperV2Bytes));
 
         Environment.SetEnvironmentVariable("Licence__Peppers__0__Version", "1");
-        Environment.SetEnvironmentVariable("Licence__Peppers__0__Path",    _pepperV1Path);
+        Environment.SetEnvironmentVariable("Licence__Peppers__0__Path", _pepperV1Path);
         Environment.SetEnvironmentVariable("Licence__Peppers__1__Version", "2");
-        Environment.SetEnvironmentVariable("Licence__Peppers__1__Path",    _pepperV2Path);
+        Environment.SetEnvironmentVariable("Licence__Peppers__1__Path", _pepperV2Path);
         Environment.SetEnvironmentVariable("Licence__ActivePepperVersion", "2");
     }
 
@@ -41,8 +41,8 @@ public sealed class PepperRotationTests : IntegrationTestBase
 
         var (productId, licenceKey) = await SeedLicenceWithPepperAsync(1);
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -51,7 +51,7 @@ public sealed class PepperRotationTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var slug            = "rot-pepper-" + Guid.NewGuid().ToString("N")[..8];
+        var slug = "rot-pepper-" + Guid.NewGuid().ToString("N")[..8];
         var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug, displayName = slug });
         productResponse.EnsureSuccessStatusCode();
         var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
@@ -61,7 +61,7 @@ public sealed class PepperRotationTests : IntegrationTestBase
         var created = await licenceResponse.Content.ReadFromJsonAsync<LicenceCreatedPayload>();
 
         await using var conn = await OpenDbAsync();
-        var             row  = await conn.QuerySingleAsync<short>("SELECT key_hmac_pepper_version FROM licences WHERE id = @Id;", new { created!.Id });
+        var row = await conn.QuerySingleAsync<short>("SELECT key_hmac_pepper_version FROM licences WHERE id = @Id;", new { created!.Id });
         Assert.Equal((short)2, row);
     }
 
@@ -73,8 +73,8 @@ public sealed class PepperRotationTests : IntegrationTestBase
         const string hwid = "device-pre-rotation";
         var (productId, licenceKey) = await SeedLicenceWithPepperAsync(1, (1, hwid));
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, hwid, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, hwid, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -103,20 +103,20 @@ public sealed class PepperRotationTests : IntegrationTestBase
         var (productId, licenceKey) = await SeedLicenceWithPepperAsync(2, (1, hwid));
 
         var savedV1Version = Environment.GetEnvironmentVariable("Licence__Peppers__0__Version");
-        var savedV1Path    = Environment.GetEnvironmentVariable("Licence__Peppers__0__Path");
+        var savedV1Path = Environment.GetEnvironmentVariable("Licence__Peppers__0__Path");
         var savedV2Version = Environment.GetEnvironmentVariable("Licence__Peppers__1__Version");
-        var savedV2Path    = Environment.GetEnvironmentVariable("Licence__Peppers__1__Path");
+        var savedV2Path = Environment.GetEnvironmentVariable("Licence__Peppers__1__Path");
         try
         {
             Environment.SetEnvironmentVariable("Licence__Peppers__0__Version", "2");
-            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path",    _pepperV2Path);
+            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path", _pepperV2Path);
             Environment.SetEnvironmentVariable("Licence__Peppers__1__Version", null);
-            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path",    null);
+            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path", null);
 
             await using var trimmedFactory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
 
-            using var client   = trimmedFactory.CreateClient();
-            var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, hwid, clientNonce = GenerateClientNonce() });
+            using var client = trimmedFactory.CreateClient();
+            var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, hwid, clientNonce = GenerateClientNonce() });
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             Assert.Contains("invalid_licence", body);
@@ -127,9 +127,9 @@ public sealed class PepperRotationTests : IntegrationTestBase
         finally
         {
             Environment.SetEnvironmentVariable("Licence__Peppers__0__Version", savedV1Version);
-            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path",    savedV1Path);
+            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path", savedV1Path);
             Environment.SetEnvironmentVariable("Licence__Peppers__1__Version", savedV2Version);
-            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path",    savedV2Path);
+            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path", savedV2Path);
         }
     }
 
@@ -142,21 +142,21 @@ public sealed class PepperRotationTests : IntegrationTestBase
 
         // Spin an alternate factory configured with only v2 in the pepper set.
         var savedV1Version = Environment.GetEnvironmentVariable("Licence__Peppers__0__Version");
-        var savedV1Path    = Environment.GetEnvironmentVariable("Licence__Peppers__0__Path");
+        var savedV1Path = Environment.GetEnvironmentVariable("Licence__Peppers__0__Path");
         var savedV2Version = Environment.GetEnvironmentVariable("Licence__Peppers__1__Version");
-        var savedV2Path    = Environment.GetEnvironmentVariable("Licence__Peppers__1__Path");
+        var savedV2Path = Environment.GetEnvironmentVariable("Licence__Peppers__1__Path");
         try
         {
             Environment.SetEnvironmentVariable("Licence__Peppers__0__Version", "2");
-            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path",    _pepperV2Path);
+            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path", _pepperV2Path);
             Environment.SetEnvironmentVariable("Licence__Peppers__1__Version", null);
-            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path",    null);
+            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path", null);
 
             await using var trimmedFactory = new WebApplicationFactory<Program>()
                 .WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
 
-            using var client   = trimmedFactory.CreateClient();
-            var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+            using var client = trimmedFactory.CreateClient();
+            var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             Assert.Contains("invalid_licence", body);
@@ -167,9 +167,9 @@ public sealed class PepperRotationTests : IntegrationTestBase
         finally
         {
             Environment.SetEnvironmentVariable("Licence__Peppers__0__Version", savedV1Version);
-            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path",    savedV1Path);
+            Environment.SetEnvironmentVariable("Licence__Peppers__0__Path", savedV1Path);
             Environment.SetEnvironmentVariable("Licence__Peppers__1__Version", savedV2Version);
-            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path",    savedV2Path);
+            Environment.SetEnvironmentVariable("Licence__Peppers__1__Path", savedV2Path);
         }
     }
 
@@ -184,7 +184,7 @@ public sealed class PepperRotationTests : IntegrationTestBase
     }
 
     private async Task<(Guid ProductId, string LicenceKey)> SeedLicenceWithPepperAsync(
-        short                         version,
+        short version,
         (short Version, string Hwid)? pinnedHwidUnderVersion = null)
     {
         var (productId, licenceKey, _) = await SeedLicenceWithPepperReturningIdAsync(version, pinnedHwidUnderVersion);
@@ -192,7 +192,7 @@ public sealed class PepperRotationTests : IntegrationTestBase
     }
 
     private async Task<(Guid ProductId, string LicenceKey, Guid LicenceId)> SeedLicenceWithPepperReturningIdAsync(
-        short                         version,
+        short version,
         (short Version, string Hwid)? pinnedHwidUnderVersion = null)
     {
         var pepperSet = new HmacPepperSet(
@@ -203,23 +203,23 @@ public sealed class PepperRotationTests : IntegrationTestBase
             },
             version);
 
-        var keyGen     = new LicenceKeyGenerator();
-        var hasher     = new HmacLicenceKeyHasher(pepperSet);
+        var keyGen = new LicenceKeyGenerator();
+        var hasher = new HmacLicenceKeyHasher(pepperSet);
         var licenceKey = keyGen.Generate();
-        var hashed     = hasher.HashWithActive(licenceKey);
+        var hashed = hasher.HashWithActive(licenceKey);
 
-        byte[]? hwidHmac    = null;
-        short?  hwidVersion = null;
+        byte[]? hwidHmac = null;
+        short? hwidVersion = null;
         if (pinnedHwidUnderVersion is { Version: var hv, Hwid: var hwidValue })
         {
             var hwidPepper = PepperFor(hv);
-            hwidHmac    = HMACSHA256.HashData(hwidPepper, Encoding.UTF8.GetBytes(hwidValue.Trim()));
+            hwidHmac = HMACSHA256.HashData(hwidPepper, Encoding.UTF8.GetBytes(hwidValue.Trim()));
             hwidVersion = hv;
         }
 
         var productId = Guid.NewGuid();
         var licenceId = Guid.NewGuid();
-        var slug      = "pepper-rot-" + Guid.NewGuid().ToString("N")[..8];
+        var slug = "pepper-rot-" + Guid.NewGuid().ToString("N")[..8];
 
         await using var conn = await OpenDbAsync();
         await conn.ExecuteAsync(
@@ -234,12 +234,12 @@ public sealed class PepperRotationTests : IntegrationTestBase
             """,
             new
             {
-                Id                    = licenceId,
-                ProductId             = productId,
-                UserId                = AdminUserId,
-                KeyHmac               = hashed.Hmac,
-                KeyHmacPepperVersion  = hashed.PepperVersion,
-                HwidHmac              = hwidHmac,
+                Id = licenceId,
+                ProductId = productId,
+                UserId = AdminUserId,
+                KeyHmac = hashed.Hmac,
+                KeyHmacPepperVersion = hashed.PepperVersion,
+                HwidHmac = hwidHmac,
                 HwidHmacPepperVersion = hwidVersion
             });
 

@@ -28,7 +28,7 @@ public sealed class RateLimitingTests : IntegrationTestBase
         // Use fresh signing keys + unique kids so the Microsoft.IdentityModel signature-provider cache
         // (process-wide, keyed by kid) doesn't collide with other test classes' cached providers.
         var sessionPem = Path.Combine(TempDir, "rl-session-signing.pem");
-        var verifyPem  = Path.Combine(TempDir, "rl-licence-verify-signing.pem");
+        var verifyPem = Path.Combine(TempDir, "rl-licence-verify-signing.pem");
         using (var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
         {
             File.WriteAllText(sessionPem, ecdsa.ExportPkcs8PrivateKeyPem());
@@ -39,25 +39,25 @@ public sealed class RateLimitingTests : IntegrationTestBase
             File.WriteAllText(verifyPem, ecdsa.ExportPkcs8PrivateKeyPem());
         }
 
-        Environment.SetEnvironmentVariable("RateLimiting__Enabled",                        "true");
-        Environment.SetEnvironmentVariable("RateLimiting__Login__PermitLimit",             PermitLimit.ToString());
-        Environment.SetEnvironmentVariable("RateLimiting__Login__WindowSeconds",           "60");
-        Environment.SetEnvironmentVariable("RateLimiting__Refresh__PermitLimit",           PermitLimit.ToString());
-        Environment.SetEnvironmentVariable("RateLimiting__Refresh__WindowSeconds",         "60");
-        Environment.SetEnvironmentVariable("RateLimiting__Verify__PermitLimit",            PermitLimit.ToString());
-        Environment.SetEnvironmentVariable("RateLimiting__Verify__WindowSeconds",          "60");
-        Environment.SetEnvironmentVariable("RateLimiting__VerifyPublicKey__PermitLimit",   PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Enabled", "true");
+        Environment.SetEnvironmentVariable("RateLimiting__Login__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Login__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("RateLimiting__Refresh__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Refresh__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("RateLimiting__Verify__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Verify__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("RateLimiting__VerifyPublicKey__PermitLimit", PermitLimit.ToString());
         Environment.SetEnvironmentVariable("RateLimiting__VerifyPublicKey__WindowSeconds", "60");
-        Environment.SetEnvironmentVariable("RateLimiting__Admin__PermitLimit",             PermitLimit.ToString());
-        Environment.SetEnvironmentVariable("RateLimiting__Admin__WindowSeconds",           "60");
+        Environment.SetEnvironmentVariable("RateLimiting__Admin__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Admin__WindowSeconds", "60");
         var sessionKid = "rl-session-" + Guid.NewGuid().ToString("N");
-        var verifyKid  = "rl-verify-"  + Guid.NewGuid().ToString("N");
-        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid",                  sessionKid);
-        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath",       sessionPem);
-        Environment.SetEnvironmentVariable("SessionSigning__ActiveKid",                     sessionKid);
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__Kid",            verifyKid);
+        var verifyKid = "rl-verify-" + Guid.NewGuid().ToString("N");
+        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid", sessionKid);
+        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath", sessionPem);
+        Environment.SetEnvironmentVariable("SessionSigning__ActiveKid", sessionKid);
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__Kid", verifyKid);
         Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__PrivateKeyPath", verifyPem);
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__ActiveKid",               verifyKid);
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__ActiveKid", verifyKid);
     }
 
     [SkippableFact]
@@ -69,7 +69,7 @@ public sealed class RateLimitingTests : IntegrationTestBase
         await SeedUserAsync(email, "rate-limit-user-pw-12345", "user");
 
         using var client = ClientFromIp("203.0.113.10");
-        var       first  = await client.PostAsJsonAsync("/sessions", new { email, password = "wrong" });
+        var first = await client.PostAsJsonAsync("/sessions", new { email, password = "wrong" });
         Assert.Equal(HttpStatusCode.Unauthorized, first.StatusCode);
         var second = await client.PostAsJsonAsync("/sessions", new { email, password = "wrong" });
         Assert.Equal(HttpStatusCode.Unauthorized, second.StatusCode);
@@ -119,7 +119,7 @@ public sealed class RateLimitingTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.TooManyRequests, capped.StatusCode);
 
         using var clientIp2 = ClientFromIp("203.0.113.21");
-        var       fresh     = await clientIp2.PostAsJsonAsync("/sessions", new { email, password = "wrong" });
+        var fresh = await clientIp2.PostAsJsonAsync("/sessions", new { email, password = "wrong" });
         Assert.Equal(HttpStatusCode.Unauthorized, fresh.StatusCode);
     }
 
@@ -190,11 +190,11 @@ public sealed class RateLimitingTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.TooManyRequests, capped.StatusCode);
 
         // A second admin hits a different user bucket.
-        const string secondAdminEmail    = "admin-rl-second@test.local";
+        const string secondAdminEmail = "admin-rl-second@test.local";
         const string secondAdminPassword = "second-admin-rl-pw-12345";
         await SeedUserAsync(secondAdminEmail, secondAdminPassword, "admin");
         using var secondAdmin = await CreateLoggedInAsIpAsync(secondAdminEmail, secondAdminPassword, "10.9.0.2");
-        var       fresh       = await secondAdmin.GetAsync("/licences");
+        var fresh = await secondAdmin.GetAsync("/licences");
         Assert.Equal(HttpStatusCode.OK, fresh.StatusCode);
     }
 
@@ -203,7 +203,7 @@ public sealed class RateLimitingTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        const string email    = "me-rl@test.local";
+        const string email = "me-rl@test.local";
         const string password = "me-rl-pw-12345";
         await SeedUserAsync(email, password, "user");
 
@@ -242,9 +242,9 @@ public sealed class RateLimitingTests : IntegrationTestBase
 
     private async Task SeedUserAsync(string email, string password, string role)
     {
-        var             hasher = new Argon2IdPasswordHasher();
-        var             hash   = hasher.Hash(password);
-        await using var conn   = await OpenDbAsync();
+        var hasher = new Argon2IdPasswordHasher();
+        var hash = hasher.Hash(password);
+        await using var conn = await OpenDbAsync();
         await conn.ExecuteAsync(
             """
             INSERT INTO users (id, email, email_lower, password_hash, display_name, role, status, created_at, updated_at)
@@ -252,11 +252,11 @@ public sealed class RateLimitingTests : IntegrationTestBase
             """,
             new
             {
-                Id         = Guid.NewGuid(),
-                Email      = email,
+                Id = Guid.NewGuid(),
+                Email = email,
                 EmailLower = email.ToLowerInvariant(),
-                Hash       = hash,
-                Role       = role
+                Hash = hash,
+                Role = role
             });
     }
 
@@ -266,15 +266,15 @@ public sealed class RateLimitingTests : IntegrationTestBase
         var pepperPath = Environment.GetEnvironmentVariable("Licence__Peppers__0__Path")
                          ?? throw new InvalidOperationException("Pepper path env var missing.");
         var pepperVersion = short.Parse(Environment.GetEnvironmentVariable("Licence__Peppers__0__Version") ?? "1");
-        var pepperText    = (await File.ReadAllTextAsync(pepperPath)).Trim();
-        var pepper        = Convert.FromBase64String(pepperText);
-        var pepperSet     = new HmacPepperSet(new Dictionary<short, byte[]> { [pepperVersion] = pepper }, pepperVersion);
-        var hasher        = new HmacLicenceKeyHasher(pepperSet);
-        var pepperedHmac  = hasher.HashWithActive(key);
+        var pepperText = (await File.ReadAllTextAsync(pepperPath)).Trim();
+        var pepper = Convert.FromBase64String(pepperText);
+        var pepperSet = new HmacPepperSet(new Dictionary<short, byte[]> { [pepperVersion] = pepper }, pepperVersion);
+        var hasher = new HmacLicenceKeyHasher(pepperSet);
+        var pepperedHmac = hasher.HashWithActive(key);
 
-        var             productId = Guid.NewGuid();
-        var             licenceId = Guid.NewGuid();
-        await using var conn      = await OpenDbAsync();
+        var productId = Guid.NewGuid();
+        var licenceId = Guid.NewGuid();
+        await using var conn = await OpenDbAsync();
         await conn.ExecuteAsync(
             """
             INSERT INTO products (id, slug, display_name, created_at)
@@ -288,10 +288,10 @@ public sealed class RateLimitingTests : IntegrationTestBase
             """,
             new
             {
-                LicenceId            = licenceId,
-                ProductId            = productId,
-                UserId               = AdminUserId,
-                KeyHmac              = pepperedHmac.Hmac,
+                LicenceId = licenceId,
+                ProductId = productId,
+                UserId = AdminUserId,
+                KeyHmac = pepperedHmac.Hmac,
                 KeyHmacPepperVersion = pepperedHmac.PepperVersion
             });
         return (productId, key);

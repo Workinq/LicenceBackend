@@ -10,19 +10,19 @@ public sealed class UserSuspensionTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var email      = "suspend-target@test.local";
-        var password   = "suspend-target-pw-12345";
+        var email = "suspend-target@test.local";
+        var password = "suspend-target-pw-12345";
         var createUser = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
         var user = await createUser.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(user);
 
         var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug = "suspendable", displayName = "Suspendable" });
-        var product         = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
+        var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
         Assert.NotNull(product);
 
         var licenceResponse = await AuthedClient.PostAsJsonAsync("/licences", new { productId = product.Id, userId = user.Id });
-        var licence         = await licenceResponse.Content.ReadFromJsonAsync<LicencePayload>();
+        var licence = await licenceResponse.Content.ReadFromJsonAsync<LicencePayload>();
         Assert.NotNull(licence);
 
         using (var targetClient = await CreateLoggedInClientAsync(email, password))
@@ -77,9 +77,9 @@ public sealed class UserSuspensionTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var email  = "idempotent@test.local";
+        var email = "idempotent@test.local";
         var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password = "idempotent-pw-12345", role = "user" });
-        var user   = await create.Content.ReadFromJsonAsync<UserPayload>();
+        var user = await create.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(user);
 
         var reactivate = await AuthedClient.PatchAsJsonAsync($"/users/{user.Id}/status", new { status = "active" });
@@ -95,24 +95,24 @@ public sealed class UserSuspensionTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var email  = "history@test.local";
+        var email = "history@test.local";
         var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password = "history-pw-12345", role = "user" });
-        var user   = await create.Content.ReadFromJsonAsync<UserPayload>();
+        var user = await create.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(user);
 
         await AuthedClient.PatchAsJsonAsync($"/users/{user.Id}/status", new { status = "suspended", reason = "billing" });
-        await AuthedClient.PatchAsJsonAsync($"/users/{user.Id}/status",  new { status = "active" });
+        await AuthedClient.PatchAsJsonAsync($"/users/{user.Id}/status", new { status = "active" });
 
         var history = await AuthedClient.GetFromJsonAsync<PagedHistoryPayload>($"/users/{user.Id}/status-history");
 
         Assert.NotNull(history);
         Assert.Equal(2, history.Total);
-        Assert.Equal("active",    history.Items[0].NewStatus);
+        Assert.Equal("active", history.Items[0].NewStatus);
         Assert.Equal("suspended", history.Items[0].PreviousStatus);
         Assert.Equal("suspended", history.Items[1].NewStatus);
-        Assert.Equal("billing",   history.Items[1].Reason);
+        Assert.Equal("billing", history.Items[1].Reason);
         Assert.All(history.Items, h => Assert.Equal(AdminUserId, h.ChangedBy));
-        Assert.All(history.Items, h => Assert.Equal(AdminEmail,  h.ChangedByEmail));
+        Assert.All(history.Items, h => Assert.Equal(AdminEmail, h.ChangedByEmail));
     }
 
     [SkippableFact]
@@ -125,8 +125,8 @@ public sealed class UserSuspensionTests : IntegrationTestBase
 
     private async Task AssertVerifyEndpoint(HttpStatusCode expected, Guid productId, string licenceKey)
     {
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(expected, response.StatusCode);
     }
 
@@ -137,13 +137,13 @@ public sealed class UserSuspensionTests : IntegrationTestBase
     private sealed record LicencePayload(Guid Id, Guid ProductId, string LicenceKey);
 
     private sealed record HistoryPayload(
-        Guid           Id,
-        string         PreviousStatus,
-        string         NewStatus,
-        Guid           ChangedBy,
-        string?        ChangedByEmail,
+        Guid Id,
+        string PreviousStatus,
+        string NewStatus,
+        Guid ChangedBy,
+        string? ChangedByEmail,
         DateTimeOffset ChangedAt,
-        string?        Reason
+        string? Reason
     );
 
     private sealed record PagedHistoryPayload(IReadOnlyList<HistoryPayload> Items, int Total, int Limit, int Offset);

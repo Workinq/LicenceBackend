@@ -40,8 +40,8 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                             LIMIT 1;
                             """;
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken);
-        var             row        = await connection.QuerySingleOrDefaultAsync<LicenceRow>(command);
+        var command = new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<LicenceRow>(command);
         return row?.ToDomain();
     }
 
@@ -74,11 +74,11 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     }
 
     public async Task<PagedResult<Licence>> ListAsync(
-        Guid?             productId,
-        Guid?             userId,
-        LicenceStatus?    status,
-        int               limit,
-        int               offset,
+        Guid? productId,
+        Guid? userId,
+        LicenceStatus? status,
+        int limit,
+        int offset,
         CancellationToken cancellationToken)
     {
         const string sql = $"""
@@ -99,26 +99,26 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         var parameters = new
         {
             ProductId = productId,
-            UserId    = userId,
-            Status    = status?.ToString().ToLowerInvariant(),
-            Limit     = limit,
-            Offset    = offset
+            UserId = userId,
+            Status = status?.ToString().ToLowerInvariant(),
+            Limit = limit,
+            Offset = offset
         };
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
-        await using var multi      = await connection.QueryMultipleAsync(command);
-        var             rows       = (await multi.ReadAsync<LicenceRow>()).ToList();
-        var             total      = await multi.ReadFirstAsync<int>();
+        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<LicenceRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<Licence>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
     public async Task<Licence?> UpdateStatusAsync(
-        Guid              licenceId,
-        LicenceStatus     newStatus,
-        Guid              changedBy,
-        string?           reason,
+        Guid licenceId,
+        LicenceStatus newStatus,
+        Guid changedBy,
+        string? reason,
         CancellationToken cancellationToken)
     {
         const string selectSql = $"""
@@ -149,7 +149,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         var currentStatus = Enum.Parse<LicenceStatus>(currentRow.Status, true);
         if (currentStatus == newStatus) return currentRow.ToDomain();
 
-        var newStatusText      = newStatus.ToString().ToLowerInvariant();
+        var newStatusText = newStatus.ToString().ToLowerInvariant();
         var previousStatusText = currentStatus.ToString().ToLowerInvariant();
 
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -166,12 +166,12 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                               insertHistorySql,
                                               new
                                               {
-                                                  Id             = Guid.NewGuid(),
-                                                  LicenceId      = licenceId,
+                                                  Id = Guid.NewGuid(),
+                                                  LicenceId = licenceId,
                                                   PreviousStatus = previousStatusText,
-                                                  NewStatus      = newStatusText,
-                                                  ChangedBy      = changedBy,
-                                                  Reason         = reason
+                                                  NewStatus = newStatusText,
+                                                  ChangedBy = changedBy,
+                                                  Reason = reason
                                               },
                                               transaction,
                                               cancellationToken: cancellationToken));
@@ -187,10 +187,10 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     }
 
     public async Task<PagedResult<Licence>> ListForOwnerAsync(
-        Guid              ownerId,
-        LicenceStatus?    status,
-        int               limit,
-        int               offset,
+        Guid ownerId,
+        LicenceStatus? status,
+        int limit,
+        int offset,
         CancellationToken cancellationToken)
     {
         const string sql = $"""
@@ -209,27 +209,27 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         var parameters = new
         {
             OwnerId = ownerId,
-            Status  = status?.ToString().ToLowerInvariant(),
-            Limit   = limit,
-            Offset  = offset
+            Status = status?.ToString().ToLowerInvariant(),
+            Limit = limit,
+            Offset = offset
         };
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
-        await using var multi      = await connection.QueryMultipleAsync(command);
-        var             rows       = (await multi.ReadAsync<LicenceRow>()).ToList();
-        var             total      = await multi.ReadFirstAsync<int>();
+        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<LicenceRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<Licence>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
     public async Task<PinHwidResult> PinHwidAndRecordAttemptAsync(
-        Guid                       licenceId,
-        byte[]                     hwidHmac,
-        short                      hwidHmacPepperVersion,
-        string                     sourceIp,
+        Guid licenceId,
+        byte[] hwidHmac,
+        short hwidHmacPepperVersion,
+        string sourceIp,
         LicenceVerificationAttempt approvedAttempt,
-        CancellationToken          cancellationToken)
+        CancellationToken cancellationToken)
     {
         const string updateSql = """
                                  UPDATE licences
@@ -250,7 +250,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                         );
                                         """;
 
-        await using var connection  = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         try
         {
@@ -294,7 +294,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                                   approvedAttempt.ProductIdRequested,
                                                   approvedAttempt.HwidHmac,
                                                   approvedAttempt.SourceIp,
-                                                  Outcome      = LicenceVerificationAttemptRepository.OutcomeToString(approvedAttempt.Outcome),
+                                                  Outcome = LicenceVerificationAttemptRepository.OutcomeToString(approvedAttempt.Outcome),
                                                   DenialReason = LicenceVerificationAttemptRepository.DenialReasonToString(approvedAttempt.DenialReason),
                                                   approvedAttempt.AttemptedAt
                                               },
@@ -312,9 +312,9 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     }
 
     public async Task<Licence?> ClearHwidAsync(
-        Guid              licenceId,
-        Guid              changedByUserId,
-        string?           reason,
+        Guid licenceId,
+        Guid changedByUserId,
+        string? reason,
         CancellationToken cancellationToken)
     {
         const string selectSql = $"""
@@ -372,11 +372,11 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     }
 
     public async Task<Licence?> UpdateIpAllowlistAsync(
-        Guid                   licenceId,
+        Guid licenceId,
         IReadOnlyList<string>? cidrs,
-        Guid                   changedByUserId,
-        string?                reason,
-        CancellationToken      cancellationToken)
+        Guid changedByUserId,
+        string? reason,
+        CancellationToken cancellationToken)
     {
         const string selectSql = $"""
                                   SELECT {LicenceColumns}
@@ -398,7 +398,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                              new CommandDefinition(selectSql, new { Id = licenceId }, cancellationToken: cancellationToken));
         if (currentRow is null) return null;
 
-        var newJson      = cidrs is null ? null : JsonSerializer.Serialize(cidrs);
+        var newJson = cidrs is null ? null : JsonSerializer.Serialize(cidrs);
         var previousJson = currentRow.IpAllowlist;
 
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -434,16 +434,16 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     }
 
     private static async Task InsertBindingHistoryAsync(
-        IDbConnection       connection,
-        IDbTransaction      transaction,
-        Guid                licenceId,
-        LicenceBindingType  bindingType,
-        string?             previousValueJson,
-        string?             newValueJson,
+        IDbConnection connection,
+        IDbTransaction transaction,
+        Guid licenceId,
+        LicenceBindingType bindingType,
+        string? previousValueJson,
+        string? newValueJson,
         BindingChangeSource source,
-        Guid?               changedByUserId,
-        string?             reason,
-        CancellationToken   cancellationToken)
+        Guid? changedByUserId,
+        string? reason,
+        CancellationToken cancellationToken)
     {
         const string sql = """
                            INSERT INTO licence_binding_history (
@@ -459,14 +459,14 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                           sql,
                                           new
                                           {
-                                              Id              = Guid.NewGuid(),
-                                              LicenceId       = licenceId,
-                                              BindingType     = BindingTypeToString(bindingType),
-                                              PreviousValue   = previousValueJson,
-                                              NewValue        = newValueJson,
-                                              ChangeSource    = ChangeSourceToString(source),
+                                              Id = Guid.NewGuid(),
+                                              LicenceId = licenceId,
+                                              BindingType = BindingTypeToString(bindingType),
+                                              PreviousValue = previousValueJson,
+                                              NewValue = newValueJson,
+                                              ChangeSource = ChangeSourceToString(source),
                                               ChangedByUserId = changedByUserId,
-                                              Reason          = reason
+                                              Reason = reason
                                           },
                                           transaction,
                                           cancellationToken: cancellationToken));
@@ -476,9 +476,9 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     {
         return type switch
         {
-            LicenceBindingType.Hwid        => "hwid",
+            LicenceBindingType.Hwid => "hwid",
             LicenceBindingType.IpAllowlist => "ip_allowlist",
-            _                              => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
 
@@ -486,33 +486,33 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     {
         return source switch
         {
-            BindingChangeSource.Admin    => "admin",
+            BindingChangeSource.Admin => "admin",
             BindingChangeSource.FirstUse => "first_use",
-            _                            => throw new ArgumentOutOfRangeException(nameof(source), source, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
         };
     }
 
     private sealed record HwidHistoryValue(string HwidHmacBase64, string? SourceIp);
 
     private sealed record LicenceRow(
-        Guid      Id,
-        Guid      ProductId,
-        Guid      UserId,
-        byte[]    KeyHmac,
-        short     KeyHmacPepperVersion,
-        string    Status,
+        Guid Id,
+        Guid ProductId,
+        Guid UserId,
+        byte[] KeyHmac,
+        short KeyHmacPepperVersion,
+        string Status,
         DateTime? ExpiresAt,
-        string?   Notes,
-        byte[]?   HwidHmac,
-        short?    HwidHmacPepperVersion,
-        string?   IpAllowlist,
-        DateTime  CreatedAt,
-        DateTime  UpdatedAt
+        string? Notes,
+        byte[]? HwidHmac,
+        short? HwidHmacPepperVersion,
+        string? IpAllowlist,
+        DateTime CreatedAt,
+        DateTime UpdatedAt
     )
     {
         public Licence ToDomain()
         {
-            IReadOnlyList<string>? allowlist                  = null;
+            IReadOnlyList<string>? allowlist = null;
             if (!string.IsNullOrEmpty(IpAllowlist)) allowlist = JsonSerializer.Deserialize<List<string>>(IpAllowlist);
 
             return new Licence(

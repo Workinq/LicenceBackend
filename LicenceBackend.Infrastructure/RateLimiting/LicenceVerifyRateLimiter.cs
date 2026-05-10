@@ -6,7 +6,7 @@ namespace LicenceBackend.Infrastructure.RateLimiting;
 
 public sealed class LicenceVerifyRateLimiter : ILicenceVerifyRateLimiter, IDisposable
 {
-    private readonly bool                            _enabled;
+    private readonly bool _enabled;
     private readonly PartitionedRateLimiter<string>? _limiter;
 
     public LicenceVerifyRateLimiter(IOptions<RateLimitingOptions> options)
@@ -18,12 +18,12 @@ public sealed class LicenceVerifyRateLimiter : ILicenceVerifyRateLimiter, IDispo
         _limiter = PartitionedRateLimiter.Create<string, string>(key =>
                                                                      RateLimitPartition.GetSlidingWindowLimiter(key, _ => new SlidingWindowRateLimiterOptions
                                                                      {
-                                                                         PermitLimit          = opts.Verify.PermitLimit,
-                                                                         Window               = TimeSpan.FromSeconds(opts.Verify.WindowSeconds),
-                                                                         SegmentsPerWindow    = 6,
-                                                                         QueueLimit           = 0,
+                                                                         PermitLimit = opts.Verify.PermitLimit,
+                                                                         Window = TimeSpan.FromSeconds(opts.Verify.WindowSeconds),
+                                                                         SegmentsPerWindow = 6,
+                                                                         QueueLimit = 0,
                                                                          QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                                                                         AutoReplenishment    = true
+                                                                         AutoReplenishment = true
                                                                      }));
     }
 
@@ -39,7 +39,7 @@ public sealed class LicenceVerifyRateLimiter : ILicenceVerifyRateLimiter, IDispo
         using var lease = _limiter.AttemptAcquire(licenceKey);
         if (lease.IsAcquired) return ValueTask.FromResult(RateLimitDecision.Allow);
 
-        TimeSpan? retryAfter                                                            = null;
+        TimeSpan? retryAfter = null;
         if (lease.TryGetMetadata(MetadataName.RetryAfter, out var metadata)) retryAfter = metadata;
         return ValueTask.FromResult(new RateLimitDecision(false, retryAfter));
     }

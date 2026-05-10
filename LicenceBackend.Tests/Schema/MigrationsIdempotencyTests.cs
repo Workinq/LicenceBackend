@@ -10,7 +10,7 @@ public sealed class MigrationsIdempotencyTests : IntegrationTestBase
     public void Migrations_second_run_against_already_migrated_db_is_noop()
     {
         var migrationsDir = FindRepoDirectory("migrations");
-        var result        = SchemaMigrator.Run(ConnectionString, migrationsDir, NullLogger.Instance);
+        var result = SchemaMigrator.Run(ConnectionString, migrationsDir, NullLogger.Instance);
 
         Assert.True(result.Successful, $"Migrator failed: {result.Error}");
         Assert.Empty(result.Scripts);

@@ -1,9 +1,9 @@
 namespace LicenceBackend.Api.Models.Response;
 
 public sealed record SessionResponse(
-    string         AccessToken,
+    string AccessToken,
     DateTimeOffset AccessTokenExpiresAt,
-    string         RefreshToken,
+    string RefreshToken,
     DateTimeOffset RefreshTokenExpiresAt,
-    UserResponse   User
+    UserResponse User
 );

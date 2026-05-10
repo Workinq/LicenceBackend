@@ -17,7 +17,7 @@ public sealed class HealthController(NpgsqlDataSource dataSource, ILogger<Health
         try
         {
             await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-            await using var command    = connection.CreateCommand();
+            await using var command = connection.CreateCommand();
             command.CommandText = "SELECT 1;";
             await command.ExecuteScalarAsync(cancellationToken);
             return Ok(new HealthResponse("ok", "ok"));

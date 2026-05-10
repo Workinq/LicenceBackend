@@ -7,13 +7,13 @@ using LicenceBackend.Infrastructure.Crypto;
 using LicenceBackend.Infrastructure.Persistence;
 using Npgsql;
 
-const string secretsDir             = "./secrets";
-const string sessionKeyPrefix       = "session-signing-key";
+const string secretsDir = "./secrets";
+const string sessionKeyPrefix = "session-signing-key";
 const string licenceVerifyKeyPrefix = "licence-verify-signing-key";
-const string pepperPrefix           = "licence-key-pepper";
-const string defaultMigrationsPath  = "./migrations";
-const string connEnvVar             = "LICENCEBACKEND_POSTGRES";
-const string passwordAlphabet       = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"; // gitleaks:allow
+const string pepperPrefix = "licence-key-pepper";
+const string defaultMigrationsPath = "./migrations";
+const string connEnvVar = "LICENCEBACKEND_POSTGRES";
+const string passwordAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"; // gitleaks:allow
 
 if (args.Length == 0)
 {
@@ -25,19 +25,19 @@ try
 {
     return args[0] switch
     {
-        "init-secrets"              => await InitSecretsAsync(args),
-        "rotate-session-key"        => await RotateSigningKeyAsync(args, "SessionSigning",       sessionKeyPrefix,       "session"),
+        "init-secrets" => await InitSecretsAsync(args),
+        "rotate-session-key" => await RotateSigningKeyAsync(args, "SessionSigning", sessionKeyPrefix, "session"),
         "rotate-licence-verify-key" => await RotateSigningKeyAsync(args, "LicenceVerifySigning", licenceVerifyKeyPrefix, "licence-verify"),
-        "rotate-pepper"             => await RotatePepperAsync(args),
-        "migrate"                   => await MigrateAsync(),
-        "migrate-status"            => await MigrateStatusAsync(),
-        "seed-dev"                  => await SeedDevAsync(),
-        "create-admin"              => await CreateAdminAsync(args),
-        "list-users"                => await ListUsersAsync(args),
-        "disable-user"              => await DisableUserAsync(args),
-        "reset-password"            => await ResetPasswordAsync(args),
-        "--help" or "-h" or "help"  => PrintUsageReturn(),
-        _                           => UnknownCommand(args[0])
+        "rotate-pepper" => await RotatePepperAsync(args),
+        "migrate" => await MigrateAsync(),
+        "migrate-status" => await MigrateStatusAsync(),
+        "seed-dev" => await SeedDevAsync(),
+        "create-admin" => await CreateAdminAsync(args),
+        "list-users" => await ListUsersAsync(args),
+        "disable-user" => await DisableUserAsync(args),
+        "reset-password" => await ResetPasswordAsync(args),
+        "--help" or "-h" or "help" => PrintUsageReturn(),
+        _ => UnknownCommand(args[0])
     };
 }
 catch (Exception ex)
@@ -89,9 +89,9 @@ async Task<int> InitSecretsAsync(string[] cmdArgs)
     var force = cmdArgs.Contains("--force");
     Directory.CreateDirectory(secretsDir);
 
-    var sessionV1       = Path.Combine(secretsDir, $"{sessionKeyPrefix}-v1.pem");
+    var sessionV1 = Path.Combine(secretsDir, $"{sessionKeyPrefix}-v1.pem");
     var licenceVerifyV1 = Path.Combine(secretsDir, $"{licenceVerifyKeyPrefix}-v1.pem");
-    var pepperV1        = Path.Combine(secretsDir, $"{pepperPrefix}-v1.txt");
+    var pepperV1 = Path.Combine(secretsDir, $"{pepperPrefix}-v1.txt");
 
     var existing = new[] { sessionV1, licenceVerifyV1, pepperV1 }.Where(File.Exists).ToArray();
     if (existing.Length > 0 && !force)
@@ -146,8 +146,8 @@ async Task<int> RotateSigningKeyAsync(string[] cmdArgs, string sectionName, stri
             overrideKid = cmdArgs[++i];
 
     var nextVersion = NextVersion(filePrefix, ".pem");
-    var newKid      = overrideKid ?? $"{kidPrefix}-v{nextVersion}";
-    var newPath     = Path.Combine(secretsDir, $"{filePrefix}-{newKid}.pem");
+    var newKid = overrideKid ?? $"{kidPrefix}-v{nextVersion}";
+    var newPath = Path.Combine(secretsDir, $"{filePrefix}-{newKid}.pem");
 
     if (File.Exists(newPath))
     {
@@ -191,7 +191,7 @@ async Task<int> RotatePepperAsync(string[] cmdArgs)
         }
 
     var nextVersion = overrideVersion ?? checked((short)NextVersion(pepperPrefix, ".txt"));
-    var newPath     = Path.Combine(secretsDir, $"{pepperPrefix}-v{nextVersion}.txt");
+    var newPath = Path.Combine(secretsDir, $"{pepperPrefix}-v{nextVersion}.txt");
 
     if (File.Exists(newPath))
     {
@@ -223,7 +223,7 @@ int NextVersion(string filePrefix, string extension)
     var max = 0;
     foreach (var file in Directory.EnumerateFiles(secretsDir))
     {
-        var match                                                                           = pattern.Match(Path.GetFileName(file));
+        var match = pattern.Match(Path.GetFileName(file));
         if (match.Success && int.TryParse(match.Groups[1].Value, out var n) && n > max) max = n;
     }
 
@@ -271,7 +271,7 @@ Task<int> MigrateStatusAsync()
     }
 
     var executed = SchemaMigrator.GetExecuted(connectionString, defaultMigrationsPath);
-    var pending  = SchemaMigrator.GetPending(connectionString, defaultMigrationsPath);
+    var pending = SchemaMigrator.GetPending(connectionString, defaultMigrationsPath);
 
     Console.WriteLine($"Applied ({executed.Count}):");
     if (executed.Count == 0) Console.WriteLine("  (none)");
@@ -286,7 +286,7 @@ Task<int> MigrateStatusAsync()
 
 async Task EnsureDatabaseExistsAsync(string connectionString)
 {
-    var builder  = new NpgsqlConnectionStringBuilder(connectionString);
+    var builder = new NpgsqlConnectionStringBuilder(connectionString);
     var targetDb = builder.Database;
     if (string.IsNullOrWhiteSpace(targetDb)) return;
 
@@ -306,13 +306,13 @@ async Task EnsureDatabaseExistsAsync(string connectionString)
 
 async Task<int> SeedDevAsync()
 {
-    const string userEmail   = "seed-user@test.local";
+    const string userEmail = "seed-user@test.local";
     const string productSlug = "testproduct";
-    var          emailLower  = userEmail.ToLowerInvariant();
+    var emailLower = userEmail.ToLowerInvariant();
 
     var connectionString = RequireConnectionString();
-    var pepperSet        = LoadPepperSetForDev();
-    var licenceHasher    = new HmacLicenceKeyHasher(pepperSet);
+    var pepperSet = LoadPepperSetForDev();
+    var licenceHasher = new HmacLicenceKeyHasher(pepperSet);
 
     await using var connection = new NpgsqlConnection(connectionString);
     await connection.OpenAsync();
@@ -340,15 +340,15 @@ async Task<int> SeedDevAsync()
         return 0;
     }
 
-    var passwordHasher   = new Argon2IdPasswordHasher();
-    var keyGenerator     = new LicenceKeyGenerator();
-    var userPassword     = GenerateReadablePassword(24);
+    var passwordHasher = new Argon2IdPasswordHasher();
+    var keyGenerator = new LicenceKeyGenerator();
+    var userPassword = GenerateReadablePassword(24);
     var userPasswordHash = passwordHasher.Hash(userPassword);
 
-    var userId       = existingUserId    ?? Guid.NewGuid();
-    var productId    = existingProductId ?? Guid.NewGuid();
-    var licenceId    = existingLicenceId ?? Guid.NewGuid();
-    var licenceKey   = keyGenerator.Generate();
+    var userId = existingUserId ?? Guid.NewGuid();
+    var productId = existingProductId ?? Guid.NewGuid();
+    var licenceId = existingLicenceId ?? Guid.NewGuid();
+    var licenceKey = keyGenerator.Generate();
     var pepperedHmac = licenceHasher.HashWithActive(licenceKey);
 
     if (!existingUserId.HasValue)
@@ -372,10 +372,10 @@ async Task<int> SeedDevAsync()
             """,
             new
             {
-                Id                   = licenceId,
-                ProductId            = productId,
-                UserId               = userId,
-                KeyHmac              = pepperedHmac.Hmac,
+                Id = licenceId,
+                ProductId = productId,
+                UserId = userId,
+                KeyHmac = pepperedHmac.Hmac,
                 KeyHmacPepperVersion = pepperedHmac.PepperVersion
             });
 
@@ -401,9 +401,9 @@ async Task<int> SeedDevAsync()
 
 async Task<int> CreateAdminAsync(string[] cmdArgs)
 {
-    string? email    = null;
+    string? email = null;
     string? password = null;
-    var     force    = false;
+    var force = false;
 
     for (var i = 1; i < cmdArgs.Length; i++)
         switch (cmdArgs[i])
@@ -443,7 +443,7 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
     var passwordGenerated = false;
     if (string.IsNullOrEmpty(password))
     {
-        password          = GenerateReadablePassword(24);
+        password = GenerateReadablePassword(24);
         passwordGenerated = true;
     }
     else if (password.Length < 12)
@@ -453,10 +453,10 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
     }
 
     var connectionString = RequireConnectionString();
-    var hasher           = new Argon2IdPasswordHasher();
-    var hash             = hasher.Hash(password);
-    var emailTrimmed     = email.Trim();
-    var emailLower       = emailTrimmed.ToLowerInvariant();
+    var hasher = new Argon2IdPasswordHasher();
+    var hash = hasher.Hash(password);
+    var emailTrimmed = email.Trim();
+    var emailLower = emailTrimmed.ToLowerInvariant();
 
     await using var connection = new NpgsqlConnection(connectionString);
     await connection.OpenAsync();
@@ -510,7 +510,7 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
 
 async Task<int> ListUsersAsync(string[] cmdArgs)
 {
-    var limit  = 50;
+    var limit = 50;
     var offset = 0;
     for (var i = 1; i < cmdArgs.Length; i++)
         switch (cmdArgs[i])
@@ -536,8 +536,8 @@ async Task<int> ListUsersAsync(string[] cmdArgs)
                 return 2;
         }
 
-    var             connectionString = RequireConnectionString();
-    await using var connection       = new NpgsqlConnection(connectionString);
+    var connectionString = RequireConnectionString();
+    await using var connection = new NpgsqlConnection(connectionString);
     await connection.OpenAsync();
 
     var rows = (await connection.QueryAsync<(Guid id, string email, string role, string status, DateTime created_at)>(
@@ -580,9 +580,9 @@ async Task<int> DisableUserAsync(string[] cmdArgs)
         return 2;
     }
 
-    var             connectionString = RequireConnectionString();
-    var             emailLower       = email.Trim().ToLowerInvariant();
-    await using var connection       = new NpgsqlConnection(connectionString);
+    var connectionString = RequireConnectionString();
+    var emailLower = email.Trim().ToLowerInvariant();
+    await using var connection = new NpgsqlConnection(connectionString);
     await connection.OpenAsync();
 
     var user = await connection.QuerySingleOrDefaultAsync<(Guid id, string status)?>(
@@ -630,7 +630,7 @@ async Task<int> DisableUserAsync(string[] cmdArgs)
 
 async Task<int> ResetPasswordAsync(string[] cmdArgs)
 {
-    string? email    = null;
+    string? email = null;
     string? password = null;
     for (var i = 1; i < cmdArgs.Length; i++)
         switch (cmdArgs[i])
@@ -667,7 +667,7 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
     var passwordGenerated = false;
     if (string.IsNullOrEmpty(password))
     {
-        password          = GenerateReadablePassword(24);
+        password = GenerateReadablePassword(24);
         passwordGenerated = true;
     }
     else if (password.Length < 12)
@@ -677,9 +677,9 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
     }
 
     var connectionString = RequireConnectionString();
-    var emailLower       = email.Trim().ToLowerInvariant();
-    var hasher           = new Argon2IdPasswordHasher();
-    var hash             = hasher.Hash(password);
+    var emailLower = email.Trim().ToLowerInvariant();
+    var hasher = new Argon2IdPasswordHasher();
+    var hash = hasher.Hash(password);
 
     await using var connection = new NpgsqlConnection(connectionString);
     await connection.OpenAsync();
@@ -838,9 +838,9 @@ HmacPepperSet LoadPepperSetForDev()
             $"No pepper files found under {secretsDir} matching {pepperPrefix}-v*.txt. Run 'init-secrets' first.",
             Path.Combine(secretsDir, $"{pepperPrefix}-v1.txt"));
 
-    var   versionPattern = new Regex($"^{Regex.Escape(pepperPrefix)}-v(\\d+)\\.txt$", RegexOptions.IgnoreCase);
-    var   peppers        = new Dictionary<short, byte[]>();
-    short maxVersion     = 0;
+    var versionPattern = new Regex($"^{Regex.Escape(pepperPrefix)}-v(\\d+)\\.txt$", RegexOptions.IgnoreCase);
+    var peppers = new Dictionary<short, byte[]>();
+    short maxVersion = 0;
     foreach (var file in pepperFiles)
     {
         var match = versionPattern.Match(Path.GetFileName(file));

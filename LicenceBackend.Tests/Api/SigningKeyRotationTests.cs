@@ -14,46 +14,46 @@ namespace LicenceBackend.Tests.Api;
 
 public sealed class SigningKeyRotationTests : IntegrationTestBase
 {
-    private const string Issuer   = "https://licencebackend.test";
+    private const string Issuer = "https://licencebackend.test";
     private const string Audience = "licencebackend-dashboard";
 
-    private string _sessionV1Kid     = string.Empty;
+    private string _sessionV1Kid = string.Empty;
     private string _sessionV1PemPath = string.Empty;
-    private string _sessionV2Kid     = string.Empty;
+    private string _sessionV2Kid = string.Empty;
     private string _sessionV2PemPath = string.Empty;
-    private string _verifyV1Kid      = string.Empty;
-    private string _verifyV1PemPath  = string.Empty;
-    private string _verifyV2Kid      = string.Empty;
-    private string _verifyV2PemPath  = string.Empty;
+    private string _verifyV1Kid = string.Empty;
+    private string _verifyV1PemPath = string.Empty;
+    private string _verifyV2Kid = string.Empty;
+    private string _verifyV2PemPath = string.Empty;
 
     protected override void ApplyPreFactoryEnvironment()
     {
         var suffix = Guid.NewGuid().ToString("N");
         _sessionV1Kid = $"session-rot-v1-{suffix}";
         _sessionV2Kid = $"session-rot-v2-{suffix}";
-        _verifyV1Kid  = $"verify-rot-v1-{suffix}";
-        _verifyV2Kid  = $"verify-rot-v2-{suffix}";
+        _verifyV1Kid = $"verify-rot-v1-{suffix}";
+        _verifyV2Kid = $"verify-rot-v2-{suffix}";
 
         _sessionV1PemPath = Path.Combine(TempDir, $"session-{suffix}-v1.pem");
         _sessionV2PemPath = Path.Combine(TempDir, $"session-{suffix}-v2.pem");
-        _verifyV1PemPath  = Path.Combine(TempDir, $"verify-{suffix}-v1.pem");
-        _verifyV2PemPath  = Path.Combine(TempDir, $"verify-{suffix}-v2.pem");
+        _verifyV1PemPath = Path.Combine(TempDir, $"verify-{suffix}-v1.pem");
+        _verifyV2PemPath = Path.Combine(TempDir, $"verify-{suffix}-v2.pem");
         WriteFreshEcdsaPem(_sessionV1PemPath);
         WriteFreshEcdsaPem(_sessionV2PemPath);
         WriteFreshEcdsaPem(_verifyV1PemPath);
         WriteFreshEcdsaPem(_verifyV2PemPath);
 
-        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid",            _sessionV1Kid);
+        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid", _sessionV1Kid);
         Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath", _sessionV1PemPath);
-        Environment.SetEnvironmentVariable("SessionSigning__Keys__1__Kid",            _sessionV2Kid);
+        Environment.SetEnvironmentVariable("SessionSigning__Keys__1__Kid", _sessionV2Kid);
         Environment.SetEnvironmentVariable("SessionSigning__Keys__1__PrivateKeyPath", _sessionV2PemPath);
-        Environment.SetEnvironmentVariable("SessionSigning__ActiveKid",               _sessionV2Kid);
+        Environment.SetEnvironmentVariable("SessionSigning__ActiveKid", _sessionV2Kid);
 
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__Kid",            _verifyV1Kid);
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__Kid", _verifyV1Kid);
         Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__PrivateKeyPath", _verifyV1PemPath);
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__1__Kid",            _verifyV2Kid);
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__1__Kid", _verifyV2Kid);
         Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__1__PrivateKeyPath", _verifyV2PemPath);
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__ActiveKid",               _verifyV2Kid);
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__ActiveKid", _verifyV2Kid);
     }
 
     [SkippableFact]
@@ -91,15 +91,15 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
 
         var legacyToken = MintSessionJwt(_sessionV1PemPath, _sessionV1Kid, AdminUserId);
 
-        var savedKid0  = Environment.GetEnvironmentVariable("SessionSigning__Keys__0__Kid");
+        var savedKid0 = Environment.GetEnvironmentVariable("SessionSigning__Keys__0__Kid");
         var savedPath0 = Environment.GetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath");
-        var savedKid1  = Environment.GetEnvironmentVariable("SessionSigning__Keys__1__Kid");
+        var savedKid1 = Environment.GetEnvironmentVariable("SessionSigning__Keys__1__Kid");
         var savedPath1 = Environment.GetEnvironmentVariable("SessionSigning__Keys__1__PrivateKeyPath");
         try
         {
-            Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid",            _sessionV2Kid);
+            Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid", _sessionV2Kid);
             Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath", _sessionV2PemPath);
-            Environment.SetEnvironmentVariable("SessionSigning__Keys__1__Kid",            null);
+            Environment.SetEnvironmentVariable("SessionSigning__Keys__1__Kid", null);
             Environment.SetEnvironmentVariable("SessionSigning__Keys__1__PrivateKeyPath", null);
 
             await using var trimmedFactory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
@@ -114,9 +114,9 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
         }
         finally
         {
-            Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid",            savedKid0);
+            Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid", savedKid0);
             Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath", savedPath0);
-            Environment.SetEnvironmentVariable("SessionSigning__Keys__1__Kid",            savedKid1);
+            Environment.SetEnvironmentVariable("SessionSigning__Keys__1__Kid", savedKid1);
             Environment.SetEnvironmentVariable("SessionSigning__Keys__1__PrivateKeyPath", savedPath1);
         }
     }
@@ -126,8 +126,8 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/sessions", new { email = AdminEmail, password = AdminPassword });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/sessions", new { email = AdminEmail, password = AdminPassword });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var session = await response.Content.ReadFromJsonAsync<SessionPayload>();
@@ -150,7 +150,7 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
         Assert.Contains(_verifyV1Kid, kids);
         Assert.Contains(_verifyV2Kid, kids);
         Assert.All(jwks.Keys, k => Assert.Equal("ES256", k.Alg));
-        Assert.All(jwks.Keys, k => Assert.Equal("EC",    k.Kty));
+        Assert.All(jwks.Keys, k => Assert.Equal("EC", k.Kty));
         Assert.All(jwks.Keys, k => Assert.Equal("P-256", k.Crv));
     }
 
@@ -161,11 +161,11 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
 
         var (productId, licenceKey) = await CreateProductAndLicenceAsync();
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var body    = await response.Content.ReadFromJsonAsync<SignedPayloadResponse>();
+        var body = await response.Content.ReadFromJsonAsync<SignedPayloadResponse>();
         var handler = new JwtSecurityTokenHandler();
         handler.InboundClaimTypeMap.Clear();
         handler.OutboundClaimTypeMap.Clear();
@@ -180,8 +180,8 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
 
         var (productId, licenceKey) = await CreateProductAndLicenceAsync();
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<SignedPayloadResponse>();
 
@@ -199,7 +199,7 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
     {
         using var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(File.ReadAllText(pemPath));
-        var key   = new ECDsaSecurityKey(ecdsa) { KeyId = kid };
+        var key = new ECDsaSecurityKey(ecdsa) { KeyId = kid };
         var creds = new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256);
 
         var now = DateTimeOffset.UtcNow;
@@ -225,7 +225,7 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
 
     private async Task<(Guid productId, string licenceKey)> CreateProductAndLicenceAsync()
     {
-        var slug            = "rot-product-" + Guid.NewGuid().ToString("N")[..8];
+        var slug = "rot-product-" + Guid.NewGuid().ToString("N")[..8];
         var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug, displayName = slug });
         productResponse.EnsureSuccessStatusCode();
         var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
@@ -237,9 +237,9 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
     }
 
     private sealed record SessionPayload(
-        string         AccessToken,
+        string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
-        string         RefreshToken,
+        string RefreshToken,
         DateTimeOffset RefreshTokenExpiresAt
     );
 

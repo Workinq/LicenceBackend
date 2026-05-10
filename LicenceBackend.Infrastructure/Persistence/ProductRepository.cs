@@ -16,8 +16,8 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
                            LIMIT 1;
                            """;
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken);
-        var             row        = await connection.QuerySingleOrDefaultAsync<ProductRow>(command);
+        var command = new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<ProductRow>(command);
         return row?.ToDomain();
     }
 
@@ -30,8 +30,8 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
                            LIMIT 1;
                            """;
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Slug = slug }, cancellationToken: cancellationToken);
-        var             row        = await connection.QuerySingleOrDefaultAsync<ProductRow>(command);
+        var command = new CommandDefinition(sql, new { Slug = slug }, cancellationToken: cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<ProductRow>(command);
         return row?.ToDomain();
     }
 
@@ -43,7 +43,7 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, product, cancellationToken: cancellationToken);
+        var command = new CommandDefinition(sql, product, cancellationToken: cancellationToken);
         await connection.ExecuteAsync(command);
     }
 
@@ -59,10 +59,10 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
-        await using var multi      = await connection.QueryMultipleAsync(command);
-        var             rows       = (await multi.ReadAsync<ProductRow>()).ToList();
-        var             total      = await multi.ReadFirstAsync<int>();
+        var command = new CommandDefinition(sql, new { Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<ProductRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<Product>(rows.Select(r => r.ToDomain()).ToList(), total);
     }

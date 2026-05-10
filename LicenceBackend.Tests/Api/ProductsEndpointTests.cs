@@ -57,10 +57,10 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<PagedProductsPayload>();
         Assert.NotNull(body);
-        Assert.Equal(3,  body.Total);
-        Assert.Equal(3,  body.Items.Count);
+        Assert.Equal(3, body.Total);
+        Assert.Equal(3, body.Items.Count);
         Assert.Equal(10, body.Limit);
-        Assert.Equal(0,  body.Offset);
+        Assert.Equal(0, body.Offset);
     }
 
     [SkippableFact]
@@ -68,7 +68,7 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var create  = await AuthedClient.PostAsJsonAsync("/products", new { slug = "single", displayName = "Single" });
+        var create = await AuthedClient.PostAsJsonAsync("/products", new { slug = "single", displayName = "Single" });
         var created = await create.Content.ReadFromJsonAsync<ProductPayload>();
         Assert.NotNull(created);
 
@@ -77,7 +77,7 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
         var fetched = await response.Content.ReadFromJsonAsync<ProductPayload>();
         Assert.NotNull(fetched);
         Assert.Equal(created.Id, fetched.Id);
-        Assert.Equal("single",   fetched.Slug);
+        Assert.Equal("single", fetched.Slug);
     }
 
     [SkippableFact]

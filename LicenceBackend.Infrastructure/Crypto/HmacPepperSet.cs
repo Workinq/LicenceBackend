@@ -18,7 +18,7 @@ public sealed class HmacPepperSet
                     nameof(peppersByVersion));
 
         _peppersByVersion = peppersByVersion;
-        ActiveVersion     = activeVersion;
+        ActiveVersion = activeVersion;
     }
 
     public short ActiveVersion { get; }

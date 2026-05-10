@@ -18,17 +18,17 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class UsersController(
-    IUserRepository                       users,
-    IUserStatusHistoryRepository          userStatusHistory,
-    ILicenceRepository                    licences,
+    IUserRepository users,
+    IUserStatusHistoryRepository userStatusHistory,
+    ILicenceRepository licences,
     ILicenceVerificationAttemptRepository verificationAttempts,
-    IProductRepository                    products,
-    IPasswordHasher                       passwordHasher,
-    TimeProvider                          time
+    IProductRepository products,
+    IPasswordHasher passwordHasher,
+    TimeProvider time
 ) : ControllerBase
 {
     private const int DefaultLimit = 50;
-    private const int MaxLimit     = 200;
+    private const int MaxLimit = 200;
 
     [HttpPost]
     [Authorize(Roles = "admin")]
@@ -38,7 +38,7 @@ public sealed class UsersController(
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateUserRequest request,
-        CancellationToken            cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (await users.ExistsByEmailAsync(request.Email, cancellationToken))
@@ -49,7 +49,7 @@ public sealed class UsersController(
             );
 
         var role = Enum.Parse<UserRole>(request.Role, true);
-        var now  = time.GetUtcNow();
+        var now = time.GetUtcNow();
         var user = new User(
             Guid.NewGuid(),
             request.Email.Trim(),
@@ -73,15 +73,15 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(PagedResponse<UserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(
-        [FromQuery] int?  limit,
-        [FromQuery] int?  offset,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
         CancellationToken cancellationToken
     )
     {
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
 
-        var page  = await users.ListAsync(effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await users.ListAsync(effectiveLimit, effectiveOffset, cancellationToken);
         var items = page.Items.Select(ToUserResponse).ToList();
         return Ok(new PagedResponse<UserResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
@@ -111,9 +111,9 @@ public sealed class UsersController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateStatus(
-        Guid                               id,
+        Guid id,
         [FromBody] UpdateUserStatusRequest request,
-        CancellationToken                  cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -149,9 +149,9 @@ public sealed class UsersController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetStatusHistory(
-        Guid              id,
-        [FromQuery] int?  limit,
-        [FromQuery] int?  offset,
+        Guid id,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
         CancellationToken cancellationToken
     )
     {
@@ -163,14 +163,14 @@ public sealed class UsersController(
                 detail: $"No user with id '{id}'."
             );
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
-        var page            = await userStatusHistory.ListForUserAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var page = await userStatusHistory.ListForUserAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
 
         var emailByUserId = new Dictionary<Guid, string>();
         foreach (var changerId in page.Items.Select(h => h.ChangedBy).Distinct())
         {
-            var changer                                       = await users.FindByIdAsync(changerId, cancellationToken);
+            var changer = await users.FindByIdAsync(changerId, cancellationToken);
             if (changer is not null) emailByUserId[changerId] = changer.Email;
         }
 
@@ -208,9 +208,9 @@ public sealed class UsersController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetMyLicences(
         [FromQuery] string? status,
-        [FromQuery] int?    limit,
-        [FromQuery] int?    offset,
-        CancellationToken   cancellationToken
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
+        CancellationToken cancellationToken
     )
     {
         if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
@@ -227,8 +227,8 @@ public sealed class UsersController(
             parsedStatus = s;
         }
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
 
         var owner = await users.FindByIdAsync(userId, cancellationToken);
         if (owner is null) return Unauthorized();
@@ -237,7 +237,7 @@ public sealed class UsersController(
         var slugByProductId = new Dictionary<Guid, string>();
         foreach (var pid in page.Items.Select(l => l.ProductId).Distinct())
         {
-            var product                                   = await products.FindByIdAsync(pid, cancellationToken);
+            var product = await products.FindByIdAsync(pid, cancellationToken);
             if (product is not null) slugByProductId[pid] = product.Slug;
         }
 
@@ -257,9 +257,9 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(PagedResponse<VerificationAttemptResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyLicenceVerificationAttempts(
-        Guid              id,
-        [FromQuery] int?  limit,
-        [FromQuery] int?  offset,
+        Guid id,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
         CancellationToken cancellationToken
     )
     {
@@ -273,8 +273,8 @@ public sealed class UsersController(
                 detail: $"No licence with id '{id}'."
             );
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
         var page = await verificationAttempts.ListForLicenceAsync(
                        id,
                        VerificationAttemptOutcomeFilter.ApprovedOnly,

@@ -29,10 +29,10 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
         Assert.NotNull(body);
         Assert.False(string.IsNullOrWhiteSpace(body.AccessToken));
         Assert.False(string.IsNullOrWhiteSpace(body.RefreshToken));
-        Assert.True(body.AccessTokenExpiresAt  > DateTimeOffset.UtcNow);
+        Assert.True(body.AccessTokenExpiresAt > DateTimeOffset.UtcNow);
         Assert.True(body.RefreshTokenExpiresAt > body.AccessTokenExpiresAt);
         Assert.Equal(AdminEmail, body.User.Email);
-        Assert.Equal("admin",    body.User.Role);
+        Assert.Equal("admin", body.User.Role);
     }
 
     [SkippableFact]
@@ -61,8 +61,8 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         var verifyCalls = 0;
-        var dummyCalls  = 0;
-        var counter     = new CountingPasswordHasher(() => Interlocked.Increment(ref verifyCalls), () => Interlocked.Increment(ref dummyCalls));
+        var dummyCalls = 0;
+        var counter = new CountingPasswordHasher(() => Interlocked.Increment(ref verifyCalls), () => Interlocked.Increment(ref dummyCalls));
 
         await using var customFactory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -77,12 +77,12 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
 
         try
         {
-            using var client   = customFactory.CreateClient();
-            var       response = await client.PostAsJsonAsync("/sessions", new { email = "no-such-user@example.invalid", password = "anything-non-empty" });
+            using var client = customFactory.CreateClient();
+            var response = await client.PostAsJsonAsync("/sessions", new { email = "no-such-user@example.invalid", password = "anything-non-empty" });
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-            Assert.Equal(0,                           verifyCalls);
-            Assert.Equal(1,                           dummyCalls);
+            Assert.Equal(0, verifyCalls);
+            Assert.Equal(1, dummyCalls);
         }
         finally
         {
@@ -124,11 +124,11 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var       pemPath = Path.Combine(TempDir, "session-signing.pem");
-        var       pem     = await File.ReadAllTextAsync(pemPath);
-        using var ecdsa   = ECDsa.Create();
+        var pemPath = Path.Combine(TempDir, "session-signing.pem");
+        var pem = await File.ReadAllTextAsync(pemPath);
+        using var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(pem);
-        var key   = new ECDsaSecurityKey(ecdsa) { KeyId = "session-v1" };
+        var key = new ECDsaSecurityKey(ecdsa) { KeyId = "session-v1" };
         var creds = new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256);
 
         var jwt = new JwtSecurityToken(
@@ -155,7 +155,7 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var login   = await UnauthedClient.PostAsJsonAsync("/sessions", new { email = AdminEmail, password = AdminPassword });
+        var login = await UnauthedClient.PostAsJsonAsync("/sessions", new { email = AdminEmail, password = AdminPassword });
         var session = await login.Content.ReadFromJsonAsync<SessionPayload>();
         Assert.NotNull(session);
 
@@ -167,11 +167,11 @@ public sealed class SessionsEndpointTests : IntegrationTestBase
     }
 
     private sealed record SessionPayload(
-        string         AccessToken,
+        string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
-        string         RefreshToken,
+        string RefreshToken,
         DateTimeOffset RefreshTokenExpiresAt,
-        UserPayload    User
+        UserPayload User
     );
 
     private sealed record UserPayload(Guid Id, string Email, string? DisplayName, string Role, string Status, DateTimeOffset CreatedAt);

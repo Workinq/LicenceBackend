@@ -33,7 +33,7 @@ try
     {
         options.AddDocumentTransformer((document, _, _) =>
            {
-               document.Info.Title   = "LicenceBackend API";
+               document.Info.Title = "LicenceBackend API";
                document.Info.Version = "1.0.0";
                return Task.CompletedTask;
            });
@@ -52,19 +52,19 @@ try
                   options.MapInboundClaims = false;
                   options.TokenValidationParameters = new TokenValidationParameters
                   {
-                      ValidateIssuer           = true,
-                      ValidIssuer              = sessionOpts.Value.Issuer,
-                      ValidateAudience         = true,
-                      ValidAudience            = sessionOpts.Value.Audience,
-                      ValidateLifetime         = true,
+                      ValidateIssuer = true,
+                      ValidIssuer = sessionOpts.Value.Issuer,
+                      ValidateAudience = true,
+                      ValidAudience = sessionOpts.Value.Audience,
+                      ValidateLifetime = true,
                       ValidateIssuerSigningKey = true,
-                      IssuerSigningKeys        = signingKeySet.AllSecurityKeys.ToArray(),
-                      ValidAlgorithms          = [SecurityAlgorithms.EcdsaSha256],
-                      RequireExpirationTime    = true,
-                      RequireSignedTokens      = true,
-                      RoleClaimType            = "role",
-                      NameClaimType            = "sub",
-                      ClockSkew                = TimeSpan.FromSeconds(30)
+                      IssuerSigningKeys = signingKeySet.AllSecurityKeys.ToArray(),
+                      ValidAlgorithms = [SecurityAlgorithms.EcdsaSha256],
+                      RequireExpirationTime = true,
+                      RequireSignedTokens = true,
+                      RoleClaimType = "role",
+                      NameClaimType = "sub",
+                      ClockSkew = TimeSpan.FromSeconds(30)
                   };
 
                   options.Events = new JwtBearerEvents
@@ -88,7 +88,7 @@ try
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
         options.KnownNetworks.Clear();
         options.KnownProxies.Clear();
-        options.KnownNetworks.Add(new IPNetwork(IPAddress.Loopback,     8));
+        options.KnownNetworks.Add(new IPNetwork(IPAddress.Loopback, 8));
         options.KnownNetworks.Add(new IPNetwork(IPAddress.IPv6Loopback, 128));
     });
 
@@ -180,12 +180,12 @@ public abstract partial class Program
     {
         return new SlidingWindowRateLimiterOptions
         {
-            PermitLimit          = policy.PermitLimit,
-            Window               = TimeSpan.FromSeconds(policy.WindowSeconds),
-            SegmentsPerWindow    = 6,
-            QueueLimit           = 0,
+            PermitLimit = policy.PermitLimit,
+            Window = TimeSpan.FromSeconds(policy.WindowSeconds),
+            SegmentsPerWindow = 6,
+            QueueLimit = 0,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            AutoReplenishment    = true
+            AutoReplenishment = true
         };
     }
 }

@@ -13,7 +13,7 @@ public sealed class LicenceKeyGeneratorTests
 
         Assert.StartsWith("LIC-", key);
         var groups = key.Split('-');
-        Assert.Equal(6,     groups.Length);
+        Assert.Equal(6, groups.Length);
         Assert.Equal("LIC", groups[0]);
         for (var i = 1; i < groups.Length; i++) Assert.Equal(5, groups[i].Length);
     }
@@ -37,7 +37,7 @@ public sealed class LicenceKeyGeneratorTests
     public void Generate_produces_distinct_keys_across_a_thousand_iterations()
     {
         var generator = new LicenceKeyGenerator();
-        var seen      = new HashSet<string>();
+        var seen = new HashSet<string>();
         for (var i = 0; i < 1000; i++) Assert.True(seen.Add(generator.Generate()), "Duplicate licence key generated.");
     }
 }

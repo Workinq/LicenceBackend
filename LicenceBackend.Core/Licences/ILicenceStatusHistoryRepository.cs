@@ -5,9 +5,9 @@ namespace LicenceBackend.Core.Licences;
 public interface ILicenceStatusHistoryRepository
 {
     Task<PagedResult<LicenceStatusHistoryEntry>> ListForLicenceAsync(
-        Guid              licenceId,
-        int               limit,
-        int               offset,
+        Guid licenceId,
+        int limit,
+        int offset,
         CancellationToken cancellationToken
     );
 }

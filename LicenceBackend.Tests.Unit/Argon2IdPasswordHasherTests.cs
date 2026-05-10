@@ -8,7 +8,7 @@ public sealed class Argon2IdPasswordHasherTests
     public void Hash_then_Verify_with_same_password_returns_true()
     {
         var hasher = new Argon2IdPasswordHasher();
-        var hash   = hasher.Hash("correct horse battery staple");
+        var hash = hasher.Hash("correct horse battery staple");
         Assert.True(hasher.Verify("correct horse battery staple", hash));
     }
 
@@ -16,7 +16,7 @@ public sealed class Argon2IdPasswordHasherTests
     public void Verify_with_wrong_password_returns_false()
     {
         var hasher = new Argon2IdPasswordHasher();
-        var hash   = hasher.Hash("correct horse battery staple");
+        var hash = hasher.Hash("correct horse battery staple");
         Assert.False(hasher.Verify("wrong-password", hash));
     }
 
@@ -24,7 +24,7 @@ public sealed class Argon2IdPasswordHasherTests
     public void Hash_produces_different_strings_for_same_input_due_to_random_salt()
     {
         var hasher = new Argon2IdPasswordHasher();
-        var first  = hasher.Hash("same-password");
+        var first = hasher.Hash("same-password");
         var second = hasher.Hash("same-password");
         Assert.NotEqual(first, second);
         Assert.True(hasher.Verify("same-password", first));
@@ -35,7 +35,7 @@ public sealed class Argon2IdPasswordHasherTests
     public void Verify_with_empty_password_returns_false_without_throwing()
     {
         var hasher = new Argon2IdPasswordHasher();
-        var hash   = hasher.Hash("real-password-12345");
+        var hash = hasher.Hash("real-password-12345");
         Assert.False(hasher.Verify("", hash));
     }
 

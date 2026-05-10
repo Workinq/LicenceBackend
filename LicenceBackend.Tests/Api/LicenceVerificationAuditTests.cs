@@ -154,14 +154,14 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
 
         var all = await AuthedClient.GetFromJsonAsync<PagedEnvelope<AttemptRow>>($"/licences/{licenceId}/verification-attempts");
         Assert.NotNull(all);
-        Assert.Equal(2,          all.Total);
-        Assert.Equal("denied",   all.Items[0].Outcome);
+        Assert.Equal(2, all.Total);
+        Assert.Equal("denied", all.Items[0].Outcome);
         Assert.Equal("approved", all.Items[1].Outcome);
 
         var denied = await AuthedClient.GetFromJsonAsync<PagedEnvelope<AttemptRow>>($"/licences/{licenceId}/verification-attempts?outcome=denied");
         Assert.NotNull(denied);
-        Assert.Equal(1,               denied.Total);
-        Assert.Equal("denied",        denied.Items[0].Outcome);
+        Assert.Equal(1, denied.Total);
+        Assert.Equal("denied", denied.Items[0].Outcome);
         Assert.Equal("hwid_mismatch", denied.Items[0].DenialReason);
     }
 
@@ -170,9 +170,9 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        const string ownerEmail    = "audit-owner@test.local";
+        const string ownerEmail = "audit-owner@test.local";
         const string ownerPassword = "audit-owner-pw!";
-        var          createUser    = await AuthedClient.PostAsJsonAsync("/users", new { email = ownerEmail, password = ownerPassword, role = "user" });
+        var createUser = await AuthedClient.PostAsJsonAsync("/users", new { email = ownerEmail, password = ownerPassword, role = "user" });
         Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
         var ownerUser = await createUser.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(ownerUser);
@@ -186,7 +186,7 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
         using var ownerClient = await CreateLoggedInClientAsync(ownerEmail, ownerPassword);
         var page = await ownerClient.GetFromJsonAsync<PagedEnvelope<AttemptRow>>($"/me/licences/{licenceId}/verification-attempts");
         Assert.NotNull(page);
-        Assert.Equal(1,          page.Total);
+        Assert.Equal(1, page.Total);
         Assert.Equal("approved", page.Items[0].Outcome);
     }
 
@@ -195,15 +195,15 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        const string otherEmail    = "audit-other@test.local";
+        const string otherEmail = "audit-other@test.local";
         const string otherPassword = "audit-other-pw!";
-        var          createUser    = await AuthedClient.PostAsJsonAsync("/users", new { email = otherEmail, password = otherPassword, role = "user" });
+        var createUser = await AuthedClient.PostAsJsonAsync("/users", new { email = otherEmail, password = otherPassword, role = "user" });
         Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
 
         var (_, _, licenceId, _) = await CreateProductAndLicenceAsync("audit-foreign");
 
         using var otherClient = await CreateLoggedInClientAsync(otherEmail, otherPassword);
-        var       response    = await otherClient.GetAsync($"/me/licences/{licenceId}/verification-attempts");
+        var response = await otherClient.GetAsync($"/me/licences/{licenceId}/verification-attempts");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -213,12 +213,12 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         var (productA, _, _, licenceKeyA) = await CreateProductAndLicenceAsync("audit-cross-a");
-        var (_, _, _, licenceKeyB)             = await CreateProductAndLicenceAsync("audit-cross-b");
+        var (_, _, _, licenceKeyB) = await CreateProductAndLicenceAsync("audit-cross-b");
         var client = Factory!.CreateClient();
 
         await client.PostAsJsonAsync("/licences/verify", new { licenceKey = licenceKeyA, productId = Guid.NewGuid(), clientNonce = GenerateClientNonce() });
         await client.PostAsJsonAsync("/licences/verify", new { licenceKey = licenceKeyB, productId = Guid.NewGuid(), clientNonce = GenerateClientNonce() });
-        await client.PostAsJsonAsync("/licences/verify", new { licenceKey = licenceKeyA, productId = productA, clientNonce       = GenerateClientNonce() });
+        await client.PostAsJsonAsync("/licences/verify", new { licenceKey = licenceKeyA, productId = productA, clientNonce = GenerateClientNonce() });
 
         var feed = await AuthedClient.GetFromJsonAsync<PagedEnvelope<AttemptRow>>("/verification-attempts?outcome=denied");
         Assert.NotNull(feed);
@@ -233,13 +233,13 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        const string userEmail    = "audit-noadmin@test.local";
+        const string userEmail = "audit-noadmin@test.local";
         const string userPassword = "audit-noadmin-pw!";
-        var          createUser   = await AuthedClient.PostAsJsonAsync("/users", new { email = userEmail, password = userPassword, role = "user" });
+        var createUser = await AuthedClient.PostAsJsonAsync("/users", new { email = userEmail, password = userPassword, role = "user" });
         Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
 
         using var userClient = await CreateLoggedInClientAsync(userEmail, userPassword);
-        var       response   = await userClient.GetAsync("/verification-attempts");
+        var response = await userClient.GetAsync("/verification-attempts");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -250,7 +250,7 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
                         "SELECT outcome, denial_reason FROM licence_verification_attempts WHERE licence_id = @Id",
                         new { Id = licenceId })).ToList();
         Assert.Single(rows);
-        Assert.Equal("denied",       rows[0].outcome);
+        Assert.Equal("denied", rows[0].outcome);
         Assert.Equal(expectedReason, rows[0].denial_reason);
     }
 
@@ -302,13 +302,13 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
     private sealed record UserPayload(Guid Id, string Email);
 
     private sealed record AttemptRow(
-        Guid           Id,
-        Guid           LicenceId,
-        Guid?          ProductIdRequested,
-        string?        HwidFingerprint,
-        string         SourceIp,
-        string         Outcome,
-        string?        DenialReason,
+        Guid Id,
+        Guid LicenceId,
+        Guid? ProductIdRequested,
+        string? HwidFingerprint,
+        string SourceIp,
+        string Outcome,
+        string? DenialReason,
         DateTimeOffset AttemptedAt
     );
 

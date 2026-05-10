@@ -5,8 +5,8 @@ namespace LicenceBackend.Core.Users;
 public interface IUserStatusHistoryRepository
 {
     Task<PagedResult<UserStatusHistoryEntry>> ListForUserAsync(
-        Guid              userId,
-        int               limit,
-        int               offset,
+        Guid userId,
+        int limit,
+        int offset,
         CancellationToken cancellationToken);
 }

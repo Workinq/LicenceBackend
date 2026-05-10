@@ -251,11 +251,11 @@ public sealed class LicenceBindingTests : IntegrationTestBase
         Assert.NotNull(page);
         Assert.Equal(3, page.Total);
         Assert.Equal("ip_allowlist", page.Items[0].BindingType);
-        Assert.Equal("admin",        page.Items[0].ChangeSource);
-        Assert.Equal("hwid",         page.Items[1].BindingType);
-        Assert.Equal("admin",        page.Items[1].ChangeSource);
-        Assert.Equal("hwid",         page.Items[2].BindingType);
-        Assert.Equal("first_use",    page.Items[2].ChangeSource);
+        Assert.Equal("admin", page.Items[0].ChangeSource);
+        Assert.Equal("hwid", page.Items[1].BindingType);
+        Assert.Equal("admin", page.Items[1].ChangeSource);
+        Assert.Equal("hwid", page.Items[2].BindingType);
+        Assert.Equal("first_use", page.Items[2].ChangeSource);
     }
 
     [SkippableFact]
@@ -265,7 +265,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var (_, _, licenceId, _) = await CreateProductAndLicenceAsync("bind-forbid");
 
-        const string userEmail    = "regular-binding@test.local";
+        const string userEmail = "regular-binding@test.local";
         const string userPassword = "regular-binding-pw!";
         var createResp = await AuthedClient.PostAsJsonAsync(
                              "/users",
@@ -307,12 +307,12 @@ public sealed class LicenceBindingTests : IntegrationTestBase
     private sealed record LicencePayload(Guid Id, Guid ProductId, string LicenceKey);
 
     private sealed record BindingHistoryRow(
-        Guid           Id,
-        string         BindingType,
-        string         ChangeSource,
-        Guid?          ChangedByUserId,
+        Guid Id,
+        string BindingType,
+        string ChangeSource,
+        Guid? ChangedByUserId,
         DateTimeOffset ChangedAt,
-        string?        Reason
+        string? Reason
     );
 
     private sealed record PagedEnvelope<T>(IReadOnlyList<T> Items, int Total, int Limit, int Offset);

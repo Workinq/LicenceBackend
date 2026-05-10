@@ -14,12 +14,12 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
 
         var (productId, _, licenceId, licenceKey) = await CreateProductAndLicenceAsync("verify-no-pin");
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        await using var conn     = await OpenDbAsync();
-        var             hwidHmac         = await conn.ExecuteScalarAsync<byte[]?>("SELECT hwid_hmac FROM licences WHERE id = @Id", new { Id = licenceId });
+        await using var conn = await OpenDbAsync();
+        var hwidHmac = await conn.ExecuteScalarAsync<byte[]?>("SELECT hwid_hmac FROM licences WHERE id = @Id", new { Id = licenceId });
         Assert.Null(hwidHmac);
     }
 
@@ -31,8 +31,8 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
         var (productId, productSlug, licenceId, licenceKey) = await CreateProductAndLicenceAsync("verify-ok");
         var clientNonce = GenerateClientNonce();
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var body = await response.Content.ReadFromJsonAsync<SignedPayloadResponse>();
@@ -43,14 +43,14 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
         var jwt = await VerifySignedLicencePayloadAsync(body.SignedPayload);
 
         Assert.Equal("licence-verify-test", jwt.Header["kid"]);
-        Assert.Equal("ES256",               jwt.Header["alg"]);
-        Assert.Equal("licence-verify+jwt",  jwt.Header["typ"]);
+        Assert.Equal("ES256", jwt.Header["alg"]);
+        Assert.Equal("licence-verify+jwt", jwt.Header["typ"]);
 
-        Assert.Equal(clientNonce,          jwt.Payload["nonce"]);
+        Assert.Equal(clientNonce, jwt.Payload["nonce"]);
         Assert.Equal(licenceId.ToString(), jwt.Payload["licenceId"]);
         Assert.Equal(productId.ToString(), jwt.Payload["productId"]);
-        Assert.Equal(productSlug,          jwt.Payload["productSlug"]);
-        Assert.Equal("active",             jwt.Payload["status"]);
+        Assert.Equal(productSlug, jwt.Payload["productSlug"]);
+        Assert.Equal("active", jwt.Payload["status"]);
 
         var iat = (long)jwt.Payload["iat"];
         var exp = (long)jwt.Payload["exp"];
@@ -65,7 +65,7 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
         var (_, _, _, licenceKey) = await CreateProductAndLicenceAsync("verify-wrong-product");
 
         using var client = Factory!.CreateClient();
-        var response     = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId = Guid.NewGuid(), clientNonce = GenerateClientNonce() });
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId = Guid.NewGuid(), clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -81,7 +81,7 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
         var (productId, _, _, _) = await CreateProductAndLicenceAsync("verify-unknown-key");
 
         using var client = Factory!.CreateClient();
-        var response     = await client.PostAsJsonAsync("/licences/verify", new { licenceKey = "LIC-ABCDE-FGHJK-MNPQR-STVWX-YZ234", productId, clientNonce = GenerateClientNonce() });
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey = "LIC-ABCDE-FGHJK-MNPQR-STVWX-YZ234", productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -91,7 +91,7 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         using var client = Factory!.CreateClient();
-        var response     = await client.PostAsJsonAsync("/licences/verify", new { licenceKey = "", productId = Guid.NewGuid(), clientNonce = GenerateClientNonce() });
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey = "", productId = Guid.NewGuid(), clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -102,8 +102,8 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
 
         var (productId, _, _, licenceKey) = await CreateProductAndLicenceAsync("verify-missing-nonce");
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -118,8 +118,8 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
 
         var (productId, _, _, licenceKey) = await CreateProductAndLicenceAsync("verify-short-nonce");
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = "short" });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = "short" });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("invalid_licence", body);
@@ -132,8 +132,8 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
 
         var (productId, _, _, licenceKey) = await CreateProductAndLicenceAsync("verify-long-nonce");
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = new string('a', 200) });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = new string('a', 200) });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -143,20 +143,20 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         var (productId, _, _, licenceKey) = await CreateProductAndLicenceAsync("verify-tamper");
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var body  = await response.Content.ReadFromJsonAsync<SignedPayloadResponse>();
+        var body = await response.Content.ReadFromJsonAsync<SignedPayloadResponse>();
         var parts = body!.SignedPayload.Split('.');
         Assert.Equal(3, parts.Length);
 
         // Flip a character in the signature segment so base64url still decodes cleanly
         // but the signature bytes no longer match the payload.
-        var sig         = parts[2];
-        var flipped      = sig[0] == 'A' ? 'B' : 'A';
+        var sig = parts[2];
+        var flipped = sig[0] == 'A' ? 'B' : 'A';
         var tamperedSig = flipped + sig[1..];
-        var tampered    = $"{parts[0]}.{parts[1]}.{tamperedSig}";
+        var tampered = $"{parts[0]}.{parts[1]}.{tamperedSig}";
 
         await Assert.ThrowsAsync<SecurityTokenInvalidSignatureException>(async () => await VerifySignedLicencePayloadAsync(tampered));
     }
@@ -166,19 +166,19 @@ public sealed class LicenceVerificationTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        using var client   = Factory!.CreateClient();
-        var       response = await client.GetAsync("/licences/verify/public-key");
+        using var client = Factory!.CreateClient();
+        var response = await client.GetAsync("/licences/verify/public-key");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var body = await response.Content.ReadFromJsonAsync<JwksPayload>();
         Assert.NotNull(body);
         Assert.Single(body.Keys);
         var jwk = body.Keys[0];
-        Assert.Equal("EC",                  jwk.Kty);
-        Assert.Equal("P-256",               jwk.Crv);
+        Assert.Equal("EC", jwk.Kty);
+        Assert.Equal("P-256", jwk.Crv);
         Assert.Equal("licence-verify-test", jwk.Kid);
-        Assert.Equal("ES256",               jwk.Alg);
-        Assert.Equal("sig",                 jwk.Use);
+        Assert.Equal("ES256", jwk.Alg);
+        Assert.Equal("sig", jwk.Use);
         Assert.False(string.IsNullOrWhiteSpace(jwk.X));
         Assert.False(string.IsNullOrWhiteSpace(jwk.Y));
     }

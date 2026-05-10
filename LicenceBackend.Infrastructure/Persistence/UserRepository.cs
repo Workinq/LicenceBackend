@@ -16,8 +16,8 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
                            LIMIT 1;
                            """;
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken);
-        var             row        = await connection.QuerySingleOrDefaultAsync<UserRow>(command);
+        var command = new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<UserRow>(command);
         return row?.ToDomain();
     }
 
@@ -40,7 +40,7 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
 
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken)
     {
-        const string    sql        = "SELECT 1 FROM users WHERE email_lower = @EmailLower LIMIT 1;";
+        const string sql = "SELECT 1 FROM users WHERE email_lower = @EmailLower LIMIT 1;";
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var command = new CommandDefinition(
             sql,
@@ -67,7 +67,7 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
                 user.EmailLower,
                 user.PasswordHash,
                 user.DisplayName,
-                Role   = user.Role.ToString().ToLowerInvariant(),
+                Role = user.Role.ToString().ToLowerInvariant(),
                 Status = user.Status.ToString().ToLowerInvariant(),
                 user.CreatedAt,
                 user.UpdatedAt
@@ -89,19 +89,19 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
-        await using var multi      = await connection.QueryMultipleAsync(command);
-        var             rows       = (await multi.ReadAsync<UserRow>()).ToList();
-        var             total      = await multi.ReadFirstAsync<int>();
+        var command = new CommandDefinition(sql, new { Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<UserRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<User>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
     public async Task<User?> UpdateStatusAsync(
-        Guid              userId,
-        UserStatus        newStatus,
-        Guid              changedBy,
-        string?           reason,
+        Guid userId,
+        UserStatus newStatus,
+        Guid changedBy,
+        string? reason,
         CancellationToken cancellationToken)
     {
         const string selectSql = """
@@ -138,7 +138,7 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
         var currentStatus = Enum.Parse<UserStatus>(currentRow.Status, true);
         if (currentStatus == newStatus) return currentRow.ToDomain();
 
-        var newStatusText      = newStatus.ToString().ToLowerInvariant();
+        var newStatusText = newStatus.ToString().ToLowerInvariant();
         var previousStatusText = currentStatus.ToString().ToLowerInvariant();
 
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -155,12 +155,12 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
                                               insertHistorySql,
                                               new
                                               {
-                                                  Id             = Guid.NewGuid(),
-                                                  UserId         = userId,
+                                                  Id = Guid.NewGuid(),
+                                                  UserId = userId,
                                                   PreviousStatus = previousStatusText,
-                                                  NewStatus      = newStatusText,
-                                                  ChangedBy      = changedBy,
-                                                  Reason         = reason
+                                                  NewStatus = newStatusText,
+                                                  ChangedBy = changedBy,
+                                                  Reason = reason
                                               },
                                               transaction,
                                               cancellationToken: cancellationToken));
@@ -183,13 +183,13 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
     }
 
     private sealed record UserRow(
-        Guid     Id,
-        string   Email,
-        string   EmailLower,
-        string   PasswordHash,
-        string?  DisplayName,
-        string   Role,
-        string   Status,
+        Guid Id,
+        string Email,
+        string EmailLower,
+        string PasswordHash,
+        string? DisplayName,
+        string Role,
+        string Status,
         DateTime CreatedAt,
         DateTime UpdatedAt
     )

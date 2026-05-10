@@ -10,23 +10,23 @@ namespace LicenceBackend.Infrastructure.Crypto;
 
 public sealed class JwtSessionTokenIssuer : ISessionTokenIssuer
 {
-    private readonly SessionOptions     _sessionOptions;
+    private readonly SessionOptions _sessionOptions;
     private readonly SigningCredentials _signingCredentials;
-    private readonly TimeProvider       _time;
+    private readonly TimeProvider _time;
 
     public JwtSessionTokenIssuer(
-        SessionSigningKeySet     signingKeySet,
+        SessionSigningKeySet signingKeySet,
         IOptions<SessionOptions> sessionOptions,
-        TimeProvider             time)
+        TimeProvider time)
     {
         _signingCredentials = new SigningCredentials(signingKeySet.ActiveSecurityKey, SecurityAlgorithms.EcdsaSha256);
-        _sessionOptions     = sessionOptions.Value;
-        _time               = time;
+        _sessionOptions = sessionOptions.Value;
+        _time = time;
     }
 
     public SessionToken Issue(User user, Guid sessionId)
     {
-        var now       = _time.GetUtcNow();
+        var now = _time.GetUtcNow();
         var expiresAt = now.AddSeconds(_sessionOptions.TtlSeconds);
 
         var claims = new List<Claim>

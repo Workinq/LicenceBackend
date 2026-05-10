@@ -7,17 +7,17 @@ public interface ILicenceVerificationAttemptRepository
     Task RecordAsync(LicenceVerificationAttempt attempt, CancellationToken cancellationToken);
 
     Task<PagedResult<LicenceVerificationAttempt>> ListForLicenceAsync(
-        Guid                             licenceId,
+        Guid licenceId,
         VerificationAttemptOutcomeFilter filter,
-        int                              limit,
-        int                              offset,
-        CancellationToken                cancellationToken
+        int limit,
+        int offset,
+        CancellationToken cancellationToken
     );
 
     Task<PagedResult<LicenceVerificationAttempt>> ListAsync(
         VerificationAttemptOutcomeFilter filter,
-        int                              limit,
-        int                              offset,
-        CancellationToken                cancellationToken
+        int limit,
+        int offset,
+        CancellationToken cancellationToken
     );
 }

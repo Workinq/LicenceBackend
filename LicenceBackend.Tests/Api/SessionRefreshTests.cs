@@ -18,7 +18,7 @@ public sealed class SessionRefreshTests : IntegrationTestBase
 
         var second = await response.Content.ReadFromJsonAsync<SessionPayload>();
         Assert.NotNull(second);
-        Assert.NotEqual(first.AccessToken,  second.AccessToken);
+        Assert.NotEqual(first.AccessToken, second.AccessToken);
         Assert.NotEqual(first.RefreshToken, second.RefreshToken);
 
         using var client = Factory!.CreateClient();
@@ -62,7 +62,7 @@ public sealed class SessionRefreshTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         // Login twice
-        var firstLogin  = await LoginAsync(AdminEmail, AdminPassword);
+        var firstLogin = await LoginAsync(AdminEmail, AdminPassword);
         var secondLogin = await LoginAsync(AdminEmail, AdminPassword);
 
         using var firstClient = Factory!.CreateClient();
@@ -86,9 +86,9 @@ public sealed class SessionRefreshTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         // Create a regular user so we don't stomp on the shared admin client
-        var email    = "logout-all@test.local";
+        var email = "logout-all@test.local";
         var password = "logout-all-pw-12345";
-        var create   = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
+        var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
         var loginA = await LoginAsync(email, password);
@@ -112,24 +112,24 @@ public sealed class SessionRefreshTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
 
         // Use a dedicated user so we don't interfere with the shared admin's session state
-        var email    = "race-refresh@test.local";
+        var email = "race-refresh@test.local";
         var password = "race-refresh-pw-12345";
-        var create   = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
+        var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
         var login = await LoginAsync(email, password);
 
-        const int parallel  = 5;
-        var       tasks = Enumerable.Range(0, parallel).Select(_ => UnauthedClient.PostAsJsonAsync("/sessions/refresh", login.RefreshToken)).ToArray();
-        var       responses = await Task.WhenAll(tasks);
+        const int parallel = 5;
+        var tasks = Enumerable.Range(0, parallel).Select(_ => UnauthedClient.PostAsJsonAsync("/sessions/refresh", login.RefreshToken)).ToArray();
+        var responses = await Task.WhenAll(tasks);
 
-        var ok           = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
+        var ok = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
         var unauthorised = responses.Count(r => r.StatusCode == HttpStatusCode.Unauthorized);
-        Assert.Equal(1,            ok);
+        Assert.Equal(1, ok);
         Assert.Equal(parallel - 1, unauthorised);
 
         var winnerResponse = responses.Single(r => r.StatusCode == HttpStatusCode.OK);
-        var winnerSession  = await winnerResponse.Content.ReadFromJsonAsync<SessionPayload>();
+        var winnerSession = await winnerResponse.Content.ReadFromJsonAsync<SessionPayload>();
         Assert.NotNull(winnerSession);
 
         var afterCascade = await UnauthedClient.PostAsJsonAsync("/sessions/refresh", winnerSession.RefreshToken);
@@ -143,9 +143,9 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var email    = "suspend-revokes@test.local";
+        var email = "suspend-revokes@test.local";
         var password = "suspend-revokes-pw-12345";
-        var create   = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
+        var create = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var user = await create.Content.ReadFromJsonAsync<UserMini>();
         Assert.NotNull(user);
@@ -169,11 +169,11 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     }
 
     private sealed record SessionPayload(
-        string         AccessToken,
+        string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
-        string         RefreshToken,
+        string RefreshToken,
         DateTimeOffset RefreshTokenExpiresAt,
-        UserMini       User
+        UserMini User
     );
 
     private sealed record UserMini(Guid Id, string Email, string Role, string Status);

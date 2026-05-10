@@ -7,8 +7,8 @@ namespace LicenceBackend.Infrastructure.Crypto;
 public sealed class LicenceKeyGenerator : ILicenceKeyGenerator
 {
     private const string CrockfordAlphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-    private const int    GroupSize         = 5;
-    private const int    GroupCount        = 5;
+    private const int GroupSize = 5;
+    private const int GroupCount = 5;
 
     public string Generate()
     {

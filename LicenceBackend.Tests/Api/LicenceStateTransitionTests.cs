@@ -45,15 +45,15 @@ public sealed class LicenceStateTransitionTests : IntegrationTestBase
         var history = await AuthedClient.GetFromJsonAsync<PagedHistoryPayload>(
                           $"/licences/{licenceId}/status-history");
         Assert.NotNull(history);
-        Assert.Equal(3,           history.Total);
-        Assert.Equal("active",    history.Items[0].NewStatus);
-        Assert.Equal("revoked",   history.Items[0].PreviousStatus);
-        Assert.Equal("revoked",   history.Items[1].NewStatus);
+        Assert.Equal(3, history.Total);
+        Assert.Equal("active", history.Items[0].NewStatus);
+        Assert.Equal("revoked", history.Items[0].PreviousStatus);
+        Assert.Equal("revoked", history.Items[1].NewStatus);
         Assert.Equal("suspended", history.Items[2].NewStatus);
-        Assert.Equal("pause",     history.Items[2].Reason);
+        Assert.Equal("pause", history.Items[2].Reason);
         Assert.Equal("cancelled", history.Items[1].Reason);
         Assert.All(history.Items, h => Assert.Equal(AdminUserId, h.ChangedBy));
-        Assert.All(history.Items, h => Assert.Equal(AdminEmail,  h.ChangedByEmail));
+        Assert.All(history.Items, h => Assert.Equal(AdminEmail, h.ChangedByEmail));
     }
 
     [SkippableFact]
@@ -116,7 +116,7 @@ public sealed class LicenceStateTransitionTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
 
         using var regular = await CreateLoggedInClientAsync("transitions-user@test.local", "transitions-pw-12345");
-        var       attempt = await regular.PatchAsJsonAsync($"/licences/{licenceId}/status", new { status = "suspended" });
+        var attempt = await regular.PatchAsJsonAsync($"/licences/{licenceId}/status", new { status = "suspended" });
 
         Assert.Equal(HttpStatusCode.Forbidden, attempt.StatusCode);
     }
@@ -137,16 +137,16 @@ public sealed class LicenceStateTransitionTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var email      = "suspended-viewer@test.local";
-        var password   = "suspended-viewer-pw-12345";
+        var email = "suspended-viewer@test.local";
+        var password = "suspended-viewer-pw-12345";
         var createUser = await AuthedClient.PostAsJsonAsync("/users", new { email, password, role = "user" });
         Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
 
         var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug = "visible-suspended", displayName = "Visible Suspended" });
-        var product         = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
+        var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
 
         var licenceResponse = await AuthedClient.PostAsJsonAsync("/licences", new { productId = product!.Id, email });
-        var licence         = await licenceResponse.Content.ReadFromJsonAsync<LicenceCreatedPayload>();
+        var licence = await licenceResponse.Content.ReadFromJsonAsync<LicenceCreatedPayload>();
 
         // Suspend the licence
         var suspend = await AuthedClient.PatchAsJsonAsync($"/licences/{licence!.Id}/status", new { status = "suspended", reason = "test" });
@@ -154,9 +154,9 @@ public sealed class LicenceStateTransitionTests : IntegrationTestBase
 
         // Owner can still see it
         using var ownerClient = await CreateLoggedInClientAsync(email, password);
-        var       mine        = await ownerClient.GetFromJsonAsync<PagedLicencesPayload>("/me/licences");
+        var mine = await ownerClient.GetFromJsonAsync<PagedLicencesPayload>("/me/licences");
         Assert.NotNull(mine);
-        Assert.Equal(1,           mine.Total);
+        Assert.Equal(1, mine.Total);
         Assert.Equal("suspended", mine.Items[0].Status);
     }
 
@@ -177,8 +177,8 @@ public sealed class LicenceStateTransitionTests : IntegrationTestBase
 
     private async Task AssertVerifyEndpoint(HttpStatusCode expected, Guid productId, string licenceKey)
     {
-        using var client   = Factory!.CreateClient();
-        var       response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        using var client = Factory!.CreateClient();
+        var response = await client.PostAsJsonAsync("/licences/verify", new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(expected, response.StatusCode);
     }
 
@@ -187,27 +187,27 @@ public sealed class LicenceStateTransitionTests : IntegrationTestBase
     private sealed record LicenceCreatedPayload(Guid Id, Guid ProductId, string LicenceKey);
 
     private sealed record LicencePayload(
-        Guid            Id,
-        Guid            ProductId,
-        string          ProductSlug,
-        Guid            UserId,
-        string          UserEmail,
-        string          Status,
+        Guid Id,
+        Guid ProductId,
+        string ProductSlug,
+        Guid UserId,
+        string UserEmail,
+        string Status,
         DateTimeOffset? ExpiresAt,
-        string?         Notes,
-        DateTimeOffset  CreatedAt
+        string? Notes,
+        DateTimeOffset CreatedAt
     );
 
     private sealed record PagedLicencesPayload(IReadOnlyList<LicencePayload> Items, int Total, int Limit, int Offset);
 
     private sealed record HistoryPayload(
-        Guid           Id,
-        string         PreviousStatus,
-        string         NewStatus,
-        Guid           ChangedBy,
-        string?        ChangedByEmail,
+        Guid Id,
+        string PreviousStatus,
+        string NewStatus,
+        Guid ChangedBy,
+        string? ChangedByEmail,
         DateTimeOffset ChangedAt,
-        string?        Reason
+        string? Reason
     );
 
     private sealed record PagedHistoryPayload(IReadOnlyList<HistoryPayload> Items, int Total, int Limit, int Offset);

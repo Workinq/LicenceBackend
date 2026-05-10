@@ -20,15 +20,15 @@ namespace LicenceBackend.Api.Controllers;
 [Route("sessions")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public sealed class SessionsController(
-    IUserRepository                users,
-    IPasswordHasher                passwordHasher,
-    ISessionTokenIssuer            sessionIssuer,
+    IUserRepository users,
+    IPasswordHasher passwordHasher,
+    ISessionTokenIssuer sessionIssuer,
     ISessionRefreshTokenRepository refreshTokens,
-    RefreshTokenGenerator          refreshTokenGenerator,
-    RefreshTokenHasher             refreshTokenHasher,
-    ILoginRateLimiter              loginRateLimiter,
-    TimeProvider                   time,
-    IOptions<SessionOptions>       sessionOptions
+    RefreshTokenGenerator refreshTokenGenerator,
+    RefreshTokenHasher refreshTokenHasher,
+    ILoginRateLimiter loginRateLimiter,
+    TimeProvider time,
+    IOptions<SessionOptions> sessionOptions
 ) : ControllerBase
 {
     private readonly SessionOptions _sessionOptions = sessionOptions.Value;
@@ -40,13 +40,13 @@ public sealed class SessionsController(
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login(
         [FromBody] LoginRequest request,
-        CancellationToken       cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
-            var ip       = (HttpContext.Connection.RemoteIpAddress ?? IPAddress.None).ToString();
-            var email    = request.Email.ToLowerInvariant();
+            var ip = (HttpContext.Connection.RemoteIpAddress ?? IPAddress.None).ToString();
+            var email = request.Email.ToLowerInvariant();
             var decision = await loginRateLimiter.TryAcquireAsync(ip, email, cancellationToken);
             if (!decision.Acquired) return RateLimitRejection.AsResult(HttpContext, decision.RetryAfter);
         }
@@ -119,7 +119,7 @@ public sealed class SessionsController(
         if (user is null || user.Status == UserStatus.Suspended) return InvalidRefresh();
 
         var newRefresh = BuildRefreshToken(user.Id, now, out var rawRefresh);
-        var rotated    = await refreshTokens.RotateAsync(existing.Id, newRefresh, cancellationToken);
+        var rotated = await refreshTokens.RotateAsync(existing.Id, newRefresh, cancellationToken);
         if (!rotated)
         {
             await refreshTokens.RevokeAllForUserAsync(existing.UserId, cancellationToken);
@@ -160,7 +160,7 @@ public sealed class SessionsController(
 
     private async Task<IssuedPair> IssueSessionPairAsync(User user, CancellationToken cancellationToken)
     {
-        var now     = time.GetUtcNow();
+        var now = time.GetUtcNow();
         var refresh = BuildRefreshToken(user.Id, now, out var rawRefresh);
         await refreshTokens.CreateAsync(refresh, cancellationToken);
 
@@ -228,8 +228,8 @@ public sealed class SessionsController(
     }
 
     private sealed record IssuedPair(
-        SessionToken   Session,
-        string         RawRefresh,
+        SessionToken Session,
+        string RawRefresh,
         DateTimeOffset RefreshExpiresAt
     );
 }

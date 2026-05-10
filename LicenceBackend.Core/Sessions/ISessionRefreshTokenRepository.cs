@@ -13,9 +13,9 @@ public interface ISessionRefreshTokenRepository
     ///     was already revoked when the UPDATE ran (race loss — caller should treat as reuse).
     /// </summary>
     Task<bool> RotateAsync(
-        Guid                oldTokenId,
+        Guid oldTokenId,
         SessionRefreshToken newToken,
-        CancellationToken   cancellationToken);
+        CancellationToken cancellationToken);
 
     Task RevokeByIdAsync(Guid tokenId, CancellationToken cancellationToken);
 

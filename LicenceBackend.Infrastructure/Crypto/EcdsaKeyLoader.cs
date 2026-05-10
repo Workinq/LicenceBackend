@@ -11,7 +11,7 @@ public static class EcdsaKeyLoader
                 $"Signing key PEM not found at '{pemPath}'. Generate one with the dev tools.",
                 pemPath);
 
-        var pem   = File.ReadAllText(pemPath);
+        var pem = File.ReadAllText(pemPath);
         var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(pem);
 

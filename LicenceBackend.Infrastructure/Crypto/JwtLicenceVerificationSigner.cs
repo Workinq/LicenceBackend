@@ -7,25 +7,25 @@ namespace LicenceBackend.Infrastructure.Crypto;
 
 public sealed class JwtLicenceVerificationSigner : ILicenceVerificationSigner
 {
-    private const    int    SignedPayloadTtlSeconds = 60;
-    private const    string TokenType               = "licence-verify+jwt";
+    private const int SignedPayloadTtlSeconds = 60;
+    private const string TokenType = "licence-verify+jwt";
     private readonly string _kid;
 
     private readonly SigningCredentials _signingCredentials;
-    private readonly TimeProvider       _time;
+    private readonly TimeProvider _time;
 
     public JwtLicenceVerificationSigner(
         LicenceVerifySigningKeySet signingKeySet,
-        TimeProvider               time)
+        TimeProvider time)
     {
         _signingCredentials = new SigningCredentials(signingKeySet.ActiveSecurityKey, SecurityAlgorithms.EcdsaSha256);
-        _kid                = signingKeySet.ActiveKid;
-        _time               = time;
+        _kid = signingKeySet.ActiveKid;
+        _time = time;
     }
 
     public string Sign(SignedLicenceVerificationClaims claims)
     {
-        var now       = _time.GetUtcNow();
+        var now = _time.GetUtcNow();
         var expiresAt = now.AddSeconds(SignedPayloadTtlSeconds);
 
         var jwtClaims = new List<Claim>

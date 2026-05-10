@@ -11,51 +11,51 @@ public interface ILicenceRepository
     Task CreateAsync(Licence licence, CancellationToken cancellationToken);
 
     Task<PagedResult<Licence>> ListAsync(
-        Guid?             productId,
-        Guid?             userId,
-        LicenceStatus?    status,
-        int               limit,
-        int               offset,
+        Guid? productId,
+        Guid? userId,
+        LicenceStatus? status,
+        int limit,
+        int offset,
         CancellationToken cancellationToken
     );
 
     Task<PagedResult<Licence>> ListForOwnerAsync(
-        Guid              ownerId,
-        LicenceStatus?    status,
-        int               limit,
-        int               offset,
+        Guid ownerId,
+        LicenceStatus? status,
+        int limit,
+        int offset,
         CancellationToken cancellationToken
     );
 
     Task<Licence?> UpdateStatusAsync(
-        Guid              licenceId,
-        LicenceStatus     newStatus,
-        Guid              changedBy,
-        string?           reason,
+        Guid licenceId,
+        LicenceStatus newStatus,
+        Guid changedBy,
+        string? reason,
         CancellationToken cancellationToken
     );
 
     Task<PinHwidResult> PinHwidAndRecordAttemptAsync(
-        Guid                       licenceId,
-        byte[]                     hwidHmac,
-        short                      hwidHmacPepperVersion,
-        string                     sourceIp,
+        Guid licenceId,
+        byte[] hwidHmac,
+        short hwidHmacPepperVersion,
+        string sourceIp,
         LicenceVerificationAttempt approvedAttempt,
-        CancellationToken          cancellationToken
+        CancellationToken cancellationToken
     );
 
     Task<Licence?> ClearHwidAsync(
-        Guid              licenceId,
-        Guid              changedByUserId,
-        string?           reason,
+        Guid licenceId,
+        Guid changedByUserId,
+        string? reason,
         CancellationToken cancellationToken
     );
 
     Task<Licence?> UpdateIpAllowlistAsync(
-        Guid                   licenceId,
+        Guid licenceId,
         IReadOnlyList<string>? cidrs,
-        Guid                   changedByUserId,
-        string?                reason,
-        CancellationToken      cancellationToken
+        Guid changedByUserId,
+        string? reason,
+        CancellationToken cancellationToken
     );
 }

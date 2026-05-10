@@ -17,9 +17,9 @@ public sealed class HmacLicenceKeyHasher : ILicenceKeyHasher
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(licenceKey);
 
-        var bytes   = Encoding.UTF8.GetBytes(licenceKey.Trim());
+        var bytes = Encoding.UTF8.GetBytes(licenceKey.Trim());
         var version = _pepperSet.ActiveVersion;
-        var hmac    = HMACSHA256.HashData(_pepperSet[version], bytes);
+        var hmac = HMACSHA256.HashData(_pepperSet[version], bytes);
         return new PepperedHmac(hmac, version);
     }
 
@@ -34,7 +34,7 @@ public sealed class HmacLicenceKeyHasher : ILicenceKeyHasher
                       .Concat(_pepperSet.AllVersions.Where(v => v != _pepperSet.ActiveVersion))
                       .ToArray();
 
-        var hashes                                         = new byte[ordered.Length][];
+        var hashes = new byte[ordered.Length][];
         for (var i = 0; i < ordered.Length; i++) hashes[i] = HMACSHA256.HashData(_pepperSet[ordered[i]], bytes);
         return hashes;
     }

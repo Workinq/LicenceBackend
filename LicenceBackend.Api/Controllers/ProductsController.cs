@@ -16,11 +16,11 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class ProductsController(
     IProductRepository products,
-    TimeProvider       time
+    TimeProvider time
 ) : ControllerBase
 {
     private const int DefaultLimit = 50;
-    private const int MaxLimit     = 200;
+    private const int MaxLimit = 200;
 
     [HttpPost]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status201Created)]
@@ -28,7 +28,7 @@ public sealed class ProductsController(
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateProductRequest request,
-        CancellationToken               cancellationToken)
+        CancellationToken cancellationToken)
     {
         var existing = await products.FindBySlugAsync(request.Slug, cancellationToken);
         if (existing is not null)
@@ -54,14 +54,14 @@ public sealed class ProductsController(
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<ProductResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
-        [FromQuery] int?  limit,
-        [FromQuery] int?  offset,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
         CancellationToken cancellationToken)
     {
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
 
-        var page  = await products.ListAsync(effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await products.ListAsync(effectiveLimit, effectiveOffset, cancellationToken);
         var items = page.Items.Select(ToResponse).ToList();
         return Ok(new PagedResponse<ProductResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }

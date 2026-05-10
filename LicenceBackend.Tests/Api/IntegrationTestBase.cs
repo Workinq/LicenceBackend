@@ -17,20 +17,20 @@ namespace LicenceBackend.Tests.Api;
 [Collection(IntegrationCollection.Name)]
 public abstract class IntegrationTestBase : IAsyncLifetime
 {
-    private const   string TestConnEnv      = "LICENCEBACKEND_TEST_POSTGRES";
-    private const   string Issuer           = "https://licencebackend.test";
-    private const   string Audience         = "licencebackend-dashboard";
-    private const   string SessionKid       = "session-v1";
-    private const   string LicenceVerifyKid = "licence-verify-test";
-    protected const string AdminEmail       = "admin@test.local";
-    protected const string AdminPassword    = "admin-integration-test-pw!";
+    private const string TestConnEnv = "LICENCEBACKEND_TEST_POSTGRES";
+    private const string Issuer = "https://licencebackend.test";
+    private const string Audience = "licencebackend-dashboard";
+    private const string SessionKid = "session-v1";
+    private const string LicenceVerifyKid = "licence-verify-test";
+    protected const string AdminEmail = "admin@test.local";
+    protected const string AdminPassword = "admin-integration-test-pw!";
 
-    private   string?                         _connectionString;
-    protected Guid                            AdminUserId;
-    protected HttpClient                      AuthedClient = null!;
+    private string? _connectionString;
+    protected Guid AdminUserId;
+    protected HttpClient AuthedClient = null!;
     protected WebApplicationFactory<Program>? Factory;
-    protected HttpClient                      UnauthedClient = null!;
-    protected string                          TempDir { get; private set; } = string.Empty;
+    protected HttpClient UnauthedClient = null!;
+    protected string TempDir { get; private set; } = string.Empty;
 
     public virtual async Task InitializeAsync()
     {
@@ -39,9 +39,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         _connectionString = EnsureBoundedPool(rawConnectionString);
 
         TempDir = Directory.CreateTempSubdirectory("licencebackend-tests-").FullName;
-        var sessionPemPath       = Path.Combine(TempDir, "session-signing.pem");
+        var sessionPemPath = Path.Combine(TempDir, "session-signing.pem");
         var licenceVerifyPemPath = Path.Combine(TempDir, "licence-verify-signing.pem");
-        var pepperPath           = Path.Combine(TempDir, "pepper.txt");
+        var pepperPath = Path.Combine(TempDir, "pepper.txt");
 
         using (var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256))
         {
@@ -69,7 +69,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
                 $"Migration failed in script '{migrationResult.ErrorScript?.Name}': {migrationResult.Error}",
                 migrationResult.Error);
 
-        var hasher    = new Argon2IdPasswordHasher();
+        var hasher = new Argon2IdPasswordHasher();
         var adminHash = hasher.Hash(AdminPassword);
         AdminUserId = Guid.NewGuid();
         await using (var conn = new NpgsqlConnection(_connectionString))
@@ -82,10 +82,10 @@ public abstract class IntegrationTestBase : IAsyncLifetime
                 """,
                 new
                 {
-                    Id         = AdminUserId,
-                    Email      = AdminEmail,
+                    Id = AdminUserId,
+                    Email = AdminEmail,
                     EmailLower = AdminEmail.ToLowerInvariant(),
-                    Hash       = adminHash
+                    Hash = adminHash
                 });
         }
 
@@ -93,26 +93,26 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         ClearHigherIndices("SessionSigning__Keys");
         ClearHigherIndices("LicenceVerifySigning__Keys");
         ClearHigherIndices("Licence__Peppers");
-        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid",                  SessionKid);
-        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath",       sessionPemPath);
-        Environment.SetEnvironmentVariable("SessionSigning__ActiveKid",                     SessionKid);
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__Kid",            LicenceVerifyKid);
+        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid", SessionKid);
+        Environment.SetEnvironmentVariable("SessionSigning__Keys__0__PrivateKeyPath", sessionPemPath);
+        Environment.SetEnvironmentVariable("SessionSigning__ActiveKid", SessionKid);
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__Kid", LicenceVerifyKid);
         Environment.SetEnvironmentVariable("LicenceVerifySigning__Keys__0__PrivateKeyPath", licenceVerifyPemPath);
-        Environment.SetEnvironmentVariable("LicenceVerifySigning__ActiveKid",               LicenceVerifyKid);
-        Environment.SetEnvironmentVariable("Licence__Peppers__0__Version",                  "1");
-        Environment.SetEnvironmentVariable("Licence__Peppers__0__Path",                     pepperPath);
-        Environment.SetEnvironmentVariable("Licence__ActivePepperVersion",                  "1");
-        Environment.SetEnvironmentVariable("Session__Issuer",                               Issuer);
-        Environment.SetEnvironmentVariable("Session__Audience",                             Audience);
-        Environment.SetEnvironmentVariable("Session__TtlSeconds",                           "900");
-        Environment.SetEnvironmentVariable("Session__RefreshTtlSeconds",                    "2592000");
-        Environment.SetEnvironmentVariable("RateLimiting__Enabled",                         "false");
+        Environment.SetEnvironmentVariable("LicenceVerifySigning__ActiveKid", LicenceVerifyKid);
+        Environment.SetEnvironmentVariable("Licence__Peppers__0__Version", "1");
+        Environment.SetEnvironmentVariable("Licence__Peppers__0__Path", pepperPath);
+        Environment.SetEnvironmentVariable("Licence__ActivePepperVersion", "1");
+        Environment.SetEnvironmentVariable("Session__Issuer", Issuer);
+        Environment.SetEnvironmentVariable("Session__Audience", Audience);
+        Environment.SetEnvironmentVariable("Session__TtlSeconds", "900");
+        Environment.SetEnvironmentVariable("Session__RefreshTtlSeconds", "2592000");
+        Environment.SetEnvironmentVariable("RateLimiting__Enabled", "false");
 
         ApplyPreFactoryEnvironment();
 
-        Factory        = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
+        Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
         UnauthedClient = Factory.CreateClient();
-        AuthedClient   = await CreateLoggedInClientAsync(AdminEmail, AdminPassword);
+        AuthedClient = await CreateLoggedInClientAsync(AdminEmail, AdminPassword);
     }
 
     public virtual async Task DisposeAsync()
@@ -183,7 +183,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected async Task<HttpClient> CreateLoggedInClientAsync(string email, string password)
     {
         var loginClient = Factory!.CreateClient();
-        var response    = await loginClient.PostAsJsonAsync("/sessions", new { email, password });
+        var response = await loginClient.PostAsJsonAsync("/sessions", new { email, password });
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync();
@@ -208,8 +208,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         {
             Kty = k.Kty,
             Crv = k.Crv,
-            X   = k.X,
-            Y   = k.Y,
+            X = k.X,
+            Y = k.Y,
             Kid = k.Kid,
             Alg = k.Alg,
             Use = k.Use
@@ -221,13 +221,13 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         var validationParameters = new TokenValidationParameters
         {
-            ValidateIssuer           = false,
-            ValidateAudience         = false,
-            ValidateLifetime         = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKeys        = keys,
-            ValidAlgorithms          = [SecurityAlgorithms.EcdsaSha256],
-            ClockSkew                = TimeSpan.FromSeconds(30)
+            IssuerSigningKeys = keys,
+            ValidAlgorithms = [SecurityAlgorithms.EcdsaSha256],
+            ClockSkew = TimeSpan.FromSeconds(30)
         };
 
         handler.ValidateToken(signedPayload, validationParameters, out var validatedToken);
@@ -266,9 +266,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     }
 
     private sealed record SessionPayload(
-        string         AccessToken,
+        string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
-        string         RefreshToken,
+        string RefreshToken,
         DateTimeOffset RefreshTokenExpiresAt
     );
 

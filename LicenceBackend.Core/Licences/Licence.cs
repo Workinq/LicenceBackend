@@ -4,19 +4,19 @@ using System.Security.Cryptography;
 namespace LicenceBackend.Core.Licences;
 
 public sealed record Licence(
-    Guid                   Id,
-    Guid                   ProductId,
-    Guid                   UserId,
-    byte[]                 KeyHmac,
-    short                  KeyHmacPepperVersion,
-    LicenceStatus          Status,
-    DateTimeOffset?        ExpiresAt,
-    string?                Notes,
-    byte[]?                HwidHmac,
-    short?                 HwidHmacPepperVersion,
+    Guid Id,
+    Guid ProductId,
+    Guid UserId,
+    byte[] KeyHmac,
+    short KeyHmacPepperVersion,
+    LicenceStatus Status,
+    DateTimeOffset? ExpiresAt,
+    string? Notes,
+    byte[]? HwidHmac,
+    short? HwidHmacPepperVersion,
     IReadOnlyList<string>? IpAllowlist,
-    DateTimeOffset         CreatedAt,
-    DateTimeOffset         UpdatedAt
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt
 )
 {
     public bool IsUsableAt(DateTimeOffset now)

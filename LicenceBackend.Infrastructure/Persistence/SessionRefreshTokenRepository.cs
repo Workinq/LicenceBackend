@@ -22,7 +22,7 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
                 token.Id,
                 token.UserId,
                 token.TokenHash,
-                IssuedAt  = token.IssuedAt.UtcDateTime,
+                IssuedAt = token.IssuedAt.UtcDateTime,
                 ExpiresAt = token.ExpiresAt.UtcDateTime,
                 RevokedAt = token.RevokedAt?.UtcDateTime,
                 token.ReplacedBy
@@ -41,16 +41,16 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { TokenHash = tokenHash }, cancellationToken: cancellationToken);
-        var             row        = await connection.QuerySingleOrDefaultAsync<RefreshRow>(command);
+        var command = new CommandDefinition(sql, new { TokenHash = tokenHash }, cancellationToken: cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<RefreshRow>(command);
         if (row is null || !CryptographicOperations.FixedTimeEquals(row.TokenHash, tokenHash)) return null;
         return row.ToDomain();
     }
 
     public async Task<bool> RotateAsync(
-        Guid                oldTokenId,
+        Guid oldTokenId,
         SessionRefreshToken newToken,
-        CancellationToken   cancellationToken)
+        CancellationToken cancellationToken)
     {
         // INSERT must run before UPDATE — the UPDATE's replaced_by FK references the new row.
         const string insertSql = """
@@ -64,7 +64,7 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
                                  WHERE id = @OldId AND revoked_at IS NULL;
                                  """;
 
-        await using var connection  = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         try
         {
@@ -75,7 +75,7 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
                                                   newToken.Id,
                                                   newToken.UserId,
                                                   newToken.TokenHash,
-                                                  IssuedAt  = newToken.IssuedAt.UtcDateTime,
+                                                  IssuedAt = newToken.IssuedAt.UtcDateTime,
                                                   ExpiresAt = newToken.ExpiresAt.UtcDateTime,
                                                   RevokedAt = newToken.RevokedAt?.UtcDateTime,
                                                   newToken.ReplacedBy
@@ -114,7 +114,7 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { Id = tokenId }, cancellationToken: cancellationToken);
+        var command = new CommandDefinition(sql, new { Id = tokenId }, cancellationToken: cancellationToken);
         await connection.ExecuteAsync(command);
     }
 
@@ -127,18 +127,18 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var             command    = new CommandDefinition(sql, new { UserId = userId }, cancellationToken: cancellationToken);
+        var command = new CommandDefinition(sql, new { UserId = userId }, cancellationToken: cancellationToken);
         await connection.ExecuteAsync(command);
     }
 
     private sealed record RefreshRow(
-        Guid      Id,
-        Guid      UserId,
-        byte[]    TokenHash,
-        DateTime  IssuedAt,
-        DateTime  ExpiresAt,
+        Guid Id,
+        Guid UserId,
+        byte[] TokenHash,
+        DateTime IssuedAt,
+        DateTime ExpiresAt,
         DateTime? RevokedAt,
-        Guid?     ReplacedBy
+        Guid? ReplacedBy
     )
     {
         public SessionRefreshToken ToDomain()

@@ -8,9 +8,9 @@ namespace LicenceBackend.Infrastructure.Persistence;
 public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource) : ILicenceBindingHistoryRepository
 {
     public async Task<PagedResult<LicenceBindingHistoryEntry>> ListForLicenceAsync(
-        Guid              licenceId,
-        int               limit,
-        int               offset,
+        Guid licenceId,
+        int limit,
+        int offset,
         CancellationToken cancellationToken)
     {
         const string sql = """
@@ -31,8 +31,8 @@ public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource)
             new { LicenceId = licenceId, Limit = limit, Offset = offset },
             cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
-        var             rows  = (await multi.ReadAsync<Row>()).ToList();
-        var             total = await multi.ReadFirstAsync<int>();
+        var rows = (await multi.ReadAsync<Row>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<LicenceBindingHistoryEntry>(
             rows.Select(r => r.ToDomain()).ToList(),
@@ -43,9 +43,9 @@ public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource)
     {
         return value switch
         {
-            "hwid"         => LicenceBindingType.Hwid,
+            "hwid" => LicenceBindingType.Hwid,
             "ip_allowlist" => LicenceBindingType.IpAllowlist,
-            _              => throw new InvalidOperationException($"Unknown binding_type '{value}'.")
+            _ => throw new InvalidOperationException($"Unknown binding_type '{value}'.")
         };
     }
 
@@ -53,22 +53,22 @@ public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource)
     {
         return value switch
         {
-            "admin"     => BindingChangeSource.Admin,
+            "admin" => BindingChangeSource.Admin,
             "first_use" => BindingChangeSource.FirstUse,
-            _           => throw new InvalidOperationException($"Unknown change_source '{value}'.")
+            _ => throw new InvalidOperationException($"Unknown change_source '{value}'.")
         };
     }
 
     private sealed record Row(
-        Guid     Id,
-        Guid     LicenceId,
-        string   BindingType,
-        string?  PreviousValue,
-        string?  NewValue,
-        string   ChangeSource,
-        Guid?    ChangedByUserId,
+        Guid Id,
+        Guid LicenceId,
+        string BindingType,
+        string? PreviousValue,
+        string? NewValue,
+        string ChangeSource,
+        Guid? ChangedByUserId,
         DateTime ChangedAt,
-        string?  Reason
+        string? Reason
     )
     {
         public LicenceBindingHistoryEntry ToDomain()

@@ -2,7 +2,7 @@ namespace LicenceBackend.Core.Licences;
 
 public interface ILicenceKeyHasher
 {
-    PepperedHmac          HashWithActive(string  licenceKey);
+    PepperedHmac HashWithActive(string licenceKey);
     IReadOnlyList<byte[]> HashAllVersions(string licenceKey);
 }
 

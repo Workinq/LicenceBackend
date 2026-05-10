@@ -15,10 +15,10 @@ public interface IUserRepository
     Task<PagedResult<User>> ListAsync(int limit, int offset, CancellationToken cancellationToken);
 
     Task<User?> UpdateStatusAsync(
-        Guid              userId,
-        UserStatus        newStatus,
-        Guid              changedBy,
-        string?           reason,
+        Guid userId,
+        UserStatus newStatus,
+        Guid changedBy,
+        string? reason,
         CancellationToken cancellationToken
     );
 }

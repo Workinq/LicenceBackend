@@ -6,12 +6,12 @@ namespace LicenceBackend.Api.RateLimiting;
 
 public static class RateLimitRejection
 {
-    private const string ProblemTitle  = "rate_limited";
+    private const string ProblemTitle = "rate_limited";
     private const string ProblemDetail = "Too many requests. Retry later.";
 
     public static async Task WriteAsync(HttpContext context, TimeSpan? retryAfter, CancellationToken cancellationToken)
     {
-        context.Response.StatusCode  = StatusCodes.Status429TooManyRequests;
+        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         context.Response.ContentType = "application/problem+json";
         SetRetryAfter(context.Response, retryAfter);
 
@@ -25,7 +25,7 @@ public static class RateLimitRejection
         var problem = BuildProblem(retryAfter);
         return new ObjectResult(problem)
         {
-            StatusCode   = StatusCodes.Status429TooManyRequests,
+            StatusCode = StatusCodes.Status429TooManyRequests,
             ContentTypes = { "application/problem+json" }
         };
     }
@@ -34,8 +34,8 @@ public static class RateLimitRejection
     {
         return new ProblemDetails
         {
-            Type   = "https://tools.ietf.org/html/rfc6585#section-4",
-            Title  = ProblemTitle,
+            Type = "https://tools.ietf.org/html/rfc6585#section-4",
+            Title = ProblemTitle,
             Status = StatusCodes.Status429TooManyRequests,
             Detail = ProblemDetail,
             Extensions =
@@ -47,7 +47,7 @@ public static class RateLimitRejection
 
     private static void SetRetryAfter(HttpResponse response, TimeSpan? retryAfter)
     {
-        var source  = retryAfter ?? TimeSpan.FromSeconds(60);
+        var source = retryAfter ?? TimeSpan.FromSeconds(60);
         var seconds = Math.Max(1, (int)Math.Ceiling(source.TotalSeconds));
         response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
     }

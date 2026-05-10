@@ -7,12 +7,12 @@ namespace LicenceBackend.Infrastructure.Crypto;
 
 public sealed class Argon2IdPasswordHasher : IPasswordHasher
 {
-    private const int DefaultIterations  = 3;
-    private const int DefaultMemoryKiB   = 65_536;
+    private const int DefaultIterations = 3;
+    private const int DefaultMemoryKiB = 65_536;
     private const int DefaultParallelism = 1;
-    private const int SaltBytes          = 16;
-    private const int HashBytes          = 32;
-    private const int ArgonVersion       = 19;
+    private const int SaltBytes = 16;
+    private const int HashBytes = 32;
+    private const int ArgonVersion = 19;
 
     private static readonly string DummyHash = ComputeDummyHash();
 
@@ -51,9 +51,9 @@ public sealed class Argon2IdPasswordHasher : IPasswordHasher
     {
         using var argon2 = new Argon2id(Encoding.UTF8.GetBytes(password))
         {
-            Salt                = salt,
-            Iterations          = iterations,
-            MemorySize          = memoryKiB,
+            Salt = salt,
+            Iterations = iterations,
+            MemorySize = memoryKiB,
             DegreeOfParallelism = parallelism
         };
         return argon2.GetBytes(hashLength);
@@ -67,18 +67,18 @@ public sealed class Argon2IdPasswordHasher : IPasswordHasher
     }
 
     private static bool TryDecode(
-        string     encoded,
-        out int    iterations,
-        out int    memoryKiB,
-        out int    parallelism,
+        string encoded,
+        out int iterations,
+        out int memoryKiB,
+        out int parallelism,
         out byte[] salt,
         out byte[] hash)
     {
-        iterations  = 0;
-        memoryKiB   = 0;
+        iterations = 0;
+        memoryKiB = 0;
         parallelism = 0;
-        salt        = [];
-        hash        = [];
+        salt = [];
+        hash = [];
 
         var parts = encoded.Split('$');
         if (parts.Length != 6 || parts[0].Length != 0) return false;
@@ -96,8 +96,8 @@ public sealed class Argon2IdPasswordHasher : IPasswordHasher
             paramDict[key] = value;
         }
 
-        if (!paramDict.TryGetValue("m", out memoryKiB)   || memoryKiB   <= 0) return false;
-        if (!paramDict.TryGetValue("t", out iterations)  || iterations  <= 0) return false;
+        if (!paramDict.TryGetValue("m", out memoryKiB) || memoryKiB <= 0) return false;
+        if (!paramDict.TryGetValue("t", out iterations) || iterations <= 0) return false;
         if (!paramDict.TryGetValue("p", out parallelism) || parallelism <= 0) return false;
 
         try

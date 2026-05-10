@@ -17,9 +17,9 @@ public sealed class HmacHwidHasher : IHwidHasher
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(hwid);
 
-        var bytes   = Encoding.UTF8.GetBytes(hwid.Trim());
+        var bytes = Encoding.UTF8.GetBytes(hwid.Trim());
         var version = _pepperSet.ActiveVersion;
-        var hmac    = HMACSHA256.HashData(_pepperSet[version], bytes);
+        var hmac = HMACSHA256.HashData(_pepperSet[version], bytes);
         return new PepperedHmac(hmac, version);
     }
 

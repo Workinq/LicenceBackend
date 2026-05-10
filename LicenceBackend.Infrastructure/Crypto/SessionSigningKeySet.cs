@@ -5,7 +5,7 @@ namespace LicenceBackend.Infrastructure.Crypto;
 
 public sealed class SessionSigningKeySet : IDisposable
 {
-    private readonly IReadOnlyDictionary<string, ECDsa>            _ecdsaByKid;
+    private readonly IReadOnlyDictionary<string, ECDsa> _ecdsaByKid;
     private readonly IReadOnlyDictionary<string, ECDsaSecurityKey> _securityKeysByKid;
 
     public SessionSigningKeySet(IReadOnlyDictionary<string, ECDsa> ecdsaByKid, string activeKid)

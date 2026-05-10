@@ -24,29 +24,29 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class LicencesController(
-    ILicenceRepository                    licences,
-    ILicenceStatusHistoryRepository       licenceStatusHistory,
-    ILicenceBindingHistoryRepository      bindingHistory,
+    ILicenceRepository licences,
+    ILicenceStatusHistoryRepository licenceStatusHistory,
+    ILicenceBindingHistoryRepository bindingHistory,
     ILicenceVerificationAttemptRepository verificationAttempts,
-    IProductRepository                    products,
-    IUserRepository                       users,
-    ILicenceKeyGenerator                  keyGenerator,
-    ILicenceKeyHasher                     keyHasher,
-    TimeProvider                          time
+    IProductRepository products,
+    IUserRepository users,
+    ILicenceKeyGenerator keyGenerator,
+    ILicenceKeyHasher keyHasher,
+    TimeProvider time
 ) : ControllerBase
 {
     private const int DefaultLimit = 50;
-    private const int MaxLimit     = 200;
+    private const int MaxLimit = 200;
 
     [HttpPost]
     [ProducesResponseType(typeof(LicenceCreatedResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(
         [FromBody] CreateLicenceRequest request,
-        CancellationToken               cancellationToken
+        CancellationToken cancellationToken
     )
     {
         var hasUserId = request.UserId is not null;
-        var hasEmail  = !string.IsNullOrWhiteSpace(request.Email);
+        var hasEmail = !string.IsNullOrWhiteSpace(request.Email);
         switch (hasUserId)
         {
             case false when !hasEmail:
@@ -90,9 +90,9 @@ public sealed class LicencesController(
                 detail: "expiresAt must be in the future."
             );
 
-        var rawKey       = keyGenerator.Generate();
+        var rawKey = keyGenerator.Generate();
         var pepperedHmac = keyHasher.HashWithActive(rawKey);
-        var now          = time.GetUtcNow();
+        var now = time.GetUtcNow();
         var licence = new Licence(
             Guid.NewGuid(),
             product.Id,
@@ -132,12 +132,12 @@ public sealed class LicencesController(
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<LicenceResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
-        [FromQuery] Guid?   productId,
-        [FromQuery] Guid?   userId,
+        [FromQuery] Guid? productId,
+        [FromQuery] Guid? userId,
         [FromQuery] string? status,
-        [FromQuery] int?    limit,
-        [FromQuery] int?    offset,
-        CancellationToken   cancellationToken
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
+        CancellationToken cancellationToken
     )
     {
         LicenceStatus? parsedStatus = null;
@@ -152,21 +152,21 @@ public sealed class LicencesController(
             parsedStatus = s;
         }
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
-        var page            = await licences.ListAsync(productId, userId, parsedStatus, effectiveLimit, effectiveOffset, cancellationToken);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var page = await licences.ListAsync(productId, userId, parsedStatus, effectiveLimit, effectiveOffset, cancellationToken);
 
         var slugByProductId = new Dictionary<Guid, string>();
         foreach (var pid in page.Items.Select(l => l.ProductId).Distinct())
         {
-            var product                                   = await products.FindByIdAsync(pid, cancellationToken);
+            var product = await products.FindByIdAsync(pid, cancellationToken);
             if (product is not null) slugByProductId[pid] = product.Slug;
         }
 
         var emailByUserId = new Dictionary<Guid, string>();
         foreach (var uid in page.Items.Select(l => l.UserId).Distinct())
         {
-            var user                                 = await users.FindByIdAsync(uid, cancellationToken);
+            var user = await users.FindByIdAsync(uid, cancellationToken);
             if (user is not null) emailByUserId[uid] = user.Email;
         }
 
@@ -195,7 +195,7 @@ public sealed class LicencesController(
             );
 
         var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
-        var owner   = await users.FindByIdAsync(licence.UserId, cancellationToken);
+        var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
 
         return Ok(ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
     }
@@ -204,9 +204,9 @@ public sealed class LicencesController(
     [ProducesResponseType(typeof(LicenceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateStatus(
-        Guid                                  id,
+        Guid id,
         [FromBody] UpdateLicenceStatusRequest request,
-        CancellationToken                     cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -228,7 +228,7 @@ public sealed class LicencesController(
             );
 
         var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
-        var owner   = await users.FindByIdAsync(updated.UserId, cancellationToken);
+        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
 
         return Ok(ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
     }
@@ -237,9 +237,9 @@ public sealed class LicencesController(
     [ProducesResponseType(typeof(PagedResponse<LicenceStatusHistoryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetStatusHistory(
-        Guid              id,
-        [FromQuery] int?  limit,
-        [FromQuery] int?  offset,
+        Guid id,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
         CancellationToken cancellationToken
     )
     {
@@ -251,14 +251,14 @@ public sealed class LicencesController(
                 detail: $"No licence with id '{id}'."
             );
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
-        var page            = await licenceStatusHistory.ListForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var page = await licenceStatusHistory.ListForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
 
         var emailByUserId = new Dictionary<Guid, string>();
         foreach (var changerId in page.Items.Select(h => h.ChangedBy).Distinct())
         {
-            var changer                                       = await users.FindByIdAsync(changerId, cancellationToken);
+            var changer = await users.FindByIdAsync(changerId, cancellationToken);
             if (changer is not null) emailByUserId[changerId] = changer.Email;
         }
 
@@ -281,9 +281,9 @@ public sealed class LicencesController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateHwid(
-        Guid                                id,
+        Guid id,
         [FromBody] UpdateLicenceHwidRequest request,
-        CancellationToken                   cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -316,9 +316,9 @@ public sealed class LicencesController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateIpAllowlist(
-        Guid                                       id,
+        Guid id,
         [FromBody] UpdateLicenceIpAllowlistRequest request,
-        CancellationToken                          cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
@@ -370,9 +370,9 @@ public sealed class LicencesController(
     [ProducesResponseType(typeof(PagedResponse<BindingHistoryEntryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBindingHistory(
-        Guid              id,
-        [FromQuery] int?  limit,
-        [FromQuery] int?  offset,
+        Guid id,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
         CancellationToken cancellationToken
     )
     {
@@ -384,9 +384,9 @@ public sealed class LicencesController(
                 detail: $"No licence with id '{id}'."
             );
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
-        var page            = await bindingHistory.ListForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var page = await bindingHistory.ListForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
 
         var items = page.Items.Select(ToBindingHistoryResponse).ToList();
         return Ok(new PagedResponse<BindingHistoryEntryResponse>(items, page.Total, effectiveLimit, effectiveOffset));
@@ -396,11 +396,11 @@ public sealed class LicencesController(
     [ProducesResponseType(typeof(PagedResponse<VerificationAttemptResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetVerificationAttempts(
-        Guid                id,
+        Guid id,
         [FromQuery] string? outcome,
-        [FromQuery] int?    limit,
-        [FromQuery] int?    offset,
-        CancellationToken   cancellationToken
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
+        CancellationToken cancellationToken
     )
     {
         var licence = await licences.FindByIdAsync(id, cancellationToken);
@@ -418,9 +418,9 @@ public sealed class LicencesController(
                 detail: "outcome must be 'approved' or 'denied'."
             );
 
-        var effectiveLimit  = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset  ?? 0, 0);
-        var page            = await verificationAttempts.ListForLicenceAsync(id, filter, effectiveLimit, effectiveOffset, cancellationToken);
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var page = await verificationAttempts.ListForLicenceAsync(id, filter, effectiveLimit, effectiveOffset, cancellationToken);
 
         var items = page.Items.Select(ToVerificationAttemptResponse).ToList();
         return Ok(new PagedResponse<VerificationAttemptResponse>(items, page.Total, effectiveLimit, effectiveOffset));
@@ -510,9 +510,9 @@ public sealed class LicencesController(
     {
         return type switch
         {
-            LicenceBindingType.Hwid        => "hwid",
+            LicenceBindingType.Hwid => "hwid",
             LicenceBindingType.IpAllowlist => "ip_allowlist",
-            _                              => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }
 
@@ -520,9 +520,9 @@ public sealed class LicencesController(
     {
         return source switch
         {
-            BindingChangeSource.Admin    => "admin",
+            BindingChangeSource.Admin => "admin",
             BindingChangeSource.FirstUse => "first_use",
-            _                            => throw new ArgumentOutOfRangeException(nameof(source), source, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
         };
     }
 }

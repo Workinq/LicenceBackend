@@ -30,7 +30,7 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
                 attempt.ProductIdRequested,
                 attempt.HwidHmac,
                 attempt.SourceIp,
-                Outcome      = OutcomeToString(attempt.Outcome),
+                Outcome = OutcomeToString(attempt.Outcome),
                 DenialReason = DenialReasonToString(attempt.DenialReason),
                 attempt.AttemptedAt
             },
@@ -39,11 +39,11 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
     }
 
     public async Task<PagedResult<LicenceVerificationAttempt>> ListForLicenceAsync(
-        Guid                             licenceId,
+        Guid licenceId,
         VerificationAttemptOutcomeFilter filter,
-        int                              limit,
-        int                              offset,
-        CancellationToken                cancellationToken)
+        int limit,
+        int offset,
+        CancellationToken cancellationToken)
     {
         var outcomeFilter = FilterToSqlText(filter);
         const string sql = """
@@ -66,8 +66,8 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
             new { LicenceId = licenceId, Outcome = outcomeFilter, Limit = limit, Offset = offset },
             cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
-        var             rows  = (await multi.ReadAsync<Row>()).ToList();
-        var             total = await multi.ReadFirstAsync<int>();
+        var rows = (await multi.ReadAsync<Row>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<LicenceVerificationAttempt>(
             rows.Select(r => r.ToDomain()).ToList(),
@@ -76,9 +76,9 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
 
     public async Task<PagedResult<LicenceVerificationAttempt>> ListAsync(
         VerificationAttemptOutcomeFilter filter,
-        int                              limit,
-        int                              offset,
-        CancellationToken                cancellationToken)
+        int limit,
+        int offset,
+        CancellationToken cancellationToken)
     {
         var outcomeFilter = FilterToSqlText(filter);
         const string sql = """
@@ -99,8 +99,8 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
             new { Outcome = outcomeFilter, Limit = limit, Offset = offset },
             cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
-        var             rows  = (await multi.ReadAsync<Row>()).ToList();
-        var             total = await multi.ReadFirstAsync<int>();
+        var rows = (await multi.ReadAsync<Row>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<LicenceVerificationAttempt>(
             rows.Select(r => r.ToDomain()).ToList(),
@@ -111,10 +111,10 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
     {
         return filter switch
         {
-            VerificationAttemptOutcomeFilter.All          => null,
+            VerificationAttemptOutcomeFilter.All => null,
             VerificationAttemptOutcomeFilter.ApprovedOnly => "approved",
-            VerificationAttemptOutcomeFilter.DeniedOnly   => "denied",
-            _                                             => throw new ArgumentOutOfRangeException(nameof(filter), filter, null)
+            VerificationAttemptOutcomeFilter.DeniedOnly => "denied",
+            _ => throw new ArgumentOutOfRangeException(nameof(filter), filter, null)
         };
     }
 
@@ -123,8 +123,8 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
         return outcome switch
         {
             VerificationOutcome.Approved => "approved",
-            VerificationOutcome.Denied   => "denied",
-            _                            => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null)
+            VerificationOutcome.Denied => "denied",
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null)
         };
     }
 
@@ -132,14 +132,14 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
     {
         return reason switch
         {
-            null                                      => null,
-            VerificationDenialReason.ProductMismatch  => "product_mismatch",
+            null => null,
+            VerificationDenialReason.ProductMismatch => "product_mismatch",
             VerificationDenialReason.LicenceNotUsable => "licence_not_usable",
-            VerificationDenialReason.OwnerSuspended   => "owner_suspended",
+            VerificationDenialReason.OwnerSuspended => "owner_suspended",
             VerificationDenialReason.IpNotAllowlisted => "ip_not_allowlisted",
-            VerificationDenialReason.HwidMissing      => "hwid_missing",
-            VerificationDenialReason.HwidMismatch     => "hwid_mismatch",
-            _                                         => throw new ArgumentOutOfRangeException(nameof(reason), reason, null)
+            VerificationDenialReason.HwidMissing => "hwid_missing",
+            VerificationDenialReason.HwidMismatch => "hwid_mismatch",
+            _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null)
         };
     }
 
@@ -148,8 +148,8 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
         return value switch
         {
             "approved" => VerificationOutcome.Approved,
-            "denied"   => VerificationOutcome.Denied,
-            _          => throw new InvalidOperationException($"Unknown outcome '{value}'.")
+            "denied" => VerificationOutcome.Denied,
+            _ => throw new InvalidOperationException($"Unknown outcome '{value}'.")
         };
     }
 
@@ -157,25 +157,25 @@ public sealed class LicenceVerificationAttemptRepository(NpgsqlDataSource dataSo
     {
         return value switch
         {
-            null                 => null,
-            "product_mismatch"   => VerificationDenialReason.ProductMismatch,
+            null => null,
+            "product_mismatch" => VerificationDenialReason.ProductMismatch,
             "licence_not_usable" => VerificationDenialReason.LicenceNotUsable,
-            "owner_suspended"    => VerificationDenialReason.OwnerSuspended,
+            "owner_suspended" => VerificationDenialReason.OwnerSuspended,
             "ip_not_allowlisted" => VerificationDenialReason.IpNotAllowlisted,
-            "hwid_missing"       => VerificationDenialReason.HwidMissing,
-            "hwid_mismatch"      => VerificationDenialReason.HwidMismatch,
-            _                    => throw new InvalidOperationException($"Unknown denial_reason '{value}'.")
+            "hwid_missing" => VerificationDenialReason.HwidMissing,
+            "hwid_mismatch" => VerificationDenialReason.HwidMismatch,
+            _ => throw new InvalidOperationException($"Unknown denial_reason '{value}'.")
         };
     }
 
     private sealed record Row(
-        Guid     Id,
-        Guid     LicenceId,
-        Guid?    ProductIdRequested,
-        byte[]?  HwidHmac,
-        string   SourceIp,
-        string   Outcome,
-        string?  DenialReason,
+        Guid Id,
+        Guid LicenceId,
+        Guid? ProductIdRequested,
+        byte[]? HwidHmac,
+        string SourceIp,
+        string Outcome,
+        string? DenialReason,
         DateTime AttemptedAt
     )
     {

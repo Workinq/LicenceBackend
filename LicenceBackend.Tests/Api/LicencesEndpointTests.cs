@@ -18,12 +18,12 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<LicenceCreatedPayload>();
         Assert.NotNull(body);
-        Assert.NotEqual(Guid.Empty,      body.Id);
-        Assert.Equal(product.Id,         body.ProductId);
-        Assert.Equal("app-pro",          body.ProductSlug);
-        Assert.Equal(AdminUserId,        body.UserId);
-        Assert.Equal(AdminEmail,         body.UserEmail);
-        Assert.Equal("active",           body.Status);
+        Assert.NotEqual(Guid.Empty, body.Id);
+        Assert.Equal(product.Id, body.ProductId);
+        Assert.Equal("app-pro", body.ProductSlug);
+        Assert.Equal(AdminUserId, body.UserId);
+        Assert.Equal(AdminEmail, body.UserEmail);
+        Assert.Equal("active", body.Status);
         Assert.Equal("integration test", body.Notes);
         Assert.Null(body.ExpiresAt);
         Assert.False(string.IsNullOrWhiteSpace(body.LicenceKey));
@@ -49,7 +49,7 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadFromJsonAsync<LicenceCreatedPayload>();
         Assert.NotNull(body);
         Assert.Equal(AdminUserId, body.UserId);
-        Assert.Equal(AdminEmail,  body.UserEmail);
+        Assert.Equal(AdminEmail, body.UserEmail);
     }
 
     [SkippableFact]
@@ -120,7 +120,7 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
                            new
                            {
                                productId = product.Id,
-                               userId    = AdminUserId,
+                               userId = AdminUserId,
                                expiresAt = DateTimeOffset.UtcNow.AddMinutes(-1)
                            });
 
@@ -199,7 +199,7 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
         _ = await CreateLicenceAsync(product.Id);
 
         // Create a regular user + one licence they own
-        var regularEmail    = "regular-me@test.local";
+        var regularEmail = "regular-me@test.local";
         var regularPassword = "regular-me-password-12345";
         var createUser = await AuthedClient.PostAsJsonAsync(
                              "/users",
@@ -212,7 +212,7 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.Created, regularLic.StatusCode);
 
         using var regularClient = await CreateLoggedInClientAsync(regularEmail, regularPassword);
-        var       mine          = await regularClient.GetFromJsonAsync<PagedLicencesPayload>("/me/licences");
+        var mine = await regularClient.GetFromJsonAsync<PagedLicencesPayload>("/me/licences");
         Assert.NotNull(mine);
         Assert.Equal(1, mine.Total);
         Assert.All(mine.Items, item => Assert.Equal(regularEmail, item.UserEmail));
@@ -240,29 +240,29 @@ public sealed class LicencesEndpointTests : IntegrationTestBase
     private sealed record ProductPayload(Guid Id, string Slug, string DisplayName, DateTimeOffset CreatedAt);
 
     private sealed record LicenceCreatedPayload(
-        Guid            Id,
-        Guid            ProductId,
-        string          ProductSlug,
-        Guid            UserId,
-        string          UserEmail,
-        string          Status,
+        Guid Id,
+        Guid ProductId,
+        string ProductSlug,
+        Guid UserId,
+        string UserEmail,
+        string Status,
         DateTimeOffset? ExpiresAt,
-        string?         Notes,
-        DateTimeOffset  CreatedAt,
-        string          LicenceKey
+        string? Notes,
+        DateTimeOffset CreatedAt,
+        string LicenceKey
     );
 
     private sealed record LicencePayload(
-        Guid            Id,
-        Guid            ProductId,
-        string          ProductSlug,
-        Guid            UserId,
-        string          UserEmail,
-        string          Status,
+        Guid Id,
+        Guid ProductId,
+        string ProductSlug,
+        Guid UserId,
+        string UserEmail,
+        string Status,
         DateTimeOffset? ExpiresAt,
-        string?         Notes,
-        DateTimeOffset  CreatedAt,
-        string?         LicenceKey
+        string? Notes,
+        DateTimeOffset CreatedAt,
+        string? LicenceKey
     );
 
     private sealed record PagedLicencesPayload(IReadOnlyList<LicencePayload> Items, int Total, int Limit, int Offset);

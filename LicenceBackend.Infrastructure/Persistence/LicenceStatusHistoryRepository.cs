@@ -8,9 +8,9 @@ namespace LicenceBackend.Infrastructure.Persistence;
 public sealed class LicenceStatusHistoryRepository(NpgsqlDataSource dataSource) : ILicenceStatusHistoryRepository
 {
     public async Task<PagedResult<LicenceStatusHistoryEntry>> ListForLicenceAsync(
-        Guid              licenceId,
-        int               limit,
-        int               offset,
+        Guid licenceId,
+        int limit,
+        int offset,
         CancellationToken cancellationToken)
     {
         const string sql = """
@@ -30,20 +30,20 @@ public sealed class LicenceStatusHistoryRepository(NpgsqlDataSource dataSource) 
             new { LicenceId = licenceId, Limit = limit, Offset = offset },
             cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
-        var             rows  = (await multi.ReadAsync<HistoryRow>()).ToList();
-        var             total = await multi.ReadFirstAsync<int>();
+        var rows = (await multi.ReadAsync<HistoryRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
 
         return new PagedResult<LicenceStatusHistoryEntry>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
     private sealed record HistoryRow(
-        Guid     Id,
-        Guid     LicenceId,
-        string   PreviousStatus,
-        string   NewStatus,
-        Guid     ChangedBy,
+        Guid Id,
+        Guid LicenceId,
+        string PreviousStatus,
+        string NewStatus,
+        Guid ChangedBy,
         DateTime ChangedAt,
-        string?  Reason
+        string? Reason
     )
     {
         public LicenceStatusHistoryEntry ToDomain()
@@ -52,7 +52,7 @@ public sealed class LicenceStatusHistoryRepository(NpgsqlDataSource dataSource) 
                 Id,
                 LicenceId,
                 Enum.Parse<LicenceStatus>(PreviousStatus, true),
-                Enum.Parse<LicenceStatus>(NewStatus,      true),
+                Enum.Parse<LicenceStatus>(NewStatus, true),
                 ChangedBy,
                 TimestampConversion.ToUtcOffset(ChangedAt),
                 Reason);

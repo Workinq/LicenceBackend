@@ -18,35 +18,35 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddLicenceBackendInfrastructure(
         this IServiceCollection services,
-        IConfiguration          configuration)
+        IConfiguration configuration)
     {
         DefaultTypeMap.MatchNamesWithUnderscores = true;
 
         services.AddOptions<LicenceOptions>()
                 .Bind(configuration.GetSection(LicenceOptions.SectionName))
-                .Validate(o => o.Peppers.Count > 0,                                    "Licence:Peppers must contain at least one entry.")
-                .Validate(o => o.Peppers.All(p => p.Version > 0),                      "Licence:Peppers entries must have Version > 0.")
+                .Validate(o => o.Peppers.Count > 0, "Licence:Peppers must contain at least one entry.")
+                .Validate(o => o.Peppers.All(p => p.Version > 0), "Licence:Peppers entries must have Version > 0.")
                 .Validate(o => o.Peppers.All(p => !string.IsNullOrWhiteSpace(p.Path)), "Licence:Peppers entries must have a non-empty Path.")
                 .Validate(o => o.Peppers.Select(p => p.Version).Distinct().Count() == o.Peppers.Count,
                           "Licence:Peppers must not contain duplicate Version values.")
-                .Validate(o => o.ActivePepperVersion > 0,                              "Licence:ActivePepperVersion must be > 0.")
+                .Validate(o => o.ActivePepperVersion > 0, "Licence:ActivePepperVersion must be > 0.")
                 .Validate(o => o.Peppers.Any(p => p.Version == o.ActivePepperVersion), "Licence:ActivePepperVersion must match one of the configured Peppers.")
                 .ValidateOnStart();
 
         services.AddOptions<SessionSigningOptions>()
                 .Bind(configuration.GetSection(SessionSigningOptions.SectionName))
-                .Validate(o => o.Keys.Count > 0,                                   "SessionSigning:Keys must contain at least one entry.")
+                .Validate(o => o.Keys.Count > 0, "SessionSigning:Keys must contain at least one entry.")
                 .Validate(o => o.Keys.All(k => !string.IsNullOrWhiteSpace(k.Kid)), "SessionSigning:Keys entries must have a non-empty Kid.")
                 .Validate(o => o.Keys.All(k => !string.IsNullOrWhiteSpace(k.PrivateKeyPath)),
                           "SessionSigning:Keys entries must have a non-empty PrivateKeyPath.")
                 .Validate(o => o.Keys.Select(k => k.Kid).Distinct().Count() == o.Keys.Count, "SessionSigning:Keys must not contain duplicate Kid values.")
-                .Validate(o => !string.IsNullOrWhiteSpace(o.ActiveKid),                      "SessionSigning:ActiveKid is required.")
-                .Validate(o => o.Keys.Any(k => k.Kid == o.ActiveKid),                        "SessionSigning:ActiveKid must match one of the configured Keys.")
+                .Validate(o => !string.IsNullOrWhiteSpace(o.ActiveKid), "SessionSigning:ActiveKid is required.")
+                .Validate(o => o.Keys.Any(k => k.Kid == o.ActiveKid), "SessionSigning:ActiveKid must match one of the configured Keys.")
                 .ValidateOnStart();
 
         services.AddOptions<LicenceVerifySigningOptions>()
                 .Bind(configuration.GetSection(LicenceVerifySigningOptions.SectionName))
-                .Validate(o => o.Keys.Count > 0,                                   "LicenceVerifySigning:Keys must contain at least one entry.")
+                .Validate(o => o.Keys.Count > 0, "LicenceVerifySigning:Keys must contain at least one entry.")
                 .Validate(o => o.Keys.All(k => !string.IsNullOrWhiteSpace(k.Kid)), "LicenceVerifySigning:Keys entries must have a non-empty Kid.")
                 .Validate(o => o.Keys.All(k => !string.IsNullOrWhiteSpace(k.PrivateKeyPath)),
                           "LicenceVerifySigning:Keys entries must have a non-empty PrivateKeyPath.")
@@ -57,10 +57,10 @@ public static class ServiceCollectionExtensions
 
         services.AddOptions<SessionOptions>()
                 .Bind(configuration.GetSection(SessionOptions.SectionName))
-                .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer),   "Session:Issuer is required.")
+                .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Session:Issuer is required.")
                 .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Session:Audience is required.")
-                .Validate(o => o.TtlSeconds        > 0,                "Session:TtlSeconds must be positive.")
-                .Validate(o => o.RefreshTtlSeconds > 0,                "Session:RefreshTtlSeconds must be positive.")
+                .Validate(o => o.TtlSeconds > 0, "Session:TtlSeconds must be positive.")
+                .Validate(o => o.RefreshTtlSeconds > 0, "Session:RefreshTtlSeconds must be positive.")
                 .ValidateOnStart();
 
         services.AddOptions<RateLimitingOptions>()

@@ -16,8 +16,8 @@ public sealed class UsersEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(body);
         Assert.Equal("bob@test.local", body.Email);
-        Assert.Equal("Bob",            body.DisplayName);
-        Assert.Equal("user",           body.Role);
+        Assert.Equal("Bob", body.DisplayName);
+        Assert.Equal("user", body.Role);
 
         var raw = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("password", raw, StringComparison.OrdinalIgnoreCase);
@@ -78,7 +78,7 @@ public sealed class UsersEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(body);
         Assert.Equal(AdminEmail, body.Email);
-        Assert.Equal("admin",    body.Role);
+        Assert.Equal("admin", body.Role);
     }
 
     [SkippableFact]
@@ -100,8 +100,8 @@ public sealed class UsersEndpointTests : IntegrationTestBase
         var body = await response.Content.ReadFromJsonAsync<UserPayload>();
         Assert.NotNull(body);
         Assert.Equal(AdminUserId, body.Id);
-        Assert.Equal(AdminEmail,  body.Email);
-        Assert.Equal("admin",     body.Role);
+        Assert.Equal(AdminEmail, body.Email);
+        Assert.Equal("admin", body.Role);
     }
 
     private sealed record UserPayload(Guid Id, string Email, string? DisplayName, string Role, DateTimeOffset CreatedAt);

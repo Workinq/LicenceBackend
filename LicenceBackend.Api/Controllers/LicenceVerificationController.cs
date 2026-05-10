@@ -18,22 +18,22 @@ namespace LicenceBackend.Api.Controllers;
 [Route("licences/verify")]
 [AllowAnonymous]
 public sealed class LicenceVerificationController(
-    ILicenceRepository                     licences,
-    IProductRepository                     products,
-    IUserRepository                        users,
-    ILicenceKeyHasher                      hasher,
-    IHwidHasher                            hwidHasher,
-    ILicenceVerificationSigner             signer,
-    LicenceVerifySigningKeySet             signingKeySet,
-    ILicenceVerificationAttemptRepository  attempts,
-    ILicenceVerifyRateLimiter              verifyRateLimiter,
-    TimeProvider                           time,
+    ILicenceRepository licences,
+    IProductRepository products,
+    IUserRepository users,
+    ILicenceKeyHasher hasher,
+    IHwidHasher hwidHasher,
+    ILicenceVerificationSigner signer,
+    LicenceVerifySigningKeySet signingKeySet,
+    ILicenceVerificationAttemptRepository attempts,
+    ILicenceVerifyRateLimiter verifyRateLimiter,
+    TimeProvider time,
     ILogger<LicenceVerificationController> logger
 ) : ControllerBase
 {
-    private const int    MinClientNonceLength = 16;
-    private const int    MaxClientNonceLength = 128;
-    private const string SigningAlgorithm     = "ES256";
+    private const int MinClientNonceLength = 16;
+    private const int MaxClientNonceLength = 128;
+    private const string SigningAlgorithm = "ES256";
 
     [HttpPost]
     [ProducesResponseType(typeof(SignedLicenceVerificationResponse), StatusCodes.Status200OK)]
@@ -41,7 +41,7 @@ public sealed class LicenceVerificationController(
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Verify(
         [FromBody] VerifyLicenceRequest request,
-        CancellationToken               cancellationToken
+        CancellationToken cancellationToken
     )
     {
         if (string.IsNullOrWhiteSpace(request.LicenceKey) || request.ProductId is not { } productId
@@ -66,9 +66,9 @@ public sealed class LicenceVerificationController(
         var licence = await licences.FindByKeyHmacAsync(keyHmacCandidates, cancellationToken);
         if (licence is null) return InvalidLicence();
 
-        var remote       = HttpContext.Connection.RemoteIpAddress ?? IPAddress.None;
+        var remote = HttpContext.Connection.RemoteIpAddress ?? IPAddress.None;
         var remoteIpText = remote.ToString();
-        var now          = time.GetUtcNow();
+        var now = time.GetUtcNow();
 
         var (denialReason, presentedHwidHmac, pendingFirstPin) = await DetermineOutcomeAsync(
                                                                      licence,
@@ -80,19 +80,19 @@ public sealed class LicenceVerificationController(
                                                                  );
 
         Product? product = null;
-        User?    owner   = null;
+        User? owner = null;
         if (denialReason is null)
         {
             product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
-            owner   = await users.FindByIdAsync(licence.UserId, cancellationToken);
+            owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
             if (product is null || owner is null)
             {
-                denialReason    = VerificationDenialReason.LicenceNotUsable;
+                denialReason = VerificationDenialReason.LicenceNotUsable;
                 pendingFirstPin = null;
             }
         }
 
-        var attemptId     = Guid.NewGuid();
+        var attemptId = Guid.NewGuid();
         var auditRecorded = false;
         if (pendingFirstPin is not null && denialReason is null)
         {
@@ -119,16 +119,16 @@ public sealed class LicenceVerificationController(
             {
                 case PinHwidResult.Pinned:
                     presentedHwidHmac = pendingFirstPin.Value.Hmac;
-                    auditRecorded     = true;
+                    auditRecorded = true;
                     break;
                 case PinHwidResult.AlreadyBound:
                     var (raceReason, raceHmac) = await ResolveRaceLoserAsync(licence.Id, request.Hwid!, cancellationToken);
-                    denialReason               = raceReason;
-                    presentedHwidHmac          = raceHmac;
+                    denialReason = raceReason;
+                    presentedHwidHmac = raceHmac;
                     break;
                 case PinHwidResult.NotFound:
                 default:
-                    denialReason      = VerificationDenialReason.LicenceNotUsable;
+                    denialReason = VerificationDenialReason.LicenceNotUsable;
                     presentedHwidHmac = pendingFirstPin.Value.Hmac;
                     break;
             }
@@ -137,7 +137,7 @@ public sealed class LicenceVerificationController(
         // Re-read licence in case a successful first-pin mutated it.
         if (denialReason is null && licence.HwidHmac is null && presentedHwidHmac is not null)
         {
-            var refreshed                      = await licences.FindByIdAsync(licence.Id, cancellationToken);
+            var refreshed = await licences.FindByIdAsync(licence.Id, cancellationToken);
             if (refreshed is not null) licence = refreshed;
         }
 
@@ -212,11 +212,11 @@ public sealed class LicenceVerificationController(
     }
 
     private async Task<(VerificationDenialReason? Reason, byte[]? PresentedHwidHmac, PepperedHmac? PendingFirstPin)> DetermineOutcomeAsync(
-        Licence           licence,
-        Guid              requestedProductId,
-        IPAddress         remote,
-        string?           presentedHwid,
-        DateTimeOffset    now,
+        Licence licence,
+        Guid requestedProductId,
+        IPAddress remote,
+        string? presentedHwid,
+        DateTimeOffset now,
         CancellationToken cancellationToken
     )
     {
@@ -259,8 +259,8 @@ public sealed class LicenceVerificationController(
     }
 
     private async Task<(VerificationDenialReason? Reason, byte[]? PresentedHwidHmac)> ResolveRaceLoserAsync(
-        Guid              licenceId,
-        string            presentedHwid,
+        Guid licenceId,
+        string presentedHwid,
         CancellationToken cancellationToken)
     {
         var refreshed = await licences.FindByIdAsync(licenceId, cancellationToken);
