@@ -85,17 +85,15 @@ public sealed class SessionsController(
     [ProducesResponseType(typeof(SessionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> Refresh(
-        [FromBody] string refreshToken,
-        CancellationToken cancellationToken
-    )
+    public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(refreshToken)) return InvalidRefresh();
+        if (!Request.Cookies.TryGetValue(RefreshCookie.Name, out var rawRefresh) || string.IsNullOrWhiteSpace(rawRefresh))
+            return InvalidRefresh();
 
         byte[] hash;
         try
         {
-            hash = RefreshTokenHasher.Hash(refreshToken);
+            hash = RefreshTokenHasher.Hash(rawRefresh);
         }
         catch (ArgumentException)
         {
@@ -117,7 +115,7 @@ public sealed class SessionsController(
         var user = await users.FindByIdAsync(existing.UserId, cancellationToken);
         if (user is null || user.Status == UserStatus.Suspended) return InvalidRefresh();
 
-        var newRefresh = BuildRefreshToken(user.Id, now, out var rawRefresh);
+        var newRefresh = BuildRefreshToken(user.Id, now, out var rotatedRaw);
         var rotated = await refreshTokens.RotateAsync(existing.Id, newRefresh, cancellationToken);
         if (!rotated)
         {
@@ -125,12 +123,10 @@ public sealed class SessionsController(
             return InvalidRefresh();
         }
 
+        Response.Cookies.Append(RefreshCookie.Name, rotatedRaw, RefreshCookie.Build(newRefresh.ExpiresAt));
+
         var session = sessionIssuer.Issue(user, newRefresh.Id);
-        return Ok(new SessionResponse(
-                      session.Token,
-                      session.ExpiresAt,
-                      ToUserResponse(user))
-        );
+        return Ok(new SessionResponse(session.Token, session.ExpiresAt, ToUserResponse(user)));
     }
 
     [HttpDelete]
