@@ -116,7 +116,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         UnauthedClient = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = HttpsBaseAddress,
-            HandleCookies = true
+            HandleCookies = false
         });
         AuthedClient = await CreateLoggedInClientAsync(AdminEmail, AdminPassword);
     }
@@ -281,9 +281,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     private sealed record SessionPayload(
         string AccessToken,
-        DateTimeOffset AccessTokenExpiresAt,
-        string RefreshToken,
-        DateTimeOffset RefreshTokenExpiresAt
+        DateTimeOffset AccessTokenExpiresAt
     );
 
     public sealed record JwksPayload(IReadOnlyList<JwkPayload> Keys);

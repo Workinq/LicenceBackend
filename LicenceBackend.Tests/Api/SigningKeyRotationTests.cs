@@ -238,9 +238,7 @@ public sealed class SigningKeyRotationTests : IntegrationTestBase
 
     private sealed record SessionPayload(
         string AccessToken,
-        DateTimeOffset AccessTokenExpiresAt,
-        string RefreshToken,
-        DateTimeOffset RefreshTokenExpiresAt
+        DateTimeOffset AccessTokenExpiresAt
     );
 
     private sealed record SignedPayloadResponse(string SignedPayload);

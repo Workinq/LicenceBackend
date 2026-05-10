@@ -313,5 +313,5 @@ public sealed class RateLimitingTests : IntegrationTestBase
         return loginClient;
     }
 
-    private sealed record SessionPayload(string AccessToken, DateTimeOffset AccessTokenExpiresAt, string RefreshToken, DateTimeOffset RefreshTokenExpiresAt);
+    private sealed record SessionPayload(string AccessToken, DateTimeOffset AccessTokenExpiresAt);
 }

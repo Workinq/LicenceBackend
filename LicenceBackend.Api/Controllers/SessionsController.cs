@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
+using LicenceBackend.Api.Auth;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
@@ -128,8 +129,6 @@ public sealed class SessionsController(
         return Ok(new SessionResponse(
                       session.Token,
                       session.ExpiresAt,
-                      rawRefresh,
-                      newRefresh.ExpiresAt,
                       ToUserResponse(user))
         );
     }
@@ -156,14 +155,16 @@ public sealed class SessionsController(
         return NoContent();
     }
 
-    private async Task<IssuedPair> IssueSessionPairAsync(User user, CancellationToken cancellationToken)
+    private async Task<IssuedSession> IssueSessionPairAsync(User user, CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
         var refresh = BuildRefreshToken(user.Id, now, out var rawRefresh);
         await refreshTokens.CreateAsync(refresh, cancellationToken);
 
+        Response.Cookies.Append(RefreshCookie.Name, rawRefresh, RefreshCookie.Build(refresh.ExpiresAt));
+
         var session = sessionIssuer.Issue(user, refresh.Id);
-        return new IssuedPair(session, rawRefresh, refresh.ExpiresAt);
+        return new IssuedSession(session);
     }
 
     private SessionRefreshToken BuildRefreshToken(Guid userId, DateTimeOffset now, out string rawToken)
@@ -181,13 +182,11 @@ public sealed class SessionsController(
         );
     }
 
-    private static SessionResponse ToResponse(IssuedPair pair, User user)
+    private static SessionResponse ToResponse(IssuedSession issued, User user)
     {
         return new SessionResponse(
-            pair.Session.Token,
-            pair.Session.ExpiresAt,
-            pair.RawRefresh,
-            pair.RefreshExpiresAt,
+            issued.Session.Token,
+            issued.Session.ExpiresAt,
             ToUserResponse(user)
         );
     }
@@ -225,9 +224,5 @@ public sealed class SessionsController(
         );
     }
 
-    private sealed record IssuedPair(
-        SessionToken Session,
-        string RawRefresh,
-        DateTimeOffset RefreshExpiresAt
-    );
+    private sealed record IssuedSession(SessionToken Session);
 }
