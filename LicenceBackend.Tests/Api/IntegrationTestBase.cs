@@ -25,7 +25,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected const string AdminEmail = "admin@test.local";
     protected const string AdminPassword = "admin-integration-test-pw!";
 
-    private static readonly Uri HttpsBaseAddress = new("https://localhost");
+    protected static readonly Uri HttpsBaseAddress = new("https://localhost");
 
     private string? _connectionString;
     protected Guid AdminUserId;
