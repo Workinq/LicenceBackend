@@ -1,1 +1,10 @@
-/* frontend/src/index.css — Tailwind import added in Task 2 */
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: #fdf8f3;
+  color: #2a1f17;
+}
