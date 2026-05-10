@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace LicenceBackend.Infrastructure.Crypto;
 
-public sealed class RefreshTokenGenerator
+public static class RefreshTokenGenerator
 {
     private const int RawByteLength = 32;
 

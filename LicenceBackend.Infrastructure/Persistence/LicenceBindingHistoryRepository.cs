@@ -11,7 +11,8 @@ public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource)
         Guid licenceId,
         int limit,
         int offset,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         const string sql = """
                            SELECT id, licence_id, binding_type, previous_value, new_value,
@@ -26,37 +27,12 @@ public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource)
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(
-            sql,
-            new { LicenceId = licenceId, Limit = limit, Offset = offset },
-            cancellationToken: cancellationToken);
+        var command = new CommandDefinition(sql, new { LicenceId = licenceId, Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
         var rows = (await multi.ReadAsync<Row>()).ToList();
         var total = await multi.ReadFirstAsync<int>();
 
-        return new PagedResult<LicenceBindingHistoryEntry>(
-            rows.Select(r => r.ToDomain()).ToList(),
-            total);
-    }
-
-    private static LicenceBindingType ParseBindingType(string value)
-    {
-        return value switch
-        {
-            "hwid" => LicenceBindingType.Hwid,
-            "ip_allowlist" => LicenceBindingType.IpAllowlist,
-            _ => throw new InvalidOperationException($"Unknown binding_type '{value}'.")
-        };
-    }
-
-    private static BindingChangeSource ParseChangeSource(string value)
-    {
-        return value switch
-        {
-            "admin" => BindingChangeSource.Admin,
-            "first_use" => BindingChangeSource.FirstUse,
-            _ => throw new InvalidOperationException($"Unknown change_source '{value}'.")
-        };
+        return new PagedResult<LicenceBindingHistoryEntry>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
     private sealed record Row(
@@ -83,6 +59,26 @@ public sealed class LicenceBindingHistoryRepository(NpgsqlDataSource dataSource)
                 ChangedByUserId,
                 TimestampConversion.ToUtcOffset(ChangedAt),
                 Reason);
+        }
+
+        private static LicenceBindingType ParseBindingType(string value)
+        {
+            return value switch
+            {
+                "hwid" => LicenceBindingType.Hwid,
+                "ip_allowlist" => LicenceBindingType.IpAllowlist,
+                _ => throw new InvalidOperationException($"Unknown binding_type '{value}'.")
+            };
+        }
+
+        private static BindingChangeSource ParseChangeSource(string value)
+        {
+            return value switch
+            {
+                "admin" => BindingChangeSource.Admin,
+                "first_use" => BindingChangeSource.FirstUse,
+                _ => throw new InvalidOperationException($"Unknown change_source '{value}'.")
+            };
         }
     }
 }

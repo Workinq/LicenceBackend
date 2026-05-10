@@ -3,7 +3,7 @@ using System.Text;
 
 namespace LicenceBackend.Infrastructure.Crypto;
 
-public sealed class RefreshTokenHasher
+public static class RefreshTokenHasher
 {
     public static byte[] Hash(string rawToken)
     {

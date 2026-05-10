@@ -2,9 +2,9 @@ using System.Text.RegularExpressions;
 
 namespace LicenceBackend.Tests.Unit;
 
-public sealed class MigrationFilenameConventionTests
+public sealed partial class MigrationFilenameConventionTests
 {
-    private static readonly Regex Pattern = new(@"^\d{3}_[a-z0-9_]+\.sql$", RegexOptions.Compiled);
+    private static readonly Regex Pattern = MyRegex();
 
     [Fact]
     public void Migration_filenames_match_NNN_snake_case_sql_pattern()
@@ -21,7 +21,7 @@ public sealed class MigrationFilenameConventionTests
     {
         var dir = FindMigrationsDirectory();
         var nums = Directory.GetFiles(dir, "*.sql")
-            .Select(p => Path.GetFileName(p)!)
+            .Select(p => Path.GetFileName(p))
             .Select(n => int.Parse(n.Substring(0, 3)))
             .OrderBy(n => n)
             .ToList();
@@ -42,4 +42,7 @@ public sealed class MigrationFilenameConventionTests
         throw new DirectoryNotFoundException(
             $"Could not locate repo root (LicenceBackend.sln) by walking up from '{Directory.GetCurrentDirectory()}'.");
     }
+
+    [GeneratedRegex(@"^\d{3}_[a-z0-9_]+\.sql$", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }
