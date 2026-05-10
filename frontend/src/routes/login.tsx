@@ -48,7 +48,7 @@ function LoginPage() {
       }
 
       if (!res.ok) {
-        toast.error('Login failed  - please try again');
+        toast.error('Login failed - please try again');
         return;
       }
 
@@ -56,7 +56,7 @@ function LoginPage() {
       setSession(body.accessToken, new Date(body.accessTokenExpiresAt), body.user);
       await navigate({ to: '/' });
     } catch {
-      toast.error('Network error  - is the API running?');
+      toast.error('Network error - is the API running?');
     }
   };
 
