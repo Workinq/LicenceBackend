@@ -1,4 +1,4 @@
-# Frontend Admin Panel  - Design Spec
+# Frontend Admin Panel - Design Spec
 
 **Date:** 2026-05-09
 **Brainstorm session:** initial frontend chunk
@@ -6,7 +6,7 @@
 
 ## Overview
 
-A web admin panel for the LicenceBackend, covering full lifecycle management of licences, products, and users from a browser. Replaces the current admin path of "DevTools CLI + curl + Scalar UI" for day-to-day operations. Customer-facing self-service is **out of scope for this spec**  - it ships as a separate later chunk that will reuse the same auth and design system.
+A web admin panel for the LicenceBackend, covering full lifecycle management of licences, products, and users from a browser. Replaces the current admin path of "DevTools CLI + curl + Scalar UI" for day-to-day operations. Customer-facing self-service is **out of scope for this spec** - it ships as a separate later chunk that will reuse the same auth and design system.
 
 The frontend is built and deployed as part of the same Git repository as the backend, served from the same origin in production, so the auth model can rely on `SameSite=Strict` cookies without CSRF token plumbing.
 
@@ -37,29 +37,29 @@ The frontend is built and deployed as part of the same Git repository as the bac
 - List, create, detail (slug + displayName + licence count), edit displayName
 
 **Users**
-- List, create (email + role + optional password  - admin-generated password shown once)
+- List, create (email + role + optional password - admin-generated password shown once)
 - Suspend / activate, with reason
 - Status history view
 - Reset password (admin-generated, shown once)
 
 ### Explicitly out of scope (deferred)
 
-- Cross-licence verification-attempts dashboard (denial feed at `/verification-attempts?outcome=denied`)  - deferred at user's call during brainstorm
-- Customer self-service portal (`/me/licences` UI)  - separate chunk
+- Cross-licence verification-attempts dashboard (denial feed at `/verification-attempts?outcome=denied`) - deferred at user's call during brainstorm
+- Customer self-service portal (`/me/licences` UI) - separate chunk
 - Mobile responsive layout (desktop-only, ≥1024px viewport)
 - Dark mode
 - i18n / multi-language
 - Bulk operations (multi-select on lists)
 - Real-time updates / WebSockets
-- Email delivery for created users / password resets  - depends on Chunk J
-- E2E test suite (Playwright)  - manual smoke until customer portal exists
+- Email delivery for created users / password resets - depends on Chunk J
+- E2E test suite (Playwright) - manual smoke until customer portal exists
 - SonarCloud frontend coverage upload
 
 ## Chunk plan
 
 This spec produces two chunks, shipped in order:
 
-### Chunk P0  - backend cookie-based refresh (small, ~3-4 hours)
+### Chunk P0 - backend cookie-based refresh (small, ~3-4 hours)
 
 Self-contained backend change. Mergeable on its own with no frontend dependency.
 
@@ -72,7 +72,7 @@ Self-contained backend change. Mergeable on its own with no frontend dependency.
 
 **Out of scope for P0:** any frontend code. Any new endpoints. Any change to `/licences/verify` or any other route.
 
-### Chunk P1  - frontend admin panel (larger, multi-day)
+### Chunk P1 - frontend admin panel (larger, multi-day)
 
 Builds on P0. The rest of this spec describes P1.
 
@@ -101,7 +101,7 @@ Versions are pinned in `package.json` at install time to the latest stable from 
 
 ```
 LicenceBackend/                          (existing repo root)
-├── frontend/                            (NEW  - this chunk)
+├── frontend/                            (NEW - this chunk)
 │   ├── src/
 │   │   ├── api/
 │   │   │   └── generated/               (orval output, committed)
@@ -136,7 +136,7 @@ LicenceBackend/                          (existing repo root)
 └── (everything else unchanged)
 ```
 
-## Auth  - frontend handling
+## Auth - frontend handling
 
 ### Access-token store
 
@@ -176,7 +176,7 @@ On `_authed/route.tsx` mount: if the access store has no token, fire `POST /sess
 /licences                   list + search + status/product filters
 /licences/new               create form
 /licences/$id               detail, with sub-routes:
-  /licences/$id/audit       (default tab  - verification audit log; highest-frequency reason to open a licence)
+  /licences/$id/audit       (default tab - verification audit log; highest-frequency reason to open a licence)
   /licences/$id/status      status history
   /licences/$id/bindings    binding history + edit HWID/IP
 /products                   list
@@ -188,7 +188,7 @@ On `_authed/route.tsx` mount: if the access store has no token, fire `POST /sess
 /me                         current admin profile (read-only in v1)
 ```
 
-Tabs on detail pages are sub-routes (deep-linkable). The default sub-route for licence detail is `audit`  - the highest-frequency reason an admin opens a licence. There is no separate "Overview" tab because the page header already shows the identifying fields (key, status pill, owner, product, expires_at) above the tab strip.
+Tabs on detail pages are sub-routes (deep-linkable). The default sub-route for licence detail is `audit` - the highest-frequency reason an admin opens a licence. There is no separate "Overview" tab because the page header already shows the identifying fields (key, status pill, owner, product, expires_at) above the tab strip.
 
 ## Navigation
 
@@ -200,13 +200,13 @@ Tabs on detail pages are sub-routes (deep-linkable). The default sub-route for l
 
 ### List pages
 - Toolbar: search input (full-width flex-grow) + filter pills + primary `+ New <thing>` button (charcoal, ink-light text).
-- `<DataTable>` (TanStack Table + shadcn): sortable columns, sticky header, row-hover background, three-dot row menu (Open / Suspend / Revoke / etc.). Server-side pagination using page-based offsets (matches the backend's existing `PagedResponse<T>` shape  - `{ items, page, pageSize, total }`).
+- `<DataTable>` (TanStack Table + shadcn): sortable columns, sticky header, row-hover background, three-dot row menu (Open / Suspend / Revoke / etc.). Server-side pagination using page-based offsets (matches the backend's existing `PagedResponse<T>` shape - `{ items, page, pageSize, total }`).
 - Empty state: centered illustration-or-icon + "No licences yet" + primary CTA. Use the rust accent here.
 
 ### Detail pages
 - Header block: most-identifying field (licence key with `LicenceKey` chip, or user email) + status pill + key actions (Suspend/Revoke for licences, Suspend for users) inline.
 - Tabs as sub-routes (see Routes). Each tab is its own component.
-- Destructive actions (Revoke, Delete user  - though delete isn't in v1) wrapped in `ConfirmDestructive` with typed-confirmation field (user types "REVOKE" to enable the button).
+- Destructive actions (Revoke, Delete user - though delete isn't in v1) wrapped in `ConfirmDestructive` with typed-confirmation field (user types "REVOKE" to enable the button).
 
 ### Create pages
 - Full-page form with sectioned cards (e.g., "Identity" / "Expiry" / "Notes" for licence creation).
@@ -242,7 +242,7 @@ boxShadow: {
 },
 ```
 
-Fonts loaded via `@fontsource` packages (Inter, Fraunces, JetBrains Mono)  - no external CDN, no FOUT.
+Fonts loaded via `@fontsource` packages (Inter, Fraunces, JetBrains Mono) - no external CDN, no FOUT.
 
 ### Accent discipline
 
@@ -258,21 +258,21 @@ Everywhere else, primary actions use charcoal. The dominant feel is cream + char
 
 Beyond shadcn primitives:
 
-- `LicenceKey`  - monospace chip, on-click copies to clipboard + sonner toast. Hovering reveals the full key when truncated; default rendering shows `LIC-XXXXX-...-XXXXX` with the middle elided in tables.
-- `StatusPill`  - three variants (active / suspended / revoked) using `colors.status`.
-- `SecretRevealOnce`  - large centered display for the licence key shown once on creation. Big monospace text, copy button, "I've saved this" dismiss button. Once dismissed, the key is gone from the UI (matches backend's single-show contract).
-- `AuditTimeline`  - vertical list of audit entries: timestamp (relative + absolute on hover), actor (admin email or "first-use"), action (color-coded by outcome), redacted IP (`192.168.x.x` style). Reverse-chronological.
-- `ConfirmDestructive`  - wrapped shadcn Dialog: title, description, optional typed-confirmation field, primary destructive button (status.revoked.bg with status.revoked.fg text). For revoke/delete only.
+- `LicenceKey` - monospace chip, on-click copies to clipboard + sonner toast. Hovering reveals the full key when truncated; default rendering shows `LIC-XXXXX-...-XXXXX` with the middle elided in tables.
+- `StatusPill` - three variants (active / suspended / revoked) using `colors.status`.
+- `SecretRevealOnce` - large centered display for the licence key shown once on creation. Big monospace text, copy button, "I've saved this" dismiss button. Once dismissed, the key is gone from the UI (matches backend's single-show contract).
+- `AuditTimeline` - vertical list of audit entries: timestamp (relative + absolute on hover), actor (admin email or "first-use"), action (color-coded by outcome), redacted IP (`192.168.x.x` style). Reverse-chronological.
+- `ConfirmDestructive` - wrapped shadcn Dialog: title, description, optional typed-confirmation field, primary destructive button (status.revoked.bg with status.revoked.fg text). For revoke/delete only.
 
 ## API client (orval)
 
 `orval.config.ts` points at the backend's OpenAPI document. Output: typed TanStack Query hooks at `frontend/src/api/generated/`.
 
-- Output is **committed**  - type errors surface in PRs, and CI fails if the generated client drifts from what's committed.
-- CI step: `pnpm orval` and `git diff --exit-code frontend/src/api/generated/` after  - fail if drift.
+- Output is **committed** - type errors surface in PRs, and CI fails if the generated client drifts from what's committed.
+- CI step: `pnpm orval` and `git diff --exit-code frontend/src/api/generated/` after - fail if drift.
 - Regeneration: developer runs `pnpm orval` after backend changes the OpenAPI doc, commits the resulting diff alongside the API change.
 
-The orval-generated `axios`/`fetch` instance is replaced with our custom fetch wrapper (see "Auth  - refresh interceptor") so every request goes through the auth flow.
+The orval-generated `axios`/`fetch` instance is replaced with our custom fetch wrapper (see "Auth - refresh interceptor") so every request goes through the auth flow.
 
 ## Testing
 
@@ -280,10 +280,10 @@ The orval-generated `axios`/`fetch` instance is replaced with our custom fetch w
 |---|---|---|
 | Unit | Vitest | Auth store, zod schemas, format helpers (relative time, IP redaction), refresh-interceptor retry/single-flight logic |
 | Component | Vitest + React Testing Library | `LicenceKey` (copy on click), `StatusPill` (variant rendering), `SecretRevealOnce` (reveal/dismiss), `ConfirmDestructive` (typed-confirmation gate). Render + interaction; no network |
-| Integration | None in P1 | The orval hooks are thin  - exercised manually in dev |
+| Integration | None in P1 | The orval hooks are thin - exercised manually in dev |
 | E2E | None in P1 | Deferred until customer portal exists |
 | Lint/typecheck | ESLint + tsc + Prettier | CI: `--max-warnings=0`, `tsc --noEmit`, `prettier --check` |
-| Manual smoke | Local Vite + real backend | Standard chunk-completion verification  - log in, full CRUD pass on each resource, log out + cold-boot resume |
+| Manual smoke | Local Vite + real backend | Standard chunk-completion verification - log in, full CRUD pass on each resource, log out + cold-boot resume |
 
 ## Build & deploy
 
@@ -297,7 +297,7 @@ The orval-generated `axios`/`fetch` instance is replaced with our custom fetch w
 - `Program.cs` adds, in non-Development:
   - `app.UseStaticFiles();` (after `UseForwardedHeaders`, before `UseAuthentication`)
   - `app.MapFallbackToFile("index.html");` (after `MapControllers`)
-- Single deployable artifact  - same `dotnet publish` output as today, with the SPA bundled into `wwwroot/`.
+- Single deployable artifact - same `dotnet publish` output as today, with the SPA bundled into `wwwroot/`.
 - Same-origin in prod ⇒ `SameSite=Strict` cookie works without CORS, no CSRF tokens.
 
 ### CI
@@ -313,7 +313,7 @@ Add a `frontend-build-test` job to `.github/workflows/ci.yml`:
 - **Production deploy target is still the same `dotnet publish` artifact path** (assumed because Chunk N is deferred). If that changes, the prod-serve story may need to split (frontend on CDN, backend separate). Same-origin posture in this spec assumes single artifact.
 - **Backend OpenAPI document is reachable from `pnpm orval`** at dev time. If the doc location moves, `orval.config.ts` updates accordingly.
 - **No customer-facing access in v1.** If a real customer ever logs in (because we accidentally created them as `role=user` and they find the URL), they get a "no access" state. The customer portal chunk replaces this with a real `/me/licences` view.
-- **`@fontsource` packages for Inter/Fraunces/JetBrains Mono are licensed for our use.** All three are SIL OFL or open licenses at the time of writing  - confirm at install time.
+- **`@fontsource` packages for Inter/Fraunces/JetBrains Mono are licensed for our use.** All three are SIL OFL or open licenses at the time of writing - confirm at install time.
 
 ## Security posture
 

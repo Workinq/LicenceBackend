@@ -52,7 +52,7 @@ public sealed class SessionRefreshTokenRepository(NpgsqlDataSource dataSource) :
         SessionRefreshToken newToken,
         CancellationToken cancellationToken)
     {
-        // INSERT must run before UPDATE  - the UPDATE's replaced_by FK references the new row.
+        // INSERT must run before UPDATE - the UPDATE's replaced_by FK references the new row.
         const string insertSql = """
                                  INSERT INTO session_refresh_tokens (id, user_id, token_hash, issued_at, expires_at, revoked_at, replaced_by)
                                  VALUES (@Id, @UserId, @TokenHash, @IssuedAt, @ExpiresAt, @RevokedAt, @ReplacedBy);

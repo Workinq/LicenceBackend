@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { useAccessTokenStore, type AuthUser } from './access-token-store';
 
-/** 14 minutes in milliseconds  - just inside the 15-min access token TTL. */
+/** 14 minutes in milliseconds - just inside the 15-min access token TTL. */
 const SILENT_REFRESH_INTERVAL_MS = 14 * 60 * 1000;
 
 interface RefreshBody {
@@ -29,7 +29,7 @@ async function doRefresh(): Promise<void> {
       .getState()
       .setSession(body.accessToken, new Date(body.accessTokenExpiresAt), body.user);
   } catch {
-    // Network error  - leave the session intact and try again on the next tick.
+    // Network error - leave the session intact and try again on the next tick.
   }
 }
 

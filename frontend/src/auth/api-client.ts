@@ -1,10 +1,10 @@
 // frontend/src/auth/api-client.ts
 import { useAccessTokenStore, type AuthUser } from './access-token-store';
 
-// Single-flight refresh guard  - ensures concurrent 401s fire only one refresh request.
+// Single-flight refresh guard - ensures concurrent 401s fire only one refresh request.
 let refreshPromise: Promise<boolean> | null = null;
 
-// Fetch mutator used by orval-generated api.ts  - signature: (url, init?) => Promise<T>
+// Fetch mutator used by orval-generated api.ts - signature: (url, init?) => Promise<T>
 export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const send = async (): Promise<Response> => {
     const accessToken = useAccessTokenStore.getState().accessToken;
