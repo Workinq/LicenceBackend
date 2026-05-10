@@ -17,9 +17,6 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
-    # Dependabot PRs run with a restricted GITHUB_TOKEN that gitleaks-action
-    # can't use. Skipping is safe — Dependabot only bumps package versions
-    # in lockfiles, manifests, and workflows; it can't introduce credentials.
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
