@@ -181,7 +181,7 @@ public sealed class SessionRefreshTests : IntegrationTestBase
     {
         return Factory!.CreateClient(new WebApplicationFactoryClientOptions
         {
-            BaseAddress = new Uri("https://localhost"),
+            BaseAddress = HttpsBaseAddress,
             HandleCookies = handleCookies
         });
     }

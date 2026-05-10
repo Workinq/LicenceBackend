@@ -59,7 +59,7 @@ public sealed class SessionRefreshCookieTests : IntegrationTestBase
 
         using var freshClient = Factory!.CreateClient(new WebApplicationFactoryClientOptions
         {
-            BaseAddress = new Uri("https://localhost"),
+            BaseAddress = HttpsBaseAddress,
             HandleCookies = false
         });
         var response = await freshClient.PostAsync("/sessions/refresh", content: null);
