@@ -12,7 +12,7 @@ What this server defends against and, more importantly, what it does not.
 
 ## What we defend against
 
-**Forged licence-verify responses.** Each response is a compact-JWS signed with an ES256 key the server controls. Clients embed the public key at build time. Forgery requires either signing-key compromise or shipping a patched client (which is out of scope — see "what we do not defend against").
+**Forged licence-verify responses.** Each response is a compact-JWS signed with an ES256 key the server controls. Clients embed the public key at build time. Forgery requires either signing-key compromise or shipping a patched client (which is out of scope  - see "what we do not defend against").
 
 **Replay of a captured licence-verify response.** Each response carries a 60-second `exp` and the client-supplied `nonce`. A replay outside the window is rejected; a replay within the window only succeeds if the client sent the exact same nonce. Per-call random nonces close that gap entirely.
 
@@ -34,7 +34,7 @@ What this server defends against and, more importantly, what it does not.
 
 **Algorithm-confusion attacks on session JWTs.** The verifier pins `alg` to `ES256` and validates `iss` / `aud`. The classic `none` and `HS256-with-RSA-public-key-as-secret` footguns are neutralized.
 
-**Key + pepper rotation as a kill switch.** All three secrets are loaded as sets with a designated active entry. After a leak the operator generates the new version, flips active, restarts, waits the retention window, and removes the old entry. Removing the old pepper from config makes every licence hashed under it unverifiable — the intended kill switch for "we believe the pepper leaked."
+**Key + pepper rotation as a kill switch.** All three secrets are loaded as sets with a designated active entry. After a leak the operator generates the new version, flips active, restarts, waits the retention window, and removes the old entry. Removing the old pepper from config makes every licence hashed under it unverifiable  - the intended kill switch for "we believe the pepper leaked."
 
 ## What we do not defend against
 
@@ -48,11 +48,11 @@ What this server defends against and, more importantly, what it does not.
 
 **Long-lived telemetry of denied verifies.** The `licence_verification_attempts` table grows unbounded today. Audit retention and pruning land in Chunk M. Until then, very high verify volumes will gradually grow the table.
 
-**Offline brute force of an HMAC if both pepper and DB are leaked together.** The pepper exists precisely so a database-only leak doesn't enable this. If both leak — e.g. via a server-side compromise — an attacker can compute HMACs for candidate licence keys at the cost of one HMAC per guess. With ~125-bit licence-key entropy this is still infeasible, but anything reduces the safety margin.
+**Offline brute force of an HMAC if both pepper and DB are leaked together.** The pepper exists precisely so a database-only leak doesn't enable this. If both leak  - e.g. via a server-side compromise  - an attacker can compute HMACs for candidate licence keys at the cost of one HMAC per guess. With ~125-bit licence-key entropy this is still infeasible, but anything reduces the safety margin.
 
 **Client SDK compromise after a key rotation.** Once a client SDK ships with the licence-verify public key embedded, that SDK trusts only that key. Rotating the licence-verify signing key means EOL'ing or updating every shipped SDK that doesn't pull the JWKS at runtime. Pulling at runtime is unsafe (an attacker who controls the client machine can redirect the JWKS fetch); embedding is the right design but constrains rotation.
 
-**Email-address enumeration via login.** Login uses the same response shape for missing user and wrong password. Argon2 verify runs on the missing-user path so timing matches. A patient attacker with a list of emails will not learn which are registered from login responses alone — but the registration-by-admin model means new emails arrive through `POST /users`, which is admin-only and therefore not an enumeration surface.
+**Email-address enumeration via login.** Login uses the same response shape for missing user and wrong password. Argon2 verify runs on the missing-user path so timing matches. A patient attacker with a list of emails will not learn which are registered from login responses alone  - but the registration-by-admin model means new emails arrive through `POST /users`, which is admin-only and therefore not an enumeration surface.
 
 ## Out of scope
 

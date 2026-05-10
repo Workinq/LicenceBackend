@@ -14,7 +14,7 @@ afterEach(() => {
   useAccessTokenStore.getState().clear();
 });
 
-describe('apiClient — store integration', () => {
+describe('apiClient - store integration', () => {
   it('clear() is called when refresh fails (simulated)', () => {
     useAccessTokenStore.getState().setSession('tok', new Date(Date.now() + 900_000), {
       id: 'u1',

@@ -48,7 +48,7 @@ function LoginPage() {
       }
 
       if (!res.ok) {
-        toast.error('Login failed — please try again');
+        toast.error('Login failed  - please try again');
         return;
       }
 
@@ -56,7 +56,7 @@ function LoginPage() {
       setSession(body.accessToken, new Date(body.accessTokenExpiresAt), body.user);
       await navigate({ to: '/' });
     } catch {
-      toast.error('Network error — is the API running?');
+      toast.error('Network error  - is the API running?');
     }
   };
 
@@ -95,7 +95,7 @@ function LoginPage() {
               autoComplete="current-password"
               {...register('password')}
               className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-              placeholder="••••••••"
+              placeholder="********"
             />
             {errors.password && (
               <p className="mt-1 text-xs text-status-revoked-fg">{errors.password.message}</p>
@@ -107,7 +107,7 @@ function LoginPage() {
             disabled={isSubmitting}
             className="w-full rounded bg-ink px-4 py-2.5 text-sm font-medium text-surface-elevated hover:opacity-90 disabled:opacity-50"
           >
-            {isSubmitting ? 'Signing in…' : 'Sign in'}
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
       </div>

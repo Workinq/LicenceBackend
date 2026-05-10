@@ -17,7 +17,7 @@ function DashboardPlaceholder() {
           Logged in as <strong className="text-ink">{user.email}</strong> ({user.role})
         </p>
       ) : (
-        <p className="text-ink-muted">Loading session…</p>
+        <p className="text-ink-muted">Loading session...</p>
       )}
       <p className="mt-4 text-sm text-ink-subtle">
         P1b will replace this placeholder with the full layout and navigation.
