@@ -1,0 +1,28 @@
+# Binaries
+bin/
+obj/
+/packages/
+
+# Project settings
+riderModule.iml
+/_ReSharper.Caches/
+/.idea/
+*.DotSettings.user
+
+# Local secrets
+/secrets/
+/**/secrets/
+
+# Local env settings
+appsettings.Development.json
+appsettings.Local.json
+
+# Test outputs
+TestResults/
+
+# macOS
+.DS_Store
+Thumbs.db
+
+# AI
+.claude/

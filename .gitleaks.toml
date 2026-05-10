@@ -1,0 +1,19 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-level false positives"
+
+paths = [
+    '''(?i)readme\.md''',
+    '''(?i)docs/.*''',
+    '''(?i)\.github/workflows/.*''',
+    '''(?i)licencebackend\.tests/.*''',
+    '''(?i)licencebackend\.tests\.unit/.*''',
+    '''(?i)\.gitleaks\.toml''',
+]
+
+regexes = [
+    '''Host=localhost;Port=5432;Database=licencebackend(?:_test)?;Username=postgres;Password=postgres''',
+    '''LIC-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}''',
+]
