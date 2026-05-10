@@ -44,11 +44,15 @@ public sealed class LicenceVerificationController(
         CancellationToken cancellationToken
     )
     {
-        if (string.IsNullOrWhiteSpace(request.LicenceKey) || request.ProductId is not { } productId
-                                                          || string.IsNullOrWhiteSpace(request.ClientNonce)
-                                                          || request.ClientNonce.Length < MinClientNonceLength
-                                                          || request.ClientNonce.Length > MaxClientNonceLength)
+        if (string.IsNullOrWhiteSpace(request.LicenceKey)
+            || request.ProductId is not { } productId
+            || string.IsNullOrWhiteSpace(request.ClientNonce)
+            || request.ClientNonce.Length < MinClientNonceLength
+            || request.ClientNonce.Length > MaxClientNonceLength
+        )
+        {
             return InvalidLicence();
+        }
 
         var rateLimitDecision = await verifyRateLimiter.TryAcquireAsync(request.LicenceKey, cancellationToken);
         if (!rateLimitDecision.Acquired) return RateLimitRejection.AsResult(HttpContext, rateLimitDecision.RetryAfter);
@@ -69,15 +73,7 @@ public sealed class LicenceVerificationController(
         var remote = HttpContext.Connection.RemoteIpAddress ?? IPAddress.None;
         var remoteIpText = remote.ToString();
         var now = time.GetUtcNow();
-
-        var (denialReason, presentedHwidHmac, pendingFirstPin) = await DetermineOutcomeAsync(
-                                                                     licence,
-                                                                     productId,
-                                                                     remote,
-                                                                     request.Hwid,
-                                                                     now,
-                                                                     cancellationToken
-                                                                 );
+        var (denialReason, presentedHwidHmac, pendingFirstPin) = await DetermineOutcomeAsync(licence, productId, remote, request.Hwid, now, cancellationToken);
 
         Product? product = null;
         User? owner = null;
@@ -104,17 +100,10 @@ public sealed class LicenceVerificationController(
                 remoteIpText,
                 VerificationOutcome.Approved,
                 null,
-                now);
+                now
+            );
 
-            var pinResult = await licences.PinHwidAndRecordAttemptAsync(
-                                licence.Id,
-                                pendingFirstPin.Value.Hmac,
-                                pendingFirstPin.Value.PepperVersion,
-                                remoteIpText,
-                                approvedAttempt,
-                                cancellationToken
-                            );
-
+            var pinResult = await licences.PinHwidAndRecordAttemptAsync(licence.Id, pendingFirstPin.Value.Hmac, pendingFirstPin.Value.PepperVersion, remoteIpText, approvedAttempt, cancellationToken);
             switch (pinResult)
             {
                 case PinHwidResult.Pinned:
@@ -134,7 +123,7 @@ public sealed class LicenceVerificationController(
             }
         }
 
-        // Re-read licence in case a successful first-pin mutated it.
+        // Re-read licence in case a successful first-pin mutated it
         if (denialReason is null && licence.HwidHmac is null && presentedHwidHmac is not null)
         {
             var refreshed = await licences.FindByIdAsync(licence.Id, cancellationToken);
@@ -165,7 +154,8 @@ public sealed class LicenceVerificationController(
                 "Verify denied for licence {LicenceId}: {DenialReason} from {SourceIp}",
                 licence.Id,
                 denialReason,
-                remoteIpText);
+                remoteIpText
+            );
             return InvalidLicence();
         }
 
@@ -174,7 +164,8 @@ public sealed class LicenceVerificationController(
             licence.Id,
             product!.Slug,
             owner!.Id,
-            remoteIpText);
+            remoteIpText
+        );
 
         var claims = new SignedLicenceVerificationClaims(
             licence.Id,
@@ -183,7 +174,8 @@ public sealed class LicenceVerificationController(
             licence.Status.ToString().ToLowerInvariant(),
             licence.ExpiresAt,
             licence.Notes,
-            request.ClientNonce!);
+            request.ClientNonce!
+        );
 
         return Ok(new SignedLicenceVerificationResponse(signer.Sign(claims)));
     }
@@ -198,14 +190,17 @@ public sealed class LicenceVerificationController(
         foreach (var securityKey in signingKeySet.AllSecurityKeys)
         {
             var parameters = securityKey.ECDsa.ExportParameters(false);
-            entries.Add(new JwkEntry(
-                            "EC",
-                            "P-256",
-                            Base64UrlEncoder.Encode(parameters.Q.X!),
-                            Base64UrlEncoder.Encode(parameters.Q.Y!),
-                            securityKey.KeyId,
-                            SigningAlgorithm,
-                            "sig"));
+            entries.Add(
+                new JwkEntry(
+                    "EC",
+                    "P-256",
+                    Base64UrlEncoder.Encode(parameters.Q.X!),
+                    Base64UrlEncoder.Encode(parameters.Q.Y!),
+                    securityKey.KeyId,
+                    SigningAlgorithm,
+                    "sig"
+                )
+            );
         }
 
         return Ok(new JwksResponse(entries));

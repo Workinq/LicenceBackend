@@ -15,7 +15,8 @@ using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 using SessionOptions = LicenceBackend.Infrastructure.Options.SessionOptions;
 
 Log.Logger = new LoggerConfiguration()
-             .WriteTo.Console()
+             .WriteTo
+             .Console()
              .CreateBootstrapLogger();
 
 try
@@ -36,7 +37,8 @@ try
                document.Info.Title = "LicenceBackend API";
                document.Info.Version = "1.0.0";
                return Task.CompletedTask;
-           });
+           }
+        );
     });
     builder.Services.AddProblemDetails();
     builder.Services.AddLicenceBackendInfrastructure(builder.Configuration);
@@ -104,37 +106,32 @@ try
              {
                  TimeSpan? retryAfter = null;
                  if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var metadata))
+                 {
                      retryAfter = metadata;
+                 }
                  await RateLimitRejection.WriteAsync(context.HttpContext, retryAfter, cancellationToken);
              };
 
             options.AddPolicy(RateLimiterPolicyNames.Refresh, httpContext =>
             {
                 var key = ClientIpKey(httpContext);
-                return RateLimitPartition.GetSlidingWindowLimiter(
-                    key,
-                _ => BuildSlidingWindow(rateLimitingOptions.Refresh)
-                );
+                return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.Refresh));
             });
 
             options.AddPolicy(RateLimiterPolicyNames.VerifyPublicKey, httpContext =>
-                                                                      {
-                                                                          var key = ClientIpKey(httpContext);
-                                                                          return RateLimitPartition.GetSlidingWindowLimiter(
-                                                                              key,
-                                                                              _ => BuildSlidingWindow(
-                                                                                  rateLimitingOptions.VerifyPublicKey));
-                                                                      });
+                {
+                    var key = ClientIpKey(httpContext);
+                    return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.VerifyPublicKey));
+                }
+            );
 
             options.AddPolicy(RateLimiterPolicyNames.Admin, httpContext =>
-                                                            {
-                                                                var sub = httpContext.User.FindFirst("sub")?.Value;
-                                                                var key = !string.IsNullOrWhiteSpace(sub)
-                                                                    ? $"user:{sub}"
-                                                                    : ClientIpKey(httpContext);
-                                                                return RateLimitPartition.GetSlidingWindowLimiter(
-                                                                    key, _ => BuildSlidingWindow(rateLimitingOptions.Admin));
-                                                            });
+                {
+                    var sub = httpContext.User.FindFirst("sub")?.Value;
+                    var key = !string.IsNullOrWhiteSpace(sub) ? $"user:{sub}" : ClientIpKey(httpContext);
+                    return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.Admin));
+                }
+            );
         });
 
     var app = builder.Build();
@@ -156,7 +153,7 @@ try
 
     app.MapControllers();
 
-    app.Run();
+    await app.RunAsync();
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {

@@ -6,7 +6,7 @@ public sealed class RefreshTokenGenerator
 {
     private const int RawByteLength = 32;
 
-    public string Generate()
+    public static string Generate()
     {
         var bytes = RandomNumberGenerator.GetBytes(RawByteLength);
         return Base64UrlEncode(bytes);

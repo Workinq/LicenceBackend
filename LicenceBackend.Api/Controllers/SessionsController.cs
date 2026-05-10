@@ -24,8 +24,6 @@ public sealed class SessionsController(
     IPasswordHasher passwordHasher,
     ISessionTokenIssuer sessionIssuer,
     ISessionRefreshTokenRepository refreshTokens,
-    RefreshTokenGenerator refreshTokenGenerator,
-    RefreshTokenHasher refreshTokenHasher,
     ILoginRateLimiter loginRateLimiter,
     TimeProvider time,
     IOptions<SessionOptions> sessionOptions
@@ -96,7 +94,7 @@ public sealed class SessionsController(
         byte[] hash;
         try
         {
-            hash = refreshTokenHasher.Hash(refreshToken);
+            hash = RefreshTokenHasher.Hash(refreshToken);
         }
         catch (ArgumentException)
         {
@@ -170,8 +168,8 @@ public sealed class SessionsController(
 
     private SessionRefreshToken BuildRefreshToken(Guid userId, DateTimeOffset now, out string rawToken)
     {
-        rawToken = refreshTokenGenerator.Generate();
-        var hash = refreshTokenHasher.Hash(rawToken);
+        rawToken = RefreshTokenGenerator.Generate();
+        var hash = RefreshTokenHasher.Hash(rawToken);
         return new SessionRefreshToken(
             Guid.NewGuid(),
             userId,
@@ -183,7 +181,7 @@ public sealed class SessionsController(
         );
     }
 
-    private SessionResponse ToResponse(IssuedPair pair, User user)
+    private static SessionResponse ToResponse(IssuedPair pair, User user)
     {
         return new SessionResponse(
             pair.Session.Token,
@@ -194,7 +192,7 @@ public sealed class SessionsController(
         );
     }
 
-    private IActionResult InvalidRefresh()
+    private ObjectResult InvalidRefresh()
     {
         return Problem(
             statusCode: StatusCodes.Status401Unauthorized,
