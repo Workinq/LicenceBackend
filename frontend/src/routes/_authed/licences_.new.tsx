@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Combobox } from '@/components/Combobox';
+import { CidrListEditor } from '@/components/licences/CidrListEditor';
 import { SecretRevealOnce } from '@/components/SecretRevealOnce';
 import { fetchProducts } from '@/api/products';
 import { fetchUsers } from '@/api/users';
@@ -36,6 +38,8 @@ function NewLicencePage() {
   const queryClient = useQueryClient();
   const [created, setCreated] = useState<LicenceCreatedResponse | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [ipRestricted, setIpRestricted] = useState(false);
+  const [ipCidrs, setIpCidrs] = useState<string[]>([]);
 
   const products = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
   const users = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
@@ -55,6 +59,7 @@ function NewLicencePage() {
         email: null,
         expiresAt: values.expiresAt ? new Date(values.expiresAt).toISOString() : null,
         notes: values.notes ? values.notes : null,
+        ipAllowlist: ipRestricted ? ipCidrs.map((c) => c.trim()).filter((c) => c.length > 0) : null,
       }),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
@@ -156,6 +161,26 @@ function NewLicencePage() {
         <div className="space-y-1">
           <Label htmlFor="notes">Notes (optional)</Label>
           <Textarea id="notes" {...register('notes')} />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="ip-restrict"
+              checked={ipRestricted}
+              onCheckedChange={setIpRestricted}
+              aria-label="Restrict by IP address"
+            />
+            <Label htmlFor="ip-restrict">Restrict by IP address</Label>
+          </div>
+          {ipRestricted && (
+            <div className="space-y-2">
+              <p className="text-xs text-ink-muted">
+                Leave empty and the first IP that verifies this licence will be locked in automatically.
+              </p>
+              <CidrListEditor cidrs={ipCidrs} onChange={setIpCidrs} />
+            </div>
+          )}
         </div>
 
         <Button type="submit" disabled={isSubmitting || mutation.isPending}>

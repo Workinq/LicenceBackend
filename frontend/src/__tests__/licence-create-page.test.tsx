@@ -15,6 +15,7 @@ vi.mock('../api/users', () => ({ fetchUsers: vi.fn() }));
 vi.mock('../api/licences', () => ({ createLicence: vi.fn(), fetchLicences: vi.fn(), fetchLicence: vi.fn() }));
 import { fetchProducts } from '../api/products';
 import { fetchUsers } from '../api/users';
+import { createLicence } from '../api/licences';
 import { Route as NewLicenceRoute } from '../routes/_authed/licences_.new';
 
 function renderNew() {
@@ -59,6 +60,26 @@ describe('NewLicencePage', () => {
     await userEvent.click(productCombobox);
     await userEvent.type(await screen.findByPlaceholderText('Search products'), 'x');
     expect(await screen.findByText(/there are no products/i)).toBeInTheDocument();
+  });
+
+  it('submits ipAllowlist as [] when Restrict by IP is toggled on with no CIDRs', async () => {
+    vi.mocked(fetchProducts).mockResolvedValue({ items: [{ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
+    vi.mocked(fetchUsers).mockResolvedValue({ items: [{ id: 'u1', email: 'alice@example.com', displayName: null, role: 'admin', status: 'active', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
+    vi.mocked(createLicence).mockResolvedValue({
+      id: 'lic-1', productId: 'p1', productSlug: 'acme-pro', userId: 'u1', userEmail: 'alice@example.com',
+      status: 'active', expiresAt: null, notes: null, hwidBound: false, ipAllowlist: [], createdAt: '2026-01-01T00:00:00Z', licenceKey: 'KEY-1',
+    });
+    renderNew();
+    await screen.findByRole('button', { name: /create licence/i });
+
+    await userEvent.click(screen.getAllByRole('combobox')[0]);
+    await userEvent.click(await screen.findByText('Acme Pro'));
+    await userEvent.click(screen.getAllByRole('combobox')[1]);
+    await userEvent.click(await screen.findByText('alice@example.com'));
+    await userEvent.click(screen.getByRole('switch', { name: /restrict by ip/i }));
+    await userEvent.click(screen.getByRole('button', { name: /create licence/i }));
+
+    expect(vi.mocked(createLicence)).toHaveBeenCalledWith(expect.objectContaining({ ipAllowlist: [] }));
   });
 
   it('shows a validation error when submitting without a product', async () => {
