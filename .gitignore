@@ -27,8 +27,11 @@ Thumbs.db
 # AI
 .claude/
 .superpowers/
+docs/
 
 # Frontend build artefacts
 frontend/node_modules/
 frontend/dist/
 
+.gitleaks.toml
+.editorconfig
