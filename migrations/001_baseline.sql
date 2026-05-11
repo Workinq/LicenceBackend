@@ -99,6 +99,19 @@ CREATE TABLE licence_binding_history (
 CREATE INDEX ix_licence_binding_history_licence_changed
     ON licence_binding_history (licence_id, changed_at DESC);
 
+CREATE TABLE licence_key_history (
+    id                        UUID PRIMARY KEY,
+    licence_id                UUID NOT NULL REFERENCES licences(id) ON DELETE RESTRICT,
+    previous_key_hmac         BYTEA NOT NULL,
+    previous_key_pepper_ver   SMALLINT NOT NULL,
+    new_key_hmac              BYTEA NOT NULL,
+    new_key_pepper_ver        SMALLINT NOT NULL,
+    changed_by                UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    changed_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason                    TEXT NULL
+);
+CREATE INDEX ix_licence_key_history_licence_id ON licence_key_history (licence_id, changed_at DESC);
+
 CREATE TABLE licence_verification_attempts (
     id                   UUID PRIMARY KEY,
     licence_id           UUID NOT NULL REFERENCES licences(id) ON DELETE CASCADE,
