@@ -73,7 +73,7 @@ describe('ProductDetailPage', () => {
     await screen.findByText('Acme Pro');
     expect(screen.getByLabelText(/display name/i)).toHaveValue('Acme Pro');
     expect(screen.getByLabelText(/tagline/i)).toHaveValue('The pro one');
-    expect(screen.getByLabelText(/currency/i)).toHaveValue('EUR');
+    expect(await screen.findByRole('combobox', { name: /EUR/i })).toBeInTheDocument();
   });
 
   it('shows the placeholder and no Remove image button when there is no image', async () => {

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { ImageOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CurrencyCombobox } from '@/components/CurrencyCombobox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -224,7 +225,13 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
 
             <div className="space-y-1">
               <Label htmlFor="currency">Currency</Label>
-              <Input id="currency" maxLength={3} {...register('currency')} />
+              <Controller
+                name="currency"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyCombobox id="currency" value={field.value ?? ''} onChange={field.onChange} />
+                )}
+              />
               {errors.currency && (
                 <p className="text-xs text-status-revoked-fg">{errors.currency.message}</p>
               )}

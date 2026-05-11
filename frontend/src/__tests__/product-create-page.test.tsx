@@ -43,7 +43,7 @@ describe('NewProductPage', () => {
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/tagline/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^price$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/currency/i)).toBeInTheDocument();
+    expect(screen.getByText('Currency')).toBeInTheDocument();
     expect(screen.getByLabelText(/sort order/i)).toBeInTheDocument();
     expect(screen.getByRole('switch')).toBeInTheDocument();
   });
