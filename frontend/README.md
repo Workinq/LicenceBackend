@@ -34,6 +34,16 @@ pnpm build
 
 Output goes to `frontend/dist/`. In production the .NET API serves this directory via `app.UseStaticFiles()` and `app.MapFallbackToFile("index.html")` (wired in Chunk P1f).
 
+## UI components (shadcn/ui)
+
+Primitives live in `src/components/ui/` and are added with the shadcn CLI:
+
+```bash
+pnpm dlx shadcn@latest add <component>
+```
+
+`src/components/ui/` is treated as generated code: it is excluded from ESLint but still type-checked via imports. The `@/` import alias maps to `src/` (configured in `vite.config.ts` and `tsconfig.app.json`). Note: because `tsconfig.app.json` has no `baseUrl`, the shadcn CLI may write new components to `frontend/@/components/ui/` instead of `frontend/src/components/ui/` - if that happens, move them to the correct path. The theme is defined entirely in `src/index.css` - the warm palette is mapped onto shadcn's semantic CSS variables there; there is no `tailwind.config.ts`. App-specific layout components (header, sidebar, shell, error pages) are in `src/components/layout/`.
+
 ## Regenerate the API client
 
 ```bash
@@ -41,6 +51,8 @@ pnpm orval
 ```
 
 Requires the .NET API to be running on HTTPS. Run this after any backend OpenAPI changes, then commit the diff in `src/api/generated/`.
+
+The client is generated in `fetch` mode (`client: 'fetch'` in `orval.config.ts`); the generated functions delegate to the `apiClient` mutator in `src/auth/api-client.ts`, which adds the `/api` prefix, attaches the bearer token, retries once on a 401 after a silent refresh, and throws `ApiError` on other non-2xx responses.
 
 ## Lint
 
