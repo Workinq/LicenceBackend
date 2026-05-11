@@ -37,8 +37,8 @@ describe('ProductsPage', () => {
   it('renders a row per product with the slug and display name', async () => {
     vi.mocked(fetchProducts).mockResolvedValue({
       items: [
-        { id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 'p2', slug: 'acme-lite', displayName: 'Acme Lite', createdAt: '2026-01-02T00:00:00Z' },
+        { id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-01T00:00:00Z' },
+        { id: 'p2', slug: 'acme-lite', displayName: 'Acme Lite', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-02T00:00:00Z' },
       ],
       total: 2, limit: 200, offset: 0,
     });

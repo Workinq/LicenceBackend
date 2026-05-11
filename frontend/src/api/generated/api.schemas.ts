@@ -4,7 +4,7 @@
  * LicenceBackend API
  * OpenAPI spec version: 1.0.0
  */
-export type NullableOfJsonElement = Record<string, unknown> | null
+export type NullableOfJsonElement = unknown;
 
 export interface BindingHistoryEntryResponse {
   id: string;
@@ -34,6 +34,18 @@ export interface CreateLicenceRequest {
 export interface CreateProductRequest {
   slug: string;
   displayName: string;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  tagline: string | null;
+  /** @nullable */
+  isPublic: boolean | null;
+  /** @nullable */
+  price: number | null;
+  /** @nullable */
+  currency: string | null;
+  /** @nullable */
+  sortOrder: number | null;
 }
 
 export interface CreateUserRequest {
@@ -48,6 +60,8 @@ export interface HealthResponse {
   status: string;
   db: string;
 }
+
+export type IFormFile = Blob;
 
 export interface JwkEntry {
   kty: string;
@@ -140,6 +154,17 @@ export interface ProductResponse {
   id: string;
   slug: string;
   displayName: string;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  tagline: string | null;
+  isPublic: boolean;
+  /** @nullable */
+  price: number | null;
+  currency: string;
+  sortOrder: number;
+  /** @nullable */
+  imageUrl: string | null;
   createdAt: string;
 }
 
@@ -250,6 +275,23 @@ export interface UpdateLicenceStatusRequest {
   reason: string | null;
 }
 
+export interface UpdateProductRequest {
+  /** @nullable */
+  displayName: string | null;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  tagline: string | null;
+  /** @nullable */
+  isPublic: boolean | null;
+  /** @nullable */
+  price: number | null;
+  /** @nullable */
+  currency: string | null;
+  /** @nullable */
+  sortOrder: number | null;
+}
+
 export interface UpdateUserStatusRequest {
   status: string;
   /** @nullable */
@@ -294,6 +336,10 @@ offset?: number;
 export type GetProductsParams = {
 limit?: number;
 offset?: number;
+};
+
+export type PostProductsIdImageBody = {
+  file?: IFormFile;
 };
 
 export type GetUsersParams = {

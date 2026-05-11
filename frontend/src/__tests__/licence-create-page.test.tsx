@@ -42,7 +42,7 @@ beforeEach(() => {
 
 describe('NewLicencePage', () => {
   it('renders the create form with product and user fields once the lists load', async () => {
-    vi.mocked(fetchProducts).mockResolvedValue({ items: [{ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
+    vi.mocked(fetchProducts).mockResolvedValue({ items: [{ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
     vi.mocked(fetchUsers).mockResolvedValue({ items: [{ id: 'u1', email: 'alice@example.com', displayName: null, role: 'admin', status: 'active', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
     renderNew();
     expect(await screen.findByRole('button', { name: /create licence/i })).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('NewLicencePage', () => {
   });
 
   it('shows a validation error when submitting without a product', async () => {
-    vi.mocked(fetchProducts).mockResolvedValue({ items: [{ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
+    vi.mocked(fetchProducts).mockResolvedValue({ items: [{ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
     vi.mocked(fetchUsers).mockResolvedValue({ items: [{ id: 'u1', email: 'alice@example.com', displayName: null, role: 'admin', status: 'active', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
     renderNew();
     const submitBtn = await screen.findByRole('button', { name: /create licence/i });

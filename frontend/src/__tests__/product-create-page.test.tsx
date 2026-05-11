@@ -43,12 +43,12 @@ describe('NewProductPage', () => {
   });
 
   it('submits slug and display name to createProduct', async () => {
-    vi.mocked(createProduct).mockResolvedValue({ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', createdAt: '2026-01-01T00:00:00Z' });
+    vi.mocked(createProduct).mockResolvedValue({ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-01T00:00:00Z' });
     renderNew();
     await userEvent.type(await screen.findByLabelText(/slug/i), 'acme-pro');
     await userEvent.type(screen.getByLabelText(/display name/i), 'Acme Pro');
     await userEvent.click(screen.getByRole('button', { name: /create product/i }));
-    expect(vi.mocked(createProduct)).toHaveBeenCalledWith({ slug: 'acme-pro', displayName: 'Acme Pro' });
+    expect(vi.mocked(createProduct)).toHaveBeenCalledWith({ slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: null, price: null, currency: null, sortOrder: null });
   });
 
   it('shows a validation error when slug is empty on submit', async () => {

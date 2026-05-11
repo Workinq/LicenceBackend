@@ -37,7 +37,7 @@ function NewProductPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { slug: '', displayName: '' } });
 
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => createProduct({ slug: values.slug, displayName: values.displayName }),
+    mutationFn: (values: FormValues) => createProduct({ slug: values.slug, displayName: values.displayName, description: null, tagline: null, isPublic: null, price: null, currency: null, sortOrder: null }),
     onSuccess: () => {
       toast.success('Product created.');
       void navigate({ to: '/products' });

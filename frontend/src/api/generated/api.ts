@@ -30,6 +30,7 @@ import type {
   PagedResponseOfUserResponse,
   PagedResponseOfUserStatusHistoryResponse,
   PagedResponseOfVerificationAttemptResponse,
+  PostProductsIdImageBody,
   ProblemDetails,
   ProductResponse,
   SessionResponse,
@@ -37,6 +38,7 @@ import type {
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
   UpdateLicenceStatusRequest,
+  UpdateProductRequest,
   UpdateUserStatusRequest,
   UserResponse,
   VerifyLicenceRequest
@@ -892,6 +894,224 @@ export const getProductsId = async (id: string, options?: RequestInit): Promise<
   {
     ...options,
     method: 'GET'
+
+
+  }
+);}
+
+
+
+export type patchProductsIdResponse200 = {
+  data: ProductResponse
+  status: 200
+}
+
+export type patchProductsIdResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchProductsIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type patchProductsIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type patchProductsIdResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type patchProductsIdResponseSuccess = (patchProductsIdResponse200) & {
+  headers: Headers;
+};
+export type patchProductsIdResponseError = (patchProductsIdResponse400 | patchProductsIdResponse401 | patchProductsIdResponse404 | patchProductsIdResponse429) & {
+  headers: Headers;
+};
+
+export type patchProductsIdResponse = (patchProductsIdResponseSuccess | patchProductsIdResponseError)
+
+export const getPatchProductsIdUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}`
+}
+
+export const patchProductsId = async (id: string,
+    updateProductRequest: UpdateProductRequest, options?: RequestInit): Promise<patchProductsIdResponse> => {
+
+  return apiClient<patchProductsIdResponse>(getPatchProductsIdUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateProductRequest,)
+  }
+);}
+
+
+
+export type postProductsIdImageResponse200 = {
+  data: ProductResponse
+  status: 200
+}
+
+export type postProductsIdImageResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postProductsIdImageResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postProductsIdImageResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postProductsIdImageResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postProductsIdImageResponseSuccess = (postProductsIdImageResponse200) & {
+  headers: Headers;
+};
+export type postProductsIdImageResponseError = (postProductsIdImageResponse400 | postProductsIdImageResponse401 | postProductsIdImageResponse404 | postProductsIdImageResponse429) & {
+  headers: Headers;
+};
+
+export type postProductsIdImageResponse = (postProductsIdImageResponseSuccess | postProductsIdImageResponseError)
+
+export const getPostProductsIdImageUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}/image`
+}
+
+export const postProductsIdImage = async (id: string,
+    postProductsIdImageBody: PostProductsIdImageBody, options?: RequestInit): Promise<postProductsIdImageResponse> => {
+    const formData = new FormData();
+if(postProductsIdImageBody.file !== undefined) {
+ formData.append(`file`, postProductsIdImageBody.file);
+ }
+
+  return apiClient<postProductsIdImageResponse>(getPostProductsIdImageUrl(id),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+export type getProductsIdImageResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getProductsIdImageResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getProductsIdImageResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getProductsIdImageResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getProductsIdImageResponseSuccess = (getProductsIdImageResponse200) & {
+  headers: Headers;
+};
+export type getProductsIdImageResponseError = (getProductsIdImageResponse401 | getProductsIdImageResponse404 | getProductsIdImageResponse429) & {
+  headers: Headers;
+};
+
+export type getProductsIdImageResponse = (getProductsIdImageResponseSuccess | getProductsIdImageResponseError)
+
+export const getGetProductsIdImageUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}/image`
+}
+
+export const getProductsIdImage = async (id: string, options?: RequestInit): Promise<getProductsIdImageResponse> => {
+
+  return apiClient<getProductsIdImageResponse>(getGetProductsIdImageUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type deleteProductsIdImageResponse200 = {
+  data: ProductResponse
+  status: 200
+}
+
+export type deleteProductsIdImageResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type deleteProductsIdImageResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type deleteProductsIdImageResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type deleteProductsIdImageResponseSuccess = (deleteProductsIdImageResponse200) & {
+  headers: Headers;
+};
+export type deleteProductsIdImageResponseError = (deleteProductsIdImageResponse401 | deleteProductsIdImageResponse404 | deleteProductsIdImageResponse429) & {
+  headers: Headers;
+};
+
+export type deleteProductsIdImageResponse = (deleteProductsIdImageResponseSuccess | deleteProductsIdImageResponseError)
+
+export const getDeleteProductsIdImageUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}/image`
+}
+
+export const deleteProductsIdImage = async (id: string, options?: RequestInit): Promise<deleteProductsIdImageResponse> => {
+
+  return apiClient<deleteProductsIdImageResponse>(getDeleteProductsIdImageUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
 
 
   }
