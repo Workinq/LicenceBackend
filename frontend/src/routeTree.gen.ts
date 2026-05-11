@@ -16,6 +16,7 @@ import { Route as AuthedUsersRouteImport } from './routes/_authed/users'
 import { Route as AuthedProductsRouteImport } from './routes/_authed/products'
 import { Route as AuthedMeRouteImport } from './routes/_authed/me'
 import { Route as AuthedLicencesRouteImport } from './routes/_authed/licences'
+import { Route as AuthedProductsNewRouteImport } from './routes/_authed/products_.new'
 import { Route as AuthedLicencesNewRouteImport } from './routes/_authed/licences_.new'
 import { Route as AuthedLicencesIdRouteImport } from './routes/_authed/licences_.$id'
 
@@ -53,6 +54,11 @@ const AuthedLicencesRoute = AuthedLicencesRouteImport.update({
   path: '/licences',
   getParentRoute: () => AuthedRouteRoute,
 } as any)
+const AuthedProductsNewRoute = AuthedProductsNewRouteImport.update({
+  id: '/products_/new',
+  path: '/products/new',
+  getParentRoute: () => AuthedRouteRoute,
+} as any)
 const AuthedLicencesNewRoute = AuthedLicencesNewRouteImport.update({
   id: '/licences_/new',
   path: '/licences/new',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof AuthedUsersRoute
   '/licences/$id': typeof AuthedLicencesIdRoute
   '/licences/new': typeof AuthedLicencesNewRoute
+  '/products/new': typeof AuthedProductsNewRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
   '/licences/$id': typeof AuthedLicencesIdRoute
   '/licences/new': typeof AuthedLicencesNewRoute
+  '/products/new': typeof AuthedProductsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/licences_/$id': typeof AuthedLicencesIdRoute
   '/_authed/licences_/new': typeof AuthedLicencesNewRoute
+  '/_authed/products_/new': typeof AuthedProductsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/licences/$id'
     | '/licences/new'
+    | '/products/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/licences/$id'
     | '/licences/new'
+    | '/products/new'
   id:
     | '__root__'
     | '/_authed'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/_authed/'
     | '/_authed/licences_/$id'
     | '/_authed/licences_/new'
+    | '/_authed/products_/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedLicencesRouteImport
       parentRoute: typeof AuthedRouteRoute
     }
+    '/_authed/products_/new': {
+      id: '/_authed/products_/new'
+      path: '/products/new'
+      fullPath: '/products/new'
+      preLoaderRoute: typeof AuthedProductsNewRouteImport
+      parentRoute: typeof AuthedRouteRoute
+    }
     '/_authed/licences_/new': {
       id: '/_authed/licences_/new'
       path: '/licences/new'
@@ -211,6 +230,7 @@ interface AuthedRouteRouteChildren {
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedLicencesIdRoute: typeof AuthedLicencesIdRoute
   AuthedLicencesNewRoute: typeof AuthedLicencesNewRoute
+  AuthedProductsNewRoute: typeof AuthedProductsNewRoute
 }
 
 const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
@@ -221,6 +241,7 @@ const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedLicencesIdRoute: AuthedLicencesIdRoute,
   AuthedLicencesNewRoute: AuthedLicencesNewRoute,
+  AuthedProductsNewRoute: AuthedProductsNewRoute,
 }
 
 const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(
