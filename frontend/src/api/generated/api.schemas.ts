@@ -95,6 +95,24 @@ export interface LicenceCreatedResponse {
   createdAt: string;
 }
 
+export interface LicenceKeyRegeneratedResponse {
+  licenceKey: string;
+  id: string;
+  productId: string;
+  productSlug: string;
+  userId: string;
+  userEmail: string;
+  status: string;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  notes: string | null;
+  hwidBound: boolean;
+  /** @nullable */
+  ipAllowlist: string[] | null;
+  createdAt: string;
+}
+
 export interface LicenceResponse {
   id: string;
   productId: string;
@@ -243,6 +261,11 @@ export interface ProblemDetails {
   detail?: string | null;
   /** @nullable */
   instance?: string | null;
+}
+
+export interface RegenerateLicenceKeyRequest {
+  /** @nullable */
+  reason: string | null;
 }
 
 export interface SessionResponse {

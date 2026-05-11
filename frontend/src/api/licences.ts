@@ -3,6 +3,7 @@ import {
   getLicencesId,
   patchLicencesIdStatus,
   postLicences,
+  postLicencesIdRegenerateKey,
   putLicencesIdHwid,
   putLicencesIdIpAllowlist,
 } from './generated/api';
@@ -10,8 +11,10 @@ import type {
   CreateLicenceRequest,
   GetLicencesParams,
   LicenceCreatedResponse,
+  LicenceKeyRegeneratedResponse,
   LicenceResponse,
   PagedResponseOfLicenceResponse,
+  RegenerateLicenceKeyRequest,
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
   UpdateLicenceStatusRequest,
@@ -38,6 +41,13 @@ export async function updateLicenceStatus(
   body: UpdateLicenceStatusRequest,
 ): Promise<LicenceResponse> {
   return (await patchLicencesIdStatus(id, body)).data as LicenceResponse;
+}
+
+export async function regenerateLicenceKey(
+  id: string,
+  body: RegenerateLicenceKeyRequest,
+): Promise<LicenceKeyRegeneratedResponse> {
+  return (await postLicencesIdRegenerateKey(id, body)).data as LicenceKeyRegeneratedResponse;
 }
 
 // These two endpoints return 204 No Content, so they resolve to void.

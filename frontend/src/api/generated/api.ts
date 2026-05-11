@@ -21,6 +21,7 @@ import type {
   HealthResponse,
   JwksResponse,
   LicenceCreatedResponse,
+  LicenceKeyRegeneratedResponse,
   LicenceResponse,
   LoginRequest,
   PagedResponseOfBindingHistoryEntryResponse,
@@ -33,6 +34,7 @@ import type {
   PostProductsIdImageBody,
   ProblemDetails,
   ProductResponse,
+  RegenerateLicenceKeyRequest,
   SessionResponse,
   SignedLicenceVerificationResponse,
   UpdateLicenceHwidRequest,
@@ -514,6 +516,68 @@ export const putLicencesIdIpAllowlist = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       updateLicenceIpAllowlistRequest,)
+  }
+);}
+
+
+
+export type postLicencesIdRegenerateKeyResponse200 = {
+  data: LicenceKeyRegeneratedResponse
+  status: 200
+}
+
+export type postLicencesIdRegenerateKeyResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postLicencesIdRegenerateKeyResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postLicencesIdRegenerateKeyResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type postLicencesIdRegenerateKeyResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postLicencesIdRegenerateKeyResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postLicencesIdRegenerateKeyResponseSuccess = (postLicencesIdRegenerateKeyResponse200) & {
+  headers: Headers;
+};
+export type postLicencesIdRegenerateKeyResponseError = (postLicencesIdRegenerateKeyResponse400 | postLicencesIdRegenerateKeyResponse401 | postLicencesIdRegenerateKeyResponse403 | postLicencesIdRegenerateKeyResponse404 | postLicencesIdRegenerateKeyResponse429) & {
+  headers: Headers;
+};
+
+export type postLicencesIdRegenerateKeyResponse = (postLicencesIdRegenerateKeyResponseSuccess | postLicencesIdRegenerateKeyResponseError)
+
+export const getPostLicencesIdRegenerateKeyUrl = (id: string,) => {
+
+
+
+
+  return `/licences/${id}/regenerate-key`
+}
+
+export const postLicencesIdRegenerateKey = async (id: string,
+    regenerateLicenceKeyRequest: RegenerateLicenceKeyRequest, options?: RequestInit): Promise<postLicencesIdRegenerateKeyResponse> => {
+
+  return apiClient<postLicencesIdRegenerateKeyResponse>(getPostLicencesIdRegenerateKeyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      regenerateLicenceKeyRequest,)
   }
 );}
 
