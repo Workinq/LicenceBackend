@@ -1,6 +1,8 @@
-import { getLicences, getLicencesId } from './generated/api';
+import { getLicences, getLicencesId, postLicences } from './generated/api';
 import type {
+  CreateLicenceRequest,
   GetLicencesParams,
+  LicenceCreatedResponse,
   LicenceResponse,
   PagedResponseOfLicenceResponse,
 } from './generated/api.schemas';
@@ -15,4 +17,8 @@ export async function fetchLicences(
 
 export async function fetchLicence(id: string): Promise<LicenceResponse> {
   return (await getLicencesId(id)).data as LicenceResponse;
+}
+
+export async function createLicence(body: CreateLicenceRequest): Promise<LicenceCreatedResponse> {
+  return (await postLicences(body)).data as LicenceCreatedResponse;
 }
