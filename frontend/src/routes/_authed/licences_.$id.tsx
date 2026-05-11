@@ -7,6 +7,7 @@ import { LicenceKey } from '@/components/LicenceKey';
 import { fetchLicence } from '@/api/licences';
 import { LicenceActions } from '@/components/licences/LicenceActions';
 import { LicenceBindings } from '@/components/licences/LicenceBindings';
+import { LicenceHistory } from '@/components/licences/LicenceHistory';
 
 export const Route = createFileRoute('/_authed/licences_/$id')({
   component: LicenceDetailPage,
@@ -86,7 +87,7 @@ function LicenceDetailPage() {
           <CardTitle>History</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-ink-subtle">Coming in Chunk P1c-4.</p>
+          <LicenceHistory licenceId={lic.id} />
         </CardContent>
       </Card>
     </div>
