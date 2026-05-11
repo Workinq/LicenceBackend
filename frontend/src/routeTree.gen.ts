@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthedRouteRouteImport } from './routes/_authed/route'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
+import { Route as AuthedUsersRouteImport } from './routes/_authed/users'
+import { Route as AuthedProductsRouteImport } from './routes/_authed/products'
 import { Route as AuthedMeRouteImport } from './routes/_authed/me'
+import { Route as AuthedLicencesRouteImport } from './routes/_authed/licences'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -28,35 +31,67 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRouteRoute,
 } as any)
+const AuthedUsersRoute = AuthedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthedRouteRoute,
+} as any)
+const AuthedProductsRoute = AuthedProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AuthedRouteRoute,
+} as any)
 const AuthedMeRoute = AuthedMeRouteImport.update({
   id: '/me',
   path: '/me',
+  getParentRoute: () => AuthedRouteRoute,
+} as any)
+const AuthedLicencesRoute = AuthedLicencesRouteImport.update({
+  id: '/licences',
+  path: '/licences',
   getParentRoute: () => AuthedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginRoute
+  '/licences': typeof AuthedLicencesRoute
   '/me': typeof AuthedMeRoute
+  '/products': typeof AuthedProductsRoute
+  '/users': typeof AuthedUsersRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/licences': typeof AuthedLicencesRoute
   '/me': typeof AuthedMeRoute
+  '/products': typeof AuthedProductsRoute
+  '/users': typeof AuthedUsersRoute
   '/': typeof AuthedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authed/licences': typeof AuthedLicencesRoute
   '/_authed/me': typeof AuthedMeRoute
+  '/_authed/products': typeof AuthedProductsRoute
+  '/_authed/users': typeof AuthedUsersRoute
   '/_authed/': typeof AuthedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/me'
+  fullPaths: '/' | '/login' | '/licences' | '/me' | '/products' | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/me' | '/'
-  id: '__root__' | '/_authed' | '/login' | '/_authed/me' | '/_authed/'
+  to: '/login' | '/licences' | '/me' | '/products' | '/users' | '/'
+  id:
+    | '__root__'
+    | '/_authed'
+    | '/login'
+    | '/_authed/licences'
+    | '/_authed/me'
+    | '/_authed/products'
+    | '/_authed/users'
+    | '/_authed/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -87,6 +122,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRouteRoute
     }
+    '/_authed/users': {
+      id: '/_authed/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthedUsersRouteImport
+      parentRoute: typeof AuthedRouteRoute
+    }
+    '/_authed/products': {
+      id: '/_authed/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AuthedProductsRouteImport
+      parentRoute: typeof AuthedRouteRoute
+    }
     '/_authed/me': {
       id: '/_authed/me'
       path: '/me'
@@ -94,16 +143,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedMeRouteImport
       parentRoute: typeof AuthedRouteRoute
     }
+    '/_authed/licences': {
+      id: '/_authed/licences'
+      path: '/licences'
+      fullPath: '/licences'
+      preLoaderRoute: typeof AuthedLicencesRouteImport
+      parentRoute: typeof AuthedRouteRoute
+    }
   }
 }
 
 interface AuthedRouteRouteChildren {
+  AuthedLicencesRoute: typeof AuthedLicencesRoute
   AuthedMeRoute: typeof AuthedMeRoute
+  AuthedProductsRoute: typeof AuthedProductsRoute
+  AuthedUsersRoute: typeof AuthedUsersRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
 }
 
 const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
+  AuthedLicencesRoute: AuthedLicencesRoute,
   AuthedMeRoute: AuthedMeRoute,
+  AuthedProductsRoute: AuthedProductsRoute,
+  AuthedUsersRoute: AuthedUsersRoute,
   AuthedIndexRoute: AuthedIndexRoute,
 }
 

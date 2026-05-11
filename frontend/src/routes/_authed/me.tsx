@@ -30,9 +30,6 @@ function MePlaceholder() {
       ) : (
         <p className="text-ink-muted">Loading...</p>
       )}
-      <p className="mt-4 text-sm text-ink-subtle">
-        P1c will replace this with the full /me view.
-      </p>
     </div>
   );
 }
