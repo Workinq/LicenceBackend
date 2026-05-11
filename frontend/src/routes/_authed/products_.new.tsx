@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createProduct } from '@/api/products';
 import { ApiError } from '@/auth/api-client';
@@ -22,6 +24,12 @@ const schema = z.object({
     .min(1, 'Required')
     .regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, and hyphens only'),
   displayName: z.string().min(1, 'Display name is required'),
+  description: z.string().optional(),
+  tagline: z.string().optional(),
+  isPublic: z.boolean(),
+  price: z.string().optional(),
+  currency: z.string().regex(/^[A-Z]{3}$/, 'Three uppercase letters').optional().or(z.literal('')),
+  sortOrder: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -32,12 +40,26 @@ function NewProductPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { slug: '', displayName: '' } });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { slug: '', displayName: '', description: '', tagline: '', isPublic: true, price: '', currency: 'USD', sortOrder: '0' },
+  });
 
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => createProduct({ slug: values.slug, displayName: values.displayName, description: null, tagline: null, isPublic: null, price: null, currency: null, sortOrder: null }),
+    mutationFn: (values: FormValues) =>
+      createProduct({
+        slug: values.slug,
+        displayName: values.displayName,
+        description: values.description ? values.description : null,
+        tagline: values.tagline ? values.tagline : null,
+        isPublic: values.isPublic,
+        price: values.price ? Number(values.price) : null,
+        currency: values.currency ? values.currency : null,
+        sortOrder: values.sortOrder ? Number(values.sortOrder) : null,
+      }),
     onSuccess: () => {
       toast.success('Product created.');
       void navigate({ to: '/products' });
@@ -79,6 +101,45 @@ function NewProductPage() {
           {errors.displayName && (
             <p className="text-xs text-status-revoked-fg">{errors.displayName.message}</p>
           )}
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="description">Description</Label>
+          <Textarea id="description" {...register('description')} />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="tagline">Tagline</Label>
+          <Input id="tagline" {...register('tagline')} />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Controller
+            name="isPublic"
+            control={control}
+            render={({ field }) => (
+              <Switch id="isPublic" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Label htmlFor="isPublic">Public</Label>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="price">Price</Label>
+          <Input id="price" type="number" step="0.01" min="0" {...register('price')} />
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="currency">Currency</Label>
+          <Input id="currency" maxLength={3} {...register('currency')} />
+          {errors.currency && (
+            <p className="text-xs text-status-revoked-fg">{errors.currency.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="sortOrder">Sort order</Label>
+          <Input id="sortOrder" type="number" {...register('sortOrder')} />
         </div>
 
         <Button type="submit" disabled={isSubmitting || mutation.isPending}>

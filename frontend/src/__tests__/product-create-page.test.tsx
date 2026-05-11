@@ -10,7 +10,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 
-vi.mock('../api/products', () => ({ createProduct: vi.fn(), fetchProducts: vi.fn() }));
+vi.mock('../api/products', () => ({ createProduct: vi.fn(), fetchProducts: vi.fn(), fetchProduct: vi.fn(), updateProduct: vi.fn(), uploadProductImage: vi.fn(), deleteProductImage: vi.fn() }));
 import { createProduct } from '../api/products';
 import { Route as NewProductRoute } from '../routes/_authed/products_.new';
 
@@ -38,17 +38,23 @@ describe('NewProductPage', () => {
   it('renders the create form with slug and display name fields', async () => {
     renderNew();
     expect(await screen.findByRole('button', { name: /create product/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/slug/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^slug$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/display name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/tagline/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^price$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/currency/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/sort order/i)).toBeInTheDocument();
+    expect(screen.getByRole('switch')).toBeInTheDocument();
   });
 
   it('submits slug and display name to createProduct', async () => {
     vi.mocked(createProduct).mockResolvedValue({ id: 'p1', slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: true, price: null, currency: 'USD', sortOrder: 0, imageUrl: null, createdAt: '2026-01-01T00:00:00Z' });
     renderNew();
-    await userEvent.type(await screen.findByLabelText(/slug/i), 'acme-pro');
+    await userEvent.type(await screen.findByLabelText(/^slug$/i), 'acme-pro');
     await userEvent.type(screen.getByLabelText(/display name/i), 'Acme Pro');
     await userEvent.click(screen.getByRole('button', { name: /create product/i }));
-    expect(vi.mocked(createProduct)).toHaveBeenCalledWith({ slug: 'acme-pro', displayName: 'Acme Pro', description: null, tagline: null, isPublic: null, price: null, currency: null, sortOrder: null });
+    expect(vi.mocked(createProduct)).toHaveBeenCalledWith(expect.objectContaining({ slug: 'acme-pro', displayName: 'Acme Pro', isPublic: true }));
   });
 
   it('shows a validation error when slug is empty on submit', async () => {
