@@ -7,7 +7,7 @@ import tanstackRouterPlugin from '@tanstack/eslint-plugin-router';
 import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'src/api/generated/', 'src/routeTree.gen.ts'] },
+  { ignores: ['dist/', 'src/api/generated/', 'src/components/ui/', 'src/routeTree.gen.ts'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
