@@ -39,7 +39,7 @@ CREATE TABLE licences (
     notes                       TEXT NULL,
     hwid_hmac                   BYTEA NULL,
     hwid_hmac_pepper_version    SMALLINT NULL,
-    ip_allowlist                JSONB NULL,
+    ip_allowlist                JSONB NULL, -- NULL = unrestricted; [] = bind the first verifying IP; ["cidr",...] = restricted to these
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT licences_hwid_pepper_version_when_pinned

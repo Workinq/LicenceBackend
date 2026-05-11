@@ -8,5 +8,6 @@ public sealed record CreateLicenceRequest(
     Guid? UserId,
     [EmailAddress][StringLength(256)] string? Email,
     DateTimeOffset? ExpiresAt,
-    string? Notes
+    string? Notes,
+    IReadOnlyList<string>? IpAllowlist
 );

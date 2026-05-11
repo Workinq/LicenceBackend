@@ -73,10 +73,31 @@ describe('LicenceBindings', () => {
     expect(vi.mocked(updateLicenceIpAllowlist)).toHaveBeenCalledWith('lic-1', { cidrs: ['10.0.0.0/8'], reason: null });
   });
 
-  it('sends cidrs null when the allowlist is emptied before saving', async () => {
+  it('shows the Restrict by IP switch off and hides the CIDR editor when the allowlist is null', () => {
+    renderBindings({ ipAllowlist: null });
+    const toggle = screen.getByRole('switch', { name: /restrict by ip/i });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByPlaceholderText(/cidr/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the switch on and the CIDR editor when the allowlist is set', () => {
+    renderBindings({ ipAllowlist: ['10.0.0.0/8'] });
+    expect(screen.getByRole('switch', { name: /restrict by ip/i })).toBeChecked();
+    expect(screen.getByDisplayValue('10.0.0.0/8')).toBeInTheDocument();
+  });
+
+  it('turning the switch on with an empty list and saving sends cidrs []', async () => {
+    vi.mocked(updateLicenceIpAllowlist).mockResolvedValue(undefined);
+    renderBindings({ ipAllowlist: null });
+    await userEvent.click(screen.getByRole('switch', { name: /restrict by ip/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save allowlist/i }));
+    expect(vi.mocked(updateLicenceIpAllowlist)).toHaveBeenCalledWith('lic-1', { cidrs: [], reason: null });
+  });
+
+  it('turning the switch off and saving sends cidrs null', async () => {
     vi.mocked(updateLicenceIpAllowlist).mockResolvedValue(undefined);
     renderBindings({ ipAllowlist: ['10.0.0.0/8'] });
-    await userEvent.click(screen.getByRole('button', { name: /remove cidr/i }));
+    await userEvent.click(screen.getByRole('switch', { name: /restrict by ip/i }));
     await userEvent.click(screen.getByRole('button', { name: /save allowlist/i }));
     expect(vi.mocked(updateLicenceIpAllowlist)).toHaveBeenCalledWith('lic-1', { cidrs: null, reason: null });
   });

@@ -48,8 +48,8 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     public async Task CreateAsync(Licence licence, CancellationToken cancellationToken)
     {
         const string sql = """
-                           INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, created_at, updated_at)
-                           VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @CreatedAt, @UpdatedAt);
+                           INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, created_at, updated_at)
+                           VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @CreatedAt, @UpdatedAt);
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
@@ -65,6 +65,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                 Status = licence.Status.ToString().ToLowerInvariant(),
                 licence.ExpiresAt,
                 licence.Notes,
+                IpAllowlist = licence.IpAllowlist is null ? null : JsonSerializer.Serialize(licence.IpAllowlist),
                 licence.CreatedAt,
                 licence.UpdatedAt
             },
@@ -498,6 +499,64 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
 
             await transaction.CommitAsync(cancellationToken);
             return updatedRow.ToDomain();
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<IpBindResult> BindFirstUseIpAsync(
+        Guid licenceId,
+        string hostRoute,
+        CancellationToken cancellationToken)
+    {
+        const string updateSql = """
+                                 UPDATE licences
+                                 SET ip_allowlist = @NewValue::jsonb, updated_at = NOW()
+                                 WHERE id = @Id AND ip_allowlist = '[]'::jsonb
+                                 RETURNING id;
+                                 """;
+
+        const string existsSql = "SELECT 1 FROM licences WHERE id = @Id LIMIT 1;";
+
+        var previousValueJson = JsonSerializer.Serialize(Array.Empty<string>());
+        var newValueJson = JsonSerializer.Serialize(new[] { hostRoute });
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var updated = await connection.QuerySingleOrDefaultAsync<Guid?>(
+                              new CommandDefinition(
+                                  updateSql,
+                                  new { Id = licenceId, NewValue = newValueJson },
+                                  transaction,
+                                  cancellationToken: cancellationToken));
+
+            if (updated is null)
+            {
+                var exists = await connection.QuerySingleOrDefaultAsync<int?>(
+                                 new CommandDefinition(existsSql, new { Id = licenceId }, transaction, cancellationToken: cancellationToken));
+                await transaction.RollbackAsync(cancellationToken);
+                return exists.HasValue ? IpBindResult.AlreadyBound : IpBindResult.NotFound;
+            }
+
+            await InsertBindingHistoryAsync(
+                connection,
+                transaction,
+                licenceId,
+                LicenceBindingType.IpAllowlist,
+                previousValueJson,
+                newValueJson,
+                BindingChangeSource.FirstUse,
+                null,
+                null,
+                cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return IpBindResult.Bound;
         }
         catch
         {

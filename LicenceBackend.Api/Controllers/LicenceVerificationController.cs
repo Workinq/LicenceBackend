@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
@@ -85,6 +86,32 @@ public sealed class LicenceVerificationController(
             {
                 denialReason = VerificationDenialReason.LicenceNotUsable;
                 pendingFirstPin = null;
+            }
+        }
+
+        if (denialReason is null && licence.IsIpAutoBindArmed && !remote.Equals(IPAddress.None))
+        {
+            var bindResult = await licences.BindFirstUseIpAsync(licence.Id, HostRouteFor(remote), cancellationToken);
+            switch (bindResult)
+            {
+                case IpBindResult.Bound:
+                    break;
+                case IpBindResult.AlreadyBound:
+                    var refreshed = await licences.FindByIdAsync(licence.Id, cancellationToken);
+                    if (refreshed is null || !refreshed.IsIpAllowed(remote))
+                    {
+                        denialReason = VerificationDenialReason.IpNotAllowlisted;
+                        pendingFirstPin = null;
+                    }
+                    else
+                    {
+                        licence = refreshed;
+                    }
+                    break;
+                default:
+                    denialReason = VerificationDenialReason.LicenceNotUsable;
+                    pendingFirstPin = null;
+                    break;
             }
         }
 
@@ -265,6 +292,12 @@ public sealed class LicenceVerificationController(
         return refreshed.IsHwidAllowed(presentedHmac)
                    ? (null, presentedHmac)
                    : (VerificationDenialReason.HwidMismatch, presentedHmac);
+    }
+
+    private static string HostRouteFor(IPAddress address)
+    {
+        var prefix = address.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
+        return FormattableString.Invariant($"{address}/{prefix}");
     }
 
     private IActionResult InvalidLicence()
