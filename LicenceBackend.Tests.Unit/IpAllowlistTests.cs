@@ -6,9 +6,19 @@ namespace LicenceBackend.Tests.Unit;
 public sealed class IpAllowlistTests
 {
     [Fact]
-    public void Null_allowlist_allows_every_address()
+    public void Null_allowlist_allows_every_address_and_is_not_armed()
     {
         var licence = LicenceWithAllowlist(null);
+        Assert.False(licence.IsIpAutoBindArmed);
+        Assert.True(licence.IsIpAllowed(IPAddress.Parse("203.0.113.10")));
+        Assert.True(licence.IsIpAllowed(IPAddress.IPv6Loopback));
+    }
+
+    [Fact]
+    public void Empty_allowlist_is_armed_and_allows_every_address()
+    {
+        var licence = LicenceWithAllowlist([]);
+        Assert.True(licence.IsIpAutoBindArmed);
         Assert.True(licence.IsIpAllowed(IPAddress.Parse("203.0.113.10")));
         Assert.True(licence.IsIpAllowed(IPAddress.IPv6Loopback));
     }
@@ -17,6 +27,7 @@ public sealed class IpAllowlistTests
     public void Ipv4_cidr_match_inside_range()
     {
         var licence = LicenceWithAllowlist(["10.0.0.0/24"]);
+        Assert.False(licence.IsIpAutoBindArmed);
         Assert.True(licence.IsIpAllowed(IPAddress.Parse("10.0.0.5")));
         Assert.False(licence.IsIpAllowed(IPAddress.Parse("10.0.1.5")));
     }
@@ -36,14 +47,6 @@ public sealed class IpAllowlistTests
         Assert.True(licence.IsIpAllowed(IPAddress.Parse("203.0.113.7")));
         Assert.False(licence.IsIpAllowed(IPAddress.Parse("203.0.113.8")));
         Assert.True(licence.IsIpAllowed(IPAddress.IPv6Loopback));
-    }
-
-    [Fact]
-    public void Empty_allowlist_blocks_every_address()
-    {
-        var licence = LicenceWithAllowlist([]);
-        Assert.False(licence.IsIpAllowed(IPAddress.Parse("203.0.113.10")));
-        Assert.False(licence.IsIpAllowed(IPAddress.IPv6Loopback));
     }
 
     [Fact]
