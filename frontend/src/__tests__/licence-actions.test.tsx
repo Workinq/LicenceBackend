@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LicenceActions } from '../components/licences/LicenceActions';
 
-vi.mock('../api/licences', () => ({ updateLicenceStatus: vi.fn() }));
+vi.mock('../api/licences', () => ({ updateLicenceStatus: vi.fn(), regenerateLicenceKey: vi.fn() }));
 
 function renderActions(status: string) {
   const queryClient = new QueryClient();
@@ -24,6 +24,7 @@ describe('LicenceActions', () => {
     renderActions('active');
     expect(screen.getByRole('button', { name: /^suspend$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^revoke$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /regenerate key/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /reinstate/i })).not.toBeInTheDocument();
   });
 
@@ -31,6 +32,7 @@ describe('LicenceActions', () => {
     renderActions('suspended');
     expect(screen.getByRole('button', { name: /reinstate/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^revoke$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /regenerate key/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^suspend$/i })).not.toBeInTheDocument();
   });
 
@@ -38,5 +40,6 @@ describe('LicenceActions', () => {
     renderActions('revoked');
     expect(screen.getByText(/revoked/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /suspend|reinstate/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /regenerate key/i })).not.toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDestructive } from '@/components/ConfirmDestructive';
+import { RegenerateKeyDialog } from './RegenerateKeyDialog';
 import { updateLicenceStatus } from '@/api/licences';
 import { ApiError } from '@/auth/api-client';
 import type { LicenceResponse } from '@/api/generated/api.schemas';
@@ -46,6 +47,7 @@ export function LicenceActions({ licence }: { licence: LicenceResponse }) {
           onConfirm={() => { mutation.mutate('suspended'); }}
         />
         {revokeAction}
+        <RegenerateKeyDialog licenceId={licence.id} />
       </div>
     );
   }
@@ -57,6 +59,7 @@ export function LicenceActions({ licence }: { licence: LicenceResponse }) {
           Reinstate
         </Button>
         {revokeAction}
+        <RegenerateKeyDialog licenceId={licence.id} />
       </div>
     );
   }

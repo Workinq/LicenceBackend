@@ -43,6 +43,8 @@ function LicenceDetailPage() {
             <dd>
               <LicenceKey value={lic.id} />
             </dd>
+            <dt className="text-ink-muted">Licence key</dt>
+            <dd className="text-ink-subtle">Shown only when the licence is created or regenerated.</dd>
             <dt className="text-ink-muted">Product</dt>
             <dd className="text-ink">{lic.productSlug}</dd>
             <dt className="text-ink-muted">User</dt>
