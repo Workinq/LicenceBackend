@@ -268,10 +268,16 @@ public sealed class LicenceBindingTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
 
         await using var conn = await OpenDbAsync();
-        var allowlist = await conn.QuerySingleAsync<string>(
-                            "SELECT ip_allowlist::text FROM licences WHERE id = @Id;",
-                            new { Id = licence.Id });
-        Assert.Contains("198.51.100.7/32", allowlist);
+        var row = await conn.QuerySingleAsync<(string? ip_allowlist, int first_use_count)>(
+                      """
+                      SELECT l.ip_allowlist::text,
+                             (SELECT COUNT(*) FROM licence_binding_history
+                              WHERE licence_id = l.id AND binding_type = 'ip_allowlist' AND change_source = 'first_use')::int
+                      FROM licences l WHERE l.id = @Id;
+                      """,
+                      new { Id = licence.Id });
+        Assert.Contains("198.51.100.7/32", row.ip_allowlist);
+        Assert.Equal(1, row.first_use_count);
     }
 
     [SkippableFact]
@@ -294,6 +300,11 @@ public sealed class LicenceBindingTests : IntegrationTestBase
                          "/licences/verify",
                          new { licenceKey = licence.LicenceKey, productId = product.Id, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.BadRequest, denied.StatusCode);
+
+        var allowed = await ClientFromIp("10.0.0.5").PostAsJsonAsync(
+                          "/licences/verify",
+                          new { licenceKey = licence.LicenceKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
     }
 
     [SkippableFact]
