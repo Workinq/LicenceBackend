@@ -1,0 +1,155 @@
+using System.Net;
+using System.Net.Http.Json;
+using Dapper;
+
+namespace LicenceBackend.Tests.Api;
+
+public sealed class LicenceKeyRegenerationTests : IntegrationTestBase
+{
+    [SkippableFact]
+    public async Task Regenerate_returns_new_key_invalidates_old_key_and_keeps_other_fields()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-ok", "Regen OK");
+        var created = await CreateLicenceAsync(product.Id);
+        var oldKey = created.LicenceKey;
+
+        // sanity: old key verifies before regeneration
+        var beforeVerify = await UnauthedClient.PostAsJsonAsync(
+            "/licences/verify", new { licenceKey = oldKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, beforeVerify.StatusCode);
+
+        var response = await AuthedClient.PostAsJsonAsync(
+            $"/licences/{created.Id}/regenerate-key", new { reason = "leaked key" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<LicenceKeyRegeneratedPayload>();
+        Assert.NotNull(body);
+        Assert.Equal(created.Id, body.Id);
+        Assert.Equal(product.Id, body.ProductId);
+        Assert.Equal("regen-ok", body.ProductSlug);
+        Assert.Equal(AdminUserId, body.UserId);
+        Assert.Equal("active", body.Status);
+        Assert.False(string.IsNullOrWhiteSpace(body.LicenceKey));
+        Assert.StartsWith("LIC-", body.LicenceKey);
+        Assert.NotEqual(oldKey, body.LicenceKey);
+
+        // old key no longer verifies
+        var afterOld = await UnauthedClient.PostAsJsonAsync(
+            "/licences/verify", new { licenceKey = oldKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.NotEqual(HttpStatusCode.OK, afterOld.StatusCode);
+
+        // new key verifies
+        var afterNew = await UnauthedClient.PostAsJsonAsync(
+            "/licences/verify", new { licenceKey = body.LicenceKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, afterNew.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Regenerate_writes_one_audit_row_with_changer_and_reason()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-audit", "Regen Audit");
+        var created = await CreateLicenceAsync(product.Id);
+
+        var response = await AuthedClient.PostAsJsonAsync(
+            $"/licences/{created.Id}/regenerate-key", new { reason = "  rotating  " });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var db = await OpenDbAsync();
+        var rows = (await db.QueryAsync(
+            "SELECT licence_id, changed_by, reason, previous_key_hmac, new_key_hmac FROM licence_key_history WHERE licence_id = @Id",
+            new { Id = created.Id })).ToList();
+
+        Assert.Single(rows);
+        var row = rows[0];
+        Assert.Equal(created.Id, (Guid)row.licence_id);
+        Assert.Equal(AdminUserId, (Guid)row.changed_by);
+        Assert.Equal("rotating", (string)row.reason); // trimmed
+        Assert.NotNull((byte[])row.previous_key_hmac);
+        Assert.NotNull((byte[])row.new_key_hmac);
+        Assert.False(((byte[])row.previous_key_hmac).SequenceEqual((byte[])row.new_key_hmac));
+    }
+
+    [SkippableFact]
+    public async Task Regenerate_with_blank_reason_stores_null()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-blank", "Regen Blank");
+        var created = await CreateLicenceAsync(product.Id);
+
+        var response = await AuthedClient.PostAsJsonAsync(
+            $"/licences/{created.Id}/regenerate-key", new { reason = "   " });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var db = await OpenDbAsync();
+        var reason = await db.ExecuteScalarAsync<string?>(
+            "SELECT reason FROM licence_key_history WHERE licence_id = @Id", new { Id = created.Id });
+        Assert.Null(reason);
+    }
+
+    [SkippableFact]
+    public async Task Regenerate_unknown_licence_returns_404()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var response = await AuthedClient.PostAsJsonAsync(
+            $"/licences/{Guid.NewGuid()}/regenerate-key", new { reason = (string?)null });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.Contains("licence_not_found", json);
+    }
+
+    [SkippableFact]
+    public async Task Regenerate_as_non_admin_is_forbidden()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-forbidden", "Regen Forbidden");
+        var created = await CreateLicenceAsync(product.Id);
+
+        var regularEmail = "regular-regen@test.local";
+        var regularPassword = "regular-regen-pw-123!";
+        await using (var db = await OpenDbAsync())
+        {
+            await db.ExecuteAsync(
+                """
+                INSERT INTO users (id, email, email_lower, password_hash, display_name, role, status, created_at, updated_at)
+                VALUES (@Id, @Email, @EmailLower, @Hash, NULL, 'user', 'active', NOW(), NOW());
+                """,
+                new
+                {
+                    Id = Guid.NewGuid(),
+                    Email = regularEmail,
+                    EmailLower = regularEmail,
+                    Hash = new LicenceBackend.Infrastructure.Crypto.Argon2IdPasswordHasher().Hash(regularPassword)
+                });
+        }
+        using var regularClient = await CreateLoggedInClientAsync(regularEmail, regularPassword);
+
+        var response = await regularClient.PostAsJsonAsync(
+            $"/licences/{created.Id}/regenerate-key", new { reason = (string?)null });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    private async Task<ProductPayload> CreateProductAsync(string slug, string name)
+    {
+        var response = await AuthedClient.PostAsJsonAsync("/products", new { slug, displayName = name });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<ProductPayload>())!;
+    }
+
+    private async Task<LicenceCreatedPayload> CreateLicenceAsync(Guid productId)
+    {
+        var response = await AuthedClient.PostAsJsonAsync("/licences", new { productId, userId = AdminUserId });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<LicenceCreatedPayload>())!;
+    }
+
+    private sealed record ProductPayload(Guid Id, string Slug, string DisplayName, DateTimeOffset CreatedAt);
+
+    private sealed record LicenceCreatedPayload(Guid Id, Guid ProductId, string ProductSlug, Guid UserId, string UserEmail, string Status, string LicenceKey);
+
+    private sealed record LicenceKeyRegeneratedPayload(Guid Id, Guid ProductId, string ProductSlug, Guid UserId, string UserEmail, string Status, string LicenceKey);
+}
