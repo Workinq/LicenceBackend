@@ -60,7 +60,12 @@ function LicencesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-semibold text-ink">Licences</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl font-semibold text-ink">Licences</h1>
+        <Button asChild>
+          <Link to="/licences/new">New licence</Link>
+        </Button>
+      </div>
 
       <div className="flex items-center gap-3">
         <Select value={status} onValueChange={onStatusChange}>
