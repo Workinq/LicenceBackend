@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +37,7 @@ type FormValues = z.infer<typeof schema>;
 
 function NewProductPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -62,6 +63,7 @@ function NewProductPage() {
         sortOrder: values.sortOrder ? Number(values.sortOrder) : null,
       }),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created.');
       void navigate({ to: '/products' });
     },

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,6 +33,7 @@ type FormValues = z.infer<typeof schema>;
 
 function NewLicencePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [created, setCreated] = useState<LicenceCreatedResponse | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -56,6 +57,7 @@ function NewLicencePage() {
         notes: values.notes ? values.notes : null,
       }),
     onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
       setCreated(data);
     },
     onError: (error) => {
