@@ -53,7 +53,7 @@ export function LicenceBindings({ licence }: Props) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] });
       void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
-      setCidrs((rows) => rows.map((c) => c.trim()).filter((c) => c.length > 0));
+      if (restricted) setCidrs((rows) => rows.map((c) => c.trim()).filter((c) => c.length > 0));
       toast.success('IP allowlist saved.');
     },
     onError: (error) => {
