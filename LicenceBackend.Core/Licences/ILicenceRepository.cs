@@ -58,4 +58,10 @@ public interface ILicenceRepository
         string? reason,
         CancellationToken cancellationToken
     );
+
+    Task<IpBindResult> BindFirstUseIpAsync(
+        Guid licenceId,
+        string hostRoute,
+        CancellationToken cancellationToken
+    );
 }

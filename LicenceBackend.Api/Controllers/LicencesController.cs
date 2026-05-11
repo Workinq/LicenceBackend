@@ -324,37 +324,12 @@ public sealed class LicencesController(
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
 
-        IReadOnlyList<string>? cidrs = null;
-        if (request.Cidrs is not null)
-        {
-            if (request.Cidrs.Count == 0)
-                return Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: ProblemTitles.InvalidIpAllowlist,
-                    detail: "cidrs must be null (to unrestrict) or a non-empty list."
-                );
-
-            if (request.Cidrs.Count > MaxIpAllowlistEntries)
-                return Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: ProblemTitles.InvalidIpAllowlist,
-                    detail: $"cidrs must contain at most {MaxIpAllowlistEntries} entries."
-                );
-
-            var normalised = new List<string>(request.Cidrs.Count);
-            foreach (var raw in request.Cidrs)
-            {
-                if (string.IsNullOrWhiteSpace(raw) || !IPNetwork.TryParse(raw, out _))
-                    return Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: ProblemTitles.InvalidIpAllowlist,
-                        detail: $"'{raw}' is not a valid CIDR."
-                    );
-                normalised.Add(raw.Trim());
-            }
-
-            cidrs = normalised;
-        }
+        if (!TryNormaliseIpAllowlist(request.Cidrs, out var cidrs, out var validationError))
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: ProblemTitles.InvalidIpAllowlist,
+                detail: validationError
+            );
 
         var updated = await licences.UpdateIpAllowlistAsync(
                           id,
@@ -505,6 +480,43 @@ public sealed class LicencesController(
             LicenceVerificationAttemptRepository.DenialReasonToString(attempt.DenialReason),
             attempt.AttemptedAt
         );
+    }
+
+    private static bool TryNormaliseIpAllowlist(
+        IReadOnlyList<string>? input,
+        out IReadOnlyList<string>? normalised,
+        out string? errorDetail)
+    {
+        normalised = null;
+        errorDetail = null;
+
+        if (input is null) return true;
+
+        if (input.Count == 0)
+        {
+            normalised = Array.Empty<string>();
+            return true;
+        }
+
+        if (input.Count > MaxIpAllowlistEntries)
+        {
+            errorDetail = $"At most {MaxIpAllowlistEntries} CIDR entries are allowed.";
+            return false;
+        }
+
+        var result = new List<string>(input.Count);
+        foreach (var raw in input)
+        {
+            if (string.IsNullOrWhiteSpace(raw) || !IPNetwork.TryParse(raw, out _))
+            {
+                errorDetail = $"'{raw}' is not a valid CIDR.";
+                return false;
+            }
+            result.Add(raw.Trim());
+        }
+
+        normalised = result;
+        return true;
     }
 
     private static JsonElement? ParseJsonElement(string? json)

@@ -433,6 +433,63 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         }
     }
 
+    public async Task<IpBindResult> BindFirstUseIpAsync(
+        Guid licenceId,
+        string hostRoute,
+        CancellationToken cancellationToken)
+    {
+        const string updateSql = """
+                                 UPDATE licences
+                                 SET ip_allowlist = @NewValue::jsonb, updated_at = NOW()
+                                 WHERE id = @Id AND ip_allowlist = '[]'::jsonb
+                                 RETURNING id;
+                                 """;
+
+        const string existsSql = "SELECT 1 FROM licences WHERE id = @Id LIMIT 1;";
+
+        var newValueJson = JsonSerializer.Serialize(new[] { hostRoute });
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var updated = await connection.QuerySingleOrDefaultAsync<Guid?>(
+                              new CommandDefinition(
+                                  updateSql,
+                                  new { Id = licenceId, NewValue = newValueJson },
+                                  transaction,
+                                  cancellationToken: cancellationToken));
+
+            if (updated is null)
+            {
+                var exists = await connection.QuerySingleOrDefaultAsync<int?>(
+                                 new CommandDefinition(existsSql, new { Id = licenceId }, transaction, cancellationToken: cancellationToken));
+                await transaction.RollbackAsync(cancellationToken);
+                return exists.HasValue ? IpBindResult.AlreadyBound : IpBindResult.NotFound;
+            }
+
+            await InsertBindingHistoryAsync(
+                connection,
+                transaction,
+                licenceId,
+                LicenceBindingType.IpAllowlist,
+                "[]",
+                newValueJson,
+                BindingChangeSource.FirstUse,
+                null,
+                null,
+                cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return IpBindResult.Bound;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     private static async Task InsertBindingHistoryAsync(
         IDbConnection connection,
         IDbTransaction transaction,

@@ -190,16 +190,89 @@ public sealed class LicenceBindingTests : IntegrationTestBase
     }
 
     [SkippableFact]
-    public async Task Ip_allowlist_rejects_empty_array()
+    public async Task Ip_allowlist_empty_array_arms_first_use_bind()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
 
-        var (_, _, licenceId, _) = await CreateProductAndLicenceAsync("ip-empty");
+        var (productId, _, licenceId, licenceKey) = await CreateProductAndLicenceAsync("ip-arm");
 
-        var response = await AuthedClient.PutAsJsonAsync(
-                           $"/licences/{licenceId}/ip-allowlist",
-                           new { cidrs = Array.Empty<string>() });
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var arm = await AuthedClient.PutAsJsonAsync(
+                      $"/licences/{licenceId}/ip-allowlist",
+                      new { cidrs = Array.Empty<string>() });
+        Assert.Equal(HttpStatusCode.NoContent, arm.StatusCode);
+
+        var verify = await ClientFromIp("203.0.113.5").PostAsJsonAsync(
+                         "/licences/verify",
+                         new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
+
+        await using var conn = await OpenDbAsync();
+        var row = await conn.QuerySingleAsync<(string? ip_allowlist, int first_use_count)>(
+                      """
+                      SELECT l.ip_allowlist::text,
+                             (SELECT COUNT(*) FROM licence_binding_history
+                              WHERE licence_id = l.id AND binding_type = 'ip_allowlist' AND change_source = 'first_use')::int
+                      FROM licences l WHERE l.id = @Id;
+                      """,
+                      new { Id = licenceId });
+        Assert.Contains("203.0.113.5/32", row.ip_allowlist);
+        Assert.Equal(1, row.first_use_count);
+    }
+
+    [SkippableFact]
+    public async Task First_use_ip_bind_then_other_ip_denied_same_ip_allowed()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var (productId, _, licenceId, licenceKey) = await CreateProductAndLicenceAsync("ip-firstuse");
+
+        await AuthedClient.PutAsJsonAsync(
+            $"/licences/{licenceId}/ip-allowlist",
+            new { cidrs = Array.Empty<string>() });
+
+        var first = await ClientFromIp("203.0.113.10").PostAsJsonAsync(
+                        "/licences/verify",
+                        new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+        var other = await ClientFromIp("203.0.113.11").PostAsJsonAsync(
+                        "/licences/verify",
+                        new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.BadRequest, other.StatusCode);
+
+        var again = await ClientFromIp("203.0.113.10").PostAsJsonAsync(
+                        "/licences/verify",
+                        new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Concurrent_first_use_binds_exactly_one_ip()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var (productId, _, licenceId, licenceKey) = await CreateProductAndLicenceAsync("ip-race");
+
+        await AuthedClient.PutAsJsonAsync(
+            $"/licences/{licenceId}/ip-allowlist",
+            new { cidrs = Array.Empty<string>() });
+
+        var a = ClientFromIp("203.0.113.20").PostAsJsonAsync(
+                    "/licences/verify",
+                    new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        var b = ClientFromIp("203.0.113.21").PostAsJsonAsync(
+                    "/licences/verify",
+                    new { licenceKey, productId, clientNonce = GenerateClientNonce() });
+        var results = await Task.WhenAll(a, b);
+
+        var okCount = results.Count(r => r.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(1, okCount);
+
+        await using var conn = await OpenDbAsync();
+        var allowlist = await conn.QuerySingleAsync<string>(
+                            "SELECT ip_allowlist::text FROM licences WHERE id = @Id;",
+                            new { Id = licenceId });
+        Assert.True(allowlist == "[\"203.0.113.20/32\"]" || allowlist == "[\"203.0.113.21/32\"]", allowlist);
     }
 
     [SkippableFact]
