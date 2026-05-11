@@ -29,6 +29,8 @@ export interface CreateLicenceRequest {
   expiresAt: string | null;
   /** @nullable */
   notes: string | null;
+  /** @nullable */
+  ipAllowlist: string[] | null;
 }
 
 export interface CreateProductRequest {
