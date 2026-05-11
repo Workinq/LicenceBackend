@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ConfirmDestructive } from '@/components/ConfirmDestructive';
+import { CidrListEditor } from '@/components/licences/CidrListEditor';
 import { updateLicenceHwid, updateLicenceIpAllowlist } from '@/api/licences';
 import { ApiError } from '@/auth/api-client';
 import type { LicenceResponse } from '@/api/generated/api.schemas';
@@ -80,48 +79,14 @@ export function LicenceBindings({ licence }: Props) {
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-ink">IP allowlist</h3>
         <p className="text-sm text-ink-muted">Leave empty to allow any IP.</p>
-        <div className="space-y-2">
-          {cidrs.map((c, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input
-                value={c}
-                placeholder="CIDR e.g. 203.0.113.0/24"
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setCidrs((rows) => rows.map((r, j) => (j === i ? v : r)));
-                }}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Remove CIDR"
-                onClick={() => { setCidrs((rows) => rows.filter((_, j) => j !== i)); }}
-              >
-                <X className="size-4" aria-hidden="true" />
-              </Button>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => { setCidrs((rows) => [...rows, '']); }}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            <span className="ml-1.5">Add CIDR</span>
-          </Button>
-          <Button
-            type="button"
-            onClick={() => { ipMutation.mutate(); }}
-            disabled={ipMutation.isPending}
-          >
-            Save allowlist
-          </Button>
-        </div>
+        <CidrListEditor cidrs={cidrs} onChange={setCidrs} />
+        <Button
+          type="button"
+          onClick={() => { ipMutation.mutate(); }}
+          disabled={ipMutation.isPending}
+        >
+          Save allowlist
+        </Button>
       </div>
     </div>
   );
