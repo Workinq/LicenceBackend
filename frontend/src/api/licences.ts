@@ -1,6 +1,9 @@
 import {
   getLicences,
   getLicencesId,
+  getLicencesIdBindingHistory,
+  getLicencesIdStatusHistory,
+  getLicencesIdVerificationAttempts,
   patchLicencesIdStatus,
   postLicences,
   putLicencesIdHwid,
@@ -11,7 +14,10 @@ import type {
   GetLicencesParams,
   LicenceCreatedResponse,
   LicenceResponse,
+  PagedResponseOfBindingHistoryEntryResponse,
   PagedResponseOfLicenceResponse,
+  PagedResponseOfLicenceStatusHistoryResponse,
+  PagedResponseOfVerificationAttemptResponse,
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
   UpdateLicenceStatusRequest,
@@ -50,4 +56,25 @@ export async function updateLicenceIpAllowlist(
   body: UpdateLicenceIpAllowlistRequest,
 ): Promise<void> {
   await putLicencesIdIpAllowlist(id, body);
+}
+
+export async function fetchLicenceStatusHistory(
+  id: string,
+  params: { limit?: number; offset?: number },
+): Promise<PagedResponseOfLicenceStatusHistoryResponse> {
+  return (await getLicencesIdStatusHistory(id, params)).data as PagedResponseOfLicenceStatusHistoryResponse;
+}
+
+export async function fetchLicenceBindingHistory(
+  id: string,
+  params: { limit?: number; offset?: number },
+): Promise<PagedResponseOfBindingHistoryEntryResponse> {
+  return (await getLicencesIdBindingHistory(id, params)).data as PagedResponseOfBindingHistoryEntryResponse;
+}
+
+export async function fetchLicenceVerificationAttempts(
+  id: string,
+  params: { outcome?: string; limit?: number; offset?: number },
+): Promise<PagedResponseOfVerificationAttemptResponse> {
+  return (await getLicencesIdVerificationAttempts(id, params)).data as PagedResponseOfVerificationAttemptResponse;
 }
