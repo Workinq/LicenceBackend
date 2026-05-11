@@ -47,7 +47,7 @@ describe('useSilentRefresh', () => {
     });
 
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/sessions/refresh',
+      '/api/sessions/refresh',
       expect.objectContaining({ method: 'POST' }),
     );
   });

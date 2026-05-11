@@ -1,6 +1,7 @@
 // frontend/src/auth/use-silent-refresh.ts
 import { useEffect, useRef } from 'react';
 import { useAccessTokenStore, type AuthUser } from './access-token-store';
+import { API_BASE } from './api-client';
 
 /** 14 minutes in milliseconds - just inside the 15-min access token TTL. */
 const SILENT_REFRESH_INTERVAL_MS = 14 * 60 * 1000;
@@ -13,7 +14,7 @@ interface RefreshBody {
 
 async function doRefresh(): Promise<void> {
   try {
-    const res = await fetch('/sessions/refresh', {
+    const res = await fetch(`${API_BASE}/sessions/refresh`, {
       method: 'POST',
       credentials: 'include',
     });

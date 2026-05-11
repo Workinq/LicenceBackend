@@ -24,6 +24,8 @@ dotnet run --project LicenceBackend.Api --launch-profile https
 
 The `--launch-profile https` flag is required because the backend defaults to HTTP and the Secure cookie used for the refresh token will not be sent over HTTP.
 
+The SPA owns the root path space; all backend calls are made under `/api`, which the dev proxy strips before forwarding to the .NET API (and it rewrites the refresh-cookie `Path` from `/sessions` to `/api/sessions`). This keeps backend routes like `/me` and `/licences` from colliding with client-side routes. In production (Chunk P1f) the host serving `dist/` must do the equivalent: route `/api/*` to the backend with the prefix stripped, or run the backend with `app.UsePathBase("/api")`.
+
 ## Build for production
 
 ```bash

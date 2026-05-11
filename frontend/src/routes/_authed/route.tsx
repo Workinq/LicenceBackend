@@ -1,6 +1,7 @@
 // frontend/src/routes/_authed/route.tsx
 import { createFileRoute, redirect, Outlet } from '@tanstack/react-router';
 import { useAccessTokenStore, type AuthUser } from '../../auth/access-token-store';
+import { API_BASE, apiClient } from '../../auth/api-client';
 import { useSilentRefresh } from '../../auth/use-silent-refresh';
 
 export const Route = createFileRoute('/_authed')({
@@ -9,7 +10,7 @@ export const Route = createFileRoute('/_authed')({
     if (store.accessToken) return;
 
     try {
-      const res = await fetch('/sessions/refresh', {
+      const res = await fetch(`${API_BASE}/sessions/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -39,15 +40,21 @@ function AuthedLayout() {
   const user = useAccessTokenStore((s) => s.user);
 
   const handleSignOut = async () => {
-    await fetch('/sessions', { method: 'DELETE', credentials: 'include' });
-    useAccessTokenStore.getState().clear();
-    window.location.assign('/login');
+    try {
+      await apiClient<void>('/sessions', { method: 'DELETE' });
+    } finally {
+      useAccessTokenStore.getState().clear();
+      window.location.assign('/login');
+    }
   };
 
   const handleSignOutAll = async () => {
-    await fetch('/sessions/all', { method: 'DELETE', credentials: 'include' });
-    useAccessTokenStore.getState().clear();
-    window.location.assign('/login');
+    try {
+      await apiClient<void>('/sessions/all', { method: 'DELETE' });
+    } finally {
+      useAccessTokenStore.getState().clear();
+      window.location.assign('/login');
+    }
   };
 
   return (

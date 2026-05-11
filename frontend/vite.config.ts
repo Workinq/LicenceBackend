@@ -12,13 +12,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/sessions':  { target: 'https://localhost:5001', changeOrigin: true, secure: false },
-      '/licences':  { target: 'https://localhost:5001', changeOrigin: true, secure: false },
-      '/products':  { target: 'https://localhost:5001', changeOrigin: true, secure: false },
-      '/users':     { target: 'https://localhost:5001', changeOrigin: true, secure: false },
-      '/me':        { target: 'https://localhost:5001', changeOrigin: true, secure: false },
-      '/health':    { target: 'https://localhost:5001', changeOrigin: true, secure: false },
-      '/openapi':   { target: 'https://localhost:5001', changeOrigin: true, secure: false },
+      '/api': {
+        target: 'https://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        cookiePathRewrite: { '/sessions': '/api/sessions' },
+      },
     },
   },
   build: {
