@@ -16,11 +16,20 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class ProductsController(
     IProductRepository products,
+    IProductImageStorage images,
     TimeProvider time
 ) : ControllerBase
 {
     private const int DefaultLimit = 50;
     private const int MaxLimit = 200;
+
+    private static readonly Dictionary<string, string> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["image/png"] = ".png",
+        ["image/jpeg"] = ".jpg",
+        ["image/webp"] = ".webp",
+    };
+    private const long MaxImageBytes = 2 * 1024 * 1024;
 
     [HttpPost]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status201Created)]
@@ -116,6 +125,61 @@ public sealed class ProductsController(
             SortOrder = request.SortOrder ?? product.SortOrder,
         };
 
+        await products.UpdateAsync(updated, cancellationToken);
+        return Ok(ToResponse(updated));
+    }
+
+    [HttpPost("{id:guid}/image")]
+    [RequestSizeLimit(MaxImageBytes)]
+    [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadImage(Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductNotFound, detail: $"No product with id '{id}'.");
+
+        if (file is null || file.Length == 0)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductImage, detail: "No image file was provided.");
+        if (file.Length > MaxImageBytes)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductImage, detail: "The image is larger than 2 MB.");
+        if (!AllowedImageContentTypes.TryGetValue(file.ContentType, out var extension))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductImage, detail: "The image must be a PNG, JPEG, or WebP.");
+
+        await using var stream = file.OpenReadStream();
+        var storagePath = await images.SaveAsync(product.Id, extension, stream, cancellationToken);
+        var updated = product with { ImagePath = storagePath, ImageContentType = file.ContentType };
+        await products.UpdateAsync(updated, cancellationToken);
+        return Ok(ToResponse(updated));
+    }
+
+    [HttpGet("{id:guid}/image")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetImage(Guid id, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product?.ImagePath is null || product.ImageContentType is null)
+            return NotFound();
+        var stream = await images.OpenReadAsync(product.ImagePath, cancellationToken);
+        if (stream is null)
+            return NotFound();
+        return File(stream, product.ImageContentType);
+    }
+
+    [HttpDelete("{id:guid}/image")]
+    [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteImage(Guid id, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductNotFound, detail: $"No product with id '{id}'.");
+        if (product.ImagePath is not null)
+            await images.DeleteAsync(product.ImagePath, cancellationToken);
+        var updated = product with { ImagePath = null, ImageContentType = null };
         await products.UpdateAsync(updated, cancellationToken);
         return Ok(ToResponse(updated));
     }
