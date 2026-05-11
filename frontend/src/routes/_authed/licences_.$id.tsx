@@ -6,6 +6,7 @@ import { StatusPill } from '@/components/StatusPill';
 import { LicenceKey } from '@/components/LicenceKey';
 import { fetchLicence } from '@/api/licences';
 import { LicenceActions } from '@/components/licences/LicenceActions';
+import { LicenceBindings } from '@/components/licences/LicenceBindings';
 
 export const Route = createFileRoute('/_authed/licences_/$id')({
   component: LicenceDetailPage,
@@ -74,7 +75,7 @@ function LicenceDetailPage() {
           <CardTitle>Bindings</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-ink-subtle">Coming in Chunk P1c-3.</p>
+          <LicenceBindings licence={lic} />
         </CardContent>
       </Card>
 
