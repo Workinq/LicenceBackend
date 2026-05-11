@@ -90,6 +90,36 @@ public sealed class ProductsController(
         return Ok(ToResponse(product));
     }
 
+    [HttpPatch("{id:guid}")]
+    [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.ProductNotFound,
+                detail: $"No product with id '{id}'."
+            );
+
+        // PATCH semantics: a null field is left unchanged. Clearing description/tagline/price back to null is not supported here.
+        var updated = product with
+        {
+            DisplayName = request.DisplayName ?? product.DisplayName,
+            Description = request.Description ?? product.Description,
+            Tagline = request.Tagline ?? product.Tagline,
+            IsPublic = request.IsPublic ?? product.IsPublic,
+            Price = request.Price ?? product.Price,
+            Currency = request.Currency ?? product.Currency,
+            SortOrder = request.SortOrder ?? product.SortOrder,
+        };
+
+        await products.UpdateAsync(updated, cancellationToken);
+        return Ok(ToResponse(updated));
+    }
+
     private static ProductResponse ToResponse(Product product)
     {
         return new ProductResponse(
