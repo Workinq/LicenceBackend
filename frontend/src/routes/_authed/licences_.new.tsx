@@ -4,19 +4,13 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Combobox } from '@/components/Combobox';
 import { SecretRevealOnce } from '@/components/SecretRevealOnce';
 import { fetchProducts } from '@/api/products';
 import { fetchUsers } from '@/api/users';
@@ -29,8 +23,8 @@ export const Route = createFileRoute('/_authed/licences_/new')({
 });
 
 const schema = z.object({
-  productId: z.string().min(1, 'Pick a product'),
-  userId: z.string().min(1, 'Pick a user'),
+  productId: z.string().min(1, 'Choose a product'),
+  userId: z.string().min(1, 'Choose a user'),
   expiresAt: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -40,6 +34,7 @@ type FormValues = z.infer<typeof schema>;
 function NewLicencePage() {
   const navigate = useNavigate();
   const [created, setCreated] = useState<LicenceCreatedResponse | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const products = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
   const users = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
@@ -49,7 +44,7 @@ function NewLicencePage() {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { productId: '', userId: '', expiresAt: '', notes: '' } });
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -64,7 +59,7 @@ function NewLicencePage() {
       setCreated(data);
     },
     onError: (error) => {
-      toast.error(
+      setSubmitError(
         error instanceof ApiError && error.body && typeof error.body === 'object' && 'detail' in error.body
           ? String((error.body as Record<string, unknown>).detail)
           : 'Could not create the licence.',
@@ -73,6 +68,7 @@ function NewLicencePage() {
   });
 
   const onSubmit = async (values: FormValues) => {
+    setSubmitError(null);
     await mutation.mutateAsync(values);
   };
 
@@ -92,38 +88,46 @@ function NewLicencePage() {
     return <Skeleton className="h-64 w-full max-w-2xl" />;
   }
 
-  if (!products.data || products.data.items.length === 0) {
-    return (
-      <div className="max-w-2xl space-y-3">
-        <p className="text-sm text-ink-muted">No products available. Create a product first.</p>
-        <Link to="/products">Go to products</Link>
-      </div>
-    );
-  }
+  const productOptions = (products.data?.items ?? []).map((p) => ({ value: p.id, label: p.displayName }));
+  const userOptions = (users.data?.items ?? []).map((u) => ({ value: u.id, label: u.email }));
 
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="font-display text-2xl font-semibold text-ink">New licence</h1>
 
       <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} noValidate className="space-y-4">
+        {submitError && (
+          <Alert variant="destructive">
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-1">
           <Label htmlFor="productId">Product</Label>
           <Controller
             name="productId"
             control={control}
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="productId" className="w-full">
-                  <SelectValue placeholder="Choose one..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.data.items.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.displayName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                id="productId"
+                options={productOptions}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                placeholder="Choose..."
+                searchPlaceholder="Search products"
+                emptyText="No products found"
+                disabled={productOptions.length === 0}
+              />
             )}
           />
+          {productOptions.length === 0 && (
+            <Alert>
+              <AlertDescription>
+                There are no products yet. Create one before you can issue a licence.{' '}
+                <Link to="/products" className="underline underline-offset-2">Go to products</Link>
+              </AlertDescription>
+            </Alert>
+          )}
           {errors.productId && (
             <p className="text-xs text-status-revoked-fg">{errors.productId.message}</p>
           )}
@@ -135,16 +139,16 @@ function NewLicencePage() {
             name="userId"
             control={control}
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="userId" className="w-full">
-                  <SelectValue placeholder="Choose one..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.data?.items.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                id="userId"
+                options={userOptions}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                placeholder="Choose..."
+                searchPlaceholder="Search users"
+                emptyText="No users found"
+                disabled={userOptions.length === 0}
+              />
             )}
           />
           {errors.userId && (
