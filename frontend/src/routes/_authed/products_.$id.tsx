@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ImagePickerButton } from '@/components/ImagePickerButton';
 import { fetchProduct, updateProduct, uploadProductImage, deleteProductImage } from '@/api/products';
 import { ApiError } from '@/auth/api-client';
 import type { ProductResponse } from '@/api/generated/api.schemas';
@@ -54,6 +55,7 @@ function ProductDetailPage() {
 
 function ProductDetailContent({ product }: { product: ProductResponse }) {
   const id = product.id;
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [imageVersion, setImageVersion] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -144,16 +146,9 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
             </div>
           )}
           <div className="flex items-center gap-3">
-            <input
-              type="file"
-              aria-label="Upload product image"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  imageMutation.mutate(f);
-                }
-              }}
+            <ImagePickerButton
+              label={product.imageUrl ? 'Replace image' : 'Upload image'}
+              onSelect={(f) => { imageMutation.mutate(f); }}
               disabled={imageMutation.isPending}
             />
             {product.imageUrl && (
@@ -177,8 +172,8 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
         </CardHeader>
         <CardContent>
           <div className="mb-4 space-y-1">
-            <Label>Slug</Label>
-            <p className="font-mono text-sm text-ink">{product.slug}</p>
+            <Label htmlFor="slug">Slug</Label>
+            <Input id="slug" value={product.slug} disabled readOnly className="font-mono" />
             <p className="text-xs text-ink-subtle">Slugs cannot be changed.</p>
           </div>
 
@@ -242,9 +237,14 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
               <Input id="sortOrder" type="number" {...register('sortOrder')} />
             </div>
 
-            <Button type="submit" disabled={isSubmitting || editMutation.isPending}>
-              Save changes
-            </Button>
+            <div className="flex gap-3">
+              <Button type="submit" disabled={isSubmitting || editMutation.isPending}>
+                Save changes
+              </Button>
+              <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/products' }); }}>
+                Cancel
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

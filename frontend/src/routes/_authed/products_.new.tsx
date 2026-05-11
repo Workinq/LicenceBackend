@@ -12,7 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { createProduct } from '@/api/products';
+import { ImagePickerButton } from '@/components/ImagePickerButton';
+import { createProduct, uploadProductImage } from '@/api/products';
+import type { ProductResponse } from '@/api/generated/api.schemas';
 import { ApiError } from '@/auth/api-client';
 
 export const Route = createFileRoute('/_authed/products_/new')({
@@ -39,6 +41,7 @@ function NewProductPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [stagedImage, setStagedImage] = useState<File | null>(null);
 
   const {
     register,
@@ -62,7 +65,17 @@ function NewProductPage() {
         currency: values.currency ? values.currency : null,
         sortOrder: values.sortOrder ? Number(values.sortOrder) : null,
       }),
-    onSuccess: () => {
+    onSuccess: async (created: ProductResponse) => {
+      if (stagedImage) {
+        try {
+          await uploadProductImage(created.id, stagedImage);
+        } catch {
+          void queryClient.invalidateQueries({ queryKey: ['products'] });
+          toast.error('Product created, but the image upload failed. You can add it from the product page.');
+          void navigate({ to: '/products/$id', params: { id: created.id } });
+          return;
+        }
+      }
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created.');
       void navigate({ to: '/products' });
@@ -151,9 +164,33 @@ function NewProductPage() {
           <Input id="sortOrder" type="number" {...register('sortOrder')} />
         </div>
 
-        <Button type="submit" disabled={isSubmitting || mutation.isPending}>
-          Create product
-        </Button>
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-ink">Image (optional)</p>
+          <div className="flex items-center gap-3">
+            <ImagePickerButton label="Choose image" onSelect={setStagedImage} disabled={mutation.isPending} />
+            {stagedImage && (
+              <span className="text-sm text-ink-muted">
+                {stagedImage.name}{' '}
+                <button
+                  type="button"
+                  className="text-status-revoked-fg underline underline-offset-2"
+                  onClick={() => { setStagedImage(null); }}
+                >
+                  remove
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Button type="submit" disabled={isSubmitting || mutation.isPending}>
+            Create product
+          </Button>
+          <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/products' }); }}>
+            Cancel
+          </Button>
+        </div>
       </form>
     </div>
   );

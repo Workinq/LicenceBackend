@@ -62,9 +62,10 @@ describe('ProductDetailPage', () => {
     vi.mocked(fetchProduct).mockResolvedValue(makeProduct());
     renderDetail();
     expect(await screen.findByText('Acme Pro')).toBeInTheDocument();
-    expect(screen.getByText('acme-pro')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('acme-pro')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/upload product image/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/upload image/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument();
   });
 
   it('pre-fills the edit form from the product', async () => {

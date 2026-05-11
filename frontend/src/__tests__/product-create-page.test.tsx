@@ -46,6 +46,8 @@ describe('NewProductPage', () => {
     expect(screen.getByText('Currency')).toBeInTheDocument();
     expect(screen.getByLabelText(/sort order/i)).toBeInTheDocument();
     expect(screen.getByRole('switch')).toBeInTheDocument();
+    expect(screen.getByText(/choose image/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument();
   });
 
   it('submits slug and display name to createProduct', async () => {
