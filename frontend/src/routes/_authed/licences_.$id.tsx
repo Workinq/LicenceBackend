@@ -50,7 +50,7 @@ function LicenceDetailPage() {
             <dt className="text-ink-muted">HWID</dt>
             <dd className="text-ink">{lic.hwidBound ? 'Bound' : 'Not bound'}</dd>
             <dt className="text-ink-muted">IP allowlist</dt>
-            <dd className="text-ink">{lic.ipAllowlist && lic.ipAllowlist.length > 0 ? lic.ipAllowlist.join(', ') : 'None'}</dd>
+            <dd className="text-ink">{lic.ipAllowlist == null ? 'None' : lic.ipAllowlist.length === 0 ? 'Armed (binds the first verifying IP)' : lic.ipAllowlist.join(', ')}</dd>
             <dt className="text-ink-muted">Expires</dt>
             <dd className="text-ink">{formatDateTime(lic.expiresAt)}</dd>
             <dt className="text-ink-muted">Created</dt>
