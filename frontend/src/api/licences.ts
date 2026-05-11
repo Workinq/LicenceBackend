@@ -40,16 +40,14 @@ export async function updateLicenceStatus(
   return (await patchLicencesIdStatus(id, body)).data as LicenceResponse;
 }
 
-export async function updateLicenceHwid(
-  id: string,
-  body: UpdateLicenceHwidRequest,
-): Promise<LicenceResponse> {
-  return (await putLicencesIdHwid(id, body)).data as unknown as LicenceResponse;
+// These two endpoints return 204 No Content, so they resolve to void.
+export async function updateLicenceHwid(id: string, body: UpdateLicenceHwidRequest): Promise<void> {
+  await putLicencesIdHwid(id, body);
 }
 
 export async function updateLicenceIpAllowlist(
   id: string,
   body: UpdateLicenceIpAllowlistRequest,
-): Promise<LicenceResponse> {
-  return (await putLicencesIdIpAllowlist(id, body)).data as unknown as LicenceResponse;
+): Promise<void> {
+  await putLicencesIdIpAllowlist(id, body);
 }

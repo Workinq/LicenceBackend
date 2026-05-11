@@ -67,14 +67,14 @@ describe('LicenceBindings', () => {
   });
 
   it('saves the allowlist via updateLicenceIpAllowlist with reason null', async () => {
-    vi.mocked(updateLicenceIpAllowlist).mockResolvedValue(makeLicence({ ipAllowlist: ['10.0.0.0/8'] }));
+    vi.mocked(updateLicenceIpAllowlist).mockResolvedValue(undefined);
     renderBindings({ ipAllowlist: ['10.0.0.0/8'] });
     await userEvent.click(screen.getByRole('button', { name: /save allowlist/i }));
     expect(vi.mocked(updateLicenceIpAllowlist)).toHaveBeenCalledWith('lic-1', { cidrs: ['10.0.0.0/8'], reason: null });
   });
 
   it('sends cidrs null when the allowlist is emptied before saving', async () => {
-    vi.mocked(updateLicenceIpAllowlist).mockResolvedValue(makeLicence({ ipAllowlist: null }));
+    vi.mocked(updateLicenceIpAllowlist).mockResolvedValue(undefined);
     renderBindings({ ipAllowlist: ['10.0.0.0/8'] });
     await userEvent.click(screen.getByRole('button', { name: /remove cidr/i }));
     await userEvent.click(screen.getByRole('button', { name: /save allowlist/i }));

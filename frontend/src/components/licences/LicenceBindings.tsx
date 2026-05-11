@@ -28,10 +28,9 @@ export function LicenceBindings({ licence }: Props) {
 
   const hwidMutation = useMutation({
     mutationFn: () => updateLicenceHwid(licence.id, { hwid: null, reason: null }),
-    onSuccess: (updated) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] });
       void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
-      setCidrs(updated.ipAllowlist ?? []);
       toast.success('Hardware binding cleared.');
     },
     onError: (error) => {
@@ -47,10 +46,10 @@ export function LicenceBindings({ licence }: Props) {
         reason: null,
       });
     },
-    onSuccess: (updated) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] });
       void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
-      setCidrs(updated.ipAllowlist ?? []);
+      setCidrs((rows) => rows.map((c) => c.trim()).filter((c) => c.length > 0));
       toast.success('IP allowlist saved.');
     },
     onError: (error) => {
