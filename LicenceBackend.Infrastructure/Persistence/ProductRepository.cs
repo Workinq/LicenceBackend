@@ -10,7 +10,7 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
     public async Task<Product?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         const string sql = """
-                           SELECT id, slug, display_name, created_at
+                           SELECT id, slug, display_name, description, tagline, is_public, price, currency, sort_order, image_path, image_content_type, created_at
                            FROM products
                            WHERE id = @Id
                            LIMIT 1;
@@ -24,7 +24,7 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
     public async Task<Product?> FindBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         const string sql = """
-                           SELECT id, slug, display_name, created_at
+                           SELECT id, slug, display_name, description, tagline, is_public, price, currency, sort_order, image_path, image_content_type, created_at
                            FROM products
                            WHERE slug = @Slug
                            LIMIT 1;
@@ -38,8 +38,8 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
     public async Task CreateAsync(Product product, CancellationToken cancellationToken)
     {
         const string sql = """
-                           INSERT INTO products (id, slug, display_name, created_at)
-                           VALUES (@Id, @Slug, @DisplayName, @CreatedAt);
+                           INSERT INTO products (id, slug, display_name, description, tagline, is_public, price, currency, sort_order, image_path, image_content_type, created_at)
+                           VALUES (@Id, @Slug, @DisplayName, @Description, @Tagline, @IsPublic, @Price, @Currency, @SortOrder, @ImagePath, @ImageContentType, @CreatedAt);
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
@@ -50,7 +50,7 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
     public async Task<PagedResult<Product>> ListAsync(int limit, int offset, CancellationToken cancellationToken)
     {
         const string sql = """
-                           SELECT id, slug, display_name, created_at
+                           SELECT id, slug, display_name, description, tagline, is_public, price, currency, sort_order, image_path, image_content_type, created_at
                            FROM products
                            ORDER BY created_at DESC
                            LIMIT @Limit OFFSET @Offset;
@@ -67,7 +67,40 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
         return new PagedResult<Product>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
-    private sealed record ProductRow(Guid Id, string Slug, string DisplayName, DateTime CreatedAt)
+    public async Task UpdateAsync(Product product, CancellationToken cancellationToken)
+    {
+        const string sql = """
+                           UPDATE products
+                           SET display_name = @DisplayName,
+                               description = @Description,
+                               tagline = @Tagline,
+                               is_public = @IsPublic,
+                               price = @Price,
+                               currency = @Currency,
+                               sort_order = @SortOrder,
+                               image_path = @ImagePath,
+                               image_content_type = @ImageContentType
+                           WHERE id = @Id;
+                           """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var command = new CommandDefinition(sql, product, cancellationToken: cancellationToken);
+        await connection.ExecuteAsync(command);
+    }
+
+    private sealed record ProductRow(
+        Guid Id,
+        string Slug,
+        string DisplayName,
+        string? Description,
+        string? Tagline,
+        bool IsPublic,
+        decimal? Price,
+        string Currency,
+        int SortOrder,
+        string? ImagePath,
+        string? ImageContentType,
+        DateTime CreatedAt)
     {
         public Product ToDomain()
         {
@@ -75,6 +108,14 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
                 Id,
                 Slug,
                 DisplayName,
+                Description,
+                Tagline,
+                IsPublic,
+                Price,
+                Currency.Trim(),
+                SortOrder,
+                ImagePath,
+                ImageContentType,
                 TimestampConversion.ToUtcOffset(CreatedAt));
         }
     }

@@ -42,6 +42,14 @@ public sealed class ProductsController(
             Guid.NewGuid(),
             request.Slug,
             request.DisplayName,
+            request.Description,
+            request.Tagline,
+            request.IsPublic ?? true,
+            request.Price,
+            request.Currency ?? "USD",
+            request.SortOrder ?? 0,
+            ImagePath: null,
+            ImageContentType: null,
             time.GetUtcNow()
         );
 
@@ -84,6 +92,17 @@ public sealed class ProductsController(
 
     private static ProductResponse ToResponse(Product product)
     {
-        return new ProductResponse(product.Id, product.Slug, product.DisplayName, product.CreatedAt);
+        return new ProductResponse(
+            product.Id,
+            product.Slug,
+            product.DisplayName,
+            product.Description,
+            product.Tagline,
+            product.IsPublic,
+            product.Price,
+            product.Currency,
+            product.SortOrder,
+            product.ImagePath is null ? null : $"/products/{product.Id}/image",
+            product.CreatedAt);
     }
 }
