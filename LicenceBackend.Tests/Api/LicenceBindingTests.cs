@@ -247,6 +247,73 @@ public sealed class LicenceBindingTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task Create_licence_with_armed_ip_allowlist_binds_first_ip()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug = "ip-create-armed", displayName = "ip-create-armed" });
+        var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(product);
+
+        var createResponse = await AuthedClient.PostAsJsonAsync(
+                                 "/licences",
+                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = Array.Empty<string>() });
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var licence = await createResponse.Content.ReadFromJsonAsync<LicencePayload>();
+        Assert.NotNull(licence);
+
+        var verify = await ClientFromIp("198.51.100.7").PostAsJsonAsync(
+                         "/licences/verify",
+                         new { licenceKey = licence.LicenceKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
+
+        await using var conn = await OpenDbAsync();
+        var allowlist = await conn.QuerySingleAsync<string>(
+                            "SELECT ip_allowlist::text FROM licences WHERE id = @Id;",
+                            new { Id = licence.Id });
+        Assert.Contains("198.51.100.7/32", allowlist);
+    }
+
+    [SkippableFact]
+    public async Task Create_licence_with_fixed_ip_allowlist_enforces_it()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug = "ip-create-fixed", displayName = "ip-create-fixed" });
+        var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(product);
+
+        var createResponse = await AuthedClient.PostAsJsonAsync(
+                                 "/licences",
+                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = new[] { "10.0.0.0/24" } });
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var licence = await createResponse.Content.ReadFromJsonAsync<LicencePayload>();
+        Assert.NotNull(licence);
+
+        var denied = await ClientFromIp("203.0.113.9").PostAsJsonAsync(
+                         "/licences/verify",
+                         new { licenceKey = licence.LicenceKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.BadRequest, denied.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Create_licence_rejects_invalid_cidr_in_ip_allowlist()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug = "ip-create-bad", displayName = "ip-create-bad" });
+        var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(product);
+
+        var createResponse = await AuthedClient.PostAsJsonAsync(
+                                 "/licences",
+                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = new[] { "not-a-cidr" } });
+        Assert.Equal(HttpStatusCode.BadRequest, createResponse.StatusCode);
+        var body = await createResponse.Content.ReadAsStringAsync();
+        Assert.Contains("invalid_ip_allowlist", body);
+    }
+
+    [SkippableFact]
     public async Task Concurrent_first_use_binds_exactly_one_ip()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");

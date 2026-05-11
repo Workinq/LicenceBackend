@@ -48,8 +48,8 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
     public async Task CreateAsync(Licence licence, CancellationToken cancellationToken)
     {
         const string sql = """
-                           INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, created_at, updated_at)
-                           VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @CreatedAt, @UpdatedAt);
+                           INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, created_at, updated_at)
+                           VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @CreatedAt, @UpdatedAt);
                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
@@ -65,6 +65,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                 Status = licence.Status.ToString().ToLowerInvariant(),
                 licence.ExpiresAt,
                 licence.Notes,
+                IpAllowlist = licence.IpAllowlist is null ? null : JsonSerializer.Serialize(licence.IpAllowlist),
                 licence.CreatedAt,
                 licence.UpdatedAt
             },

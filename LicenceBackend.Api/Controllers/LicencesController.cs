@@ -91,6 +91,13 @@ public sealed class LicencesController(
                 detail: "expiresAt must be in the future."
             );
 
+        if (!TryNormaliseIpAllowlist(request.IpAllowlist, out var ipAllowlist, out var ipAllowlistError))
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: ProblemTitles.InvalidIpAllowlist,
+                detail: ipAllowlistError
+            );
+
         var rawKey = keyGenerator.Generate();
         var pepperedHmac = keyHasher.HashWithActive(rawKey);
         var now = time.GetUtcNow();
@@ -105,7 +112,7 @@ public sealed class LicencesController(
             string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             null,
             null,
-            null,
+            ipAllowlist,
             now,
             now
         );
@@ -122,7 +129,7 @@ public sealed class LicencesController(
             licence.ExpiresAt,
             licence.Notes,
             false,
-            null,
+            licence.IpAllowlist,
             licence.CreatedAt,
             rawKey
         );
