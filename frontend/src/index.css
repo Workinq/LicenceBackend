@@ -4,25 +4,41 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0.001 106.42);
-  --foreground: oklch(0.147 0.004 49.25);
-  --card: oklch(0.985 0.001 106.42);
-  --card-foreground: oklch(0.147 0.004 49.25);
-  --popover: oklch(0.985 0.001 106.42);
-  --popover-foreground: oklch(0.147 0.004 49.25);
-  --primary: oklch(0.216 0.006 56.04);
-  --primary-foreground: oklch(0.985 0.001 106.42);
-  --secondary: oklch(0.97 0.001 106.42);
-  --secondary-foreground: oklch(0.216 0.006 56.04);
-  --muted: oklch(0.97 0.001 106.42);
-  --muted-foreground: oklch(0.553 0.013 58.07);
-  --accent: oklch(0.97 0.001 106.42);
-  --accent-foreground: oklch(0.216 0.006 56.04);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.923 0.003 48.717);
-  --input: oklch(0.923 0.003 48.717);
-  --ring: oklch(0.869 0.005 56.366);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
+
+  /* Warm palette mapped onto shadcn's semantic slots (light only) */
+  --background: #fdf8f3;
+  --foreground: #2a1f17;
+  --card: #ffffff;
+  --card-foreground: #2a1f17;
+  --popover: #ffffff;
+  --popover-foreground: #2a1f17;
+  --primary: #b85c3a;
+  --primary-foreground: #fdf8f3;
+  --secondary: #f7efe5;
+  --secondary-foreground: #2a1f17;
+  --muted: #f7efe5;
+  --muted-foreground: #5d4d3e;
+  --accent: #f4d8cc;
+  --accent-foreground: #2a1f17;
+  --destructive: #8a2828;
+  --border: #efe5d8;
+  --input: #d8c8b0;
+  --ring: #b85c3a;
+
+  /* Extra warm tokens carried over from the old tailwind.config.ts */
+  --surface-elevated: #ffffff;
+  --surface-sunken: #f7efe5;
+  --ink-muted: #5d4d3e;
+  --ink-subtle: #8a7a68;
+  --border-strong: #d8c8b0;
+  --accent-soft: #f4d8cc;
+  --status-active-bg: #e8f3e8;
+  --status-active-fg: #2d5a2d;
+  --status-suspended-bg: #fef0d4;
+  --status-suspended-fg: #8a5a00;
+  --status-revoked-bg: #fce0e0;
+  --status-revoked-fg: #8a2828;
 }
 
 @theme inline {
@@ -44,10 +60,34 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Legacy warm aliases so existing P1a classes keep working */
+  --color-surface: var(--background);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-status-active-bg: var(--status-active-bg);
+  --color-status-active-fg: var(--status-active-fg);
+  --color-status-suspended-bg: var(--status-suspended-bg);
+  --color-status-suspended-fg: var(--status-suspended-fg);
+  --color-status-revoked-bg: var(--status-revoked-bg);
+  --color-status-revoked-fg: var(--status-revoked-fg);
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-pill: 99px;
+
+  --shadow-card: 0 1px 2px rgba(42, 31, 23, 0.04), 0 1px 3px rgba(42, 31, 23, 0.05);
 }
 
 @layer base {
@@ -55,6 +95,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
   }
 }
