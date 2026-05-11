@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { ConfirmDestructive } from '@/components/ConfirmDestructive';
 import { CidrListEditor } from '@/components/licences/CidrListEditor';
 import { updateLicenceHwid, updateLicenceIpAllowlist } from '@/api/licences';
@@ -23,6 +25,7 @@ interface Props {
 
 export function LicenceBindings({ licence }: Props) {
   const queryClient = useQueryClient();
+  const [restricted, setRestricted] = useState(licence.ipAllowlist != null);
   const [cidrs, setCidrs] = useState<string[]>(licence.ipAllowlist ?? []);
 
   const hwidMutation = useMutation({
@@ -39,9 +42,11 @@ export function LicenceBindings({ licence }: Props) {
 
   const ipMutation = useMutation({
     mutationFn: () => {
-      const cleaned = cidrs.map((c) => c.trim()).filter((c) => c.length > 0);
+      if (!restricted) {
+        return updateLicenceIpAllowlist(licence.id, { cidrs: null, reason: null });
+      }
       return updateLicenceIpAllowlist(licence.id, {
-        cidrs: cleaned.length > 0 ? cleaned : null,
+        cidrs: cidrs.map((c) => c.trim()).filter((c) => c.length > 0),
         reason: null,
       });
     },
@@ -77,9 +82,28 @@ export function LicenceBindings({ licence }: Props) {
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-ink">IP allowlist</h3>
-        <p className="text-sm text-ink-muted">Leave empty to allow any IP.</p>
-        <CidrListEditor cidrs={cidrs} onChange={setCidrs} />
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-ink">IP allowlist</h3>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="ip-restrict"
+              checked={restricted}
+              onCheckedChange={setRestricted}
+              aria-label="Restrict by IP address"
+            />
+            <Label htmlFor="ip-restrict">Restrict by IP address</Label>
+          </div>
+        </div>
+        {restricted ? (
+          <>
+            <p className="text-sm text-ink-muted">
+              Leave empty and the first IP that verifies this licence will be locked in automatically.
+            </p>
+            <CidrListEditor cidrs={cidrs} onChange={setCidrs} />
+          </>
+        ) : (
+          <p className="text-sm text-ink-muted">IP restriction is off. Any IP can verify this licence.</p>
+        )}
         <Button
           type="button"
           onClick={() => { ipMutation.mutate(); }}
