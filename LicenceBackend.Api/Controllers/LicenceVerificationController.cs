@@ -101,7 +101,6 @@ public sealed class LicenceVerificationController(
                     if (refreshed is null || !refreshed.IsIpAllowed(remote))
                     {
                         denialReason = VerificationDenialReason.IpNotAllowlisted;
-                        presentedHwidHmac = null;
                         pendingFirstPin = null;
                     }
                     else

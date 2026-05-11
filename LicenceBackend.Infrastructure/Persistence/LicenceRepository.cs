@@ -447,6 +447,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
 
         const string existsSql = "SELECT 1 FROM licences WHERE id = @Id LIMIT 1;";
 
+        var previousValueJson = JsonSerializer.Serialize(Array.Empty<string>());
         var newValueJson = JsonSerializer.Serialize(new[] { hostRoute });
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
@@ -473,7 +474,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                 transaction,
                 licenceId,
                 LicenceBindingType.IpAllowlist,
-                "[]",
+                previousValueJson,
                 newValueJson,
                 BindingChangeSource.FirstUse,
                 null,
