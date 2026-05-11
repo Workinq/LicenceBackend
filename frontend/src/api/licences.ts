@@ -1,10 +1,11 @@
-import { getLicences, getLicencesId, postLicences } from './generated/api';
+import { getLicences, getLicencesId, patchLicencesIdStatus, postLicences } from './generated/api';
 import type {
   CreateLicenceRequest,
   GetLicencesParams,
   LicenceCreatedResponse,
   LicenceResponse,
   PagedResponseOfLicenceResponse,
+  UpdateLicenceStatusRequest,
 } from './generated/api.schemas';
 
 // apiClient throws ApiError on non-2xx, so generated calls only resolve to their 2xx variant;
@@ -21,4 +22,11 @@ export async function fetchLicence(id: string): Promise<LicenceResponse> {
 
 export async function createLicence(body: CreateLicenceRequest): Promise<LicenceCreatedResponse> {
   return (await postLicences(body)).data as LicenceCreatedResponse;
+}
+
+export async function updateLicenceStatus(
+  id: string,
+  body: UpdateLicenceStatusRequest,
+): Promise<LicenceResponse> {
+  return (await patchLicencesIdStatus(id, body)).data as LicenceResponse;
 }

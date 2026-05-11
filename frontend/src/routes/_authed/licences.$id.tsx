@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
 import { LicenceKey } from '@/components/LicenceKey';
 import { fetchLicence } from '@/api/licences';
+import { LicenceActions } from '@/components/licences/LicenceActions';
 
 export const Route = createFileRoute('/_authed/licences/$id')({
   component: LicenceDetailPage,
@@ -64,7 +65,7 @@ function LicenceDetailPage() {
           <CardTitle>Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-ink-subtle">Coming in Chunk P1c-2.</p>
+          <LicenceActions licence={lic} />
         </CardContent>
       </Card>
 
