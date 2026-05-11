@@ -38,7 +38,7 @@ function LicenceDetailPage() {
           <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-[10rem_1fr] gap-y-3 text-sm">
+          <dl className="grid grid-cols-[10rem_1fr] items-baseline gap-y-3 text-sm">
             <dt className="text-ink-muted">ID</dt>
             <dd>
               <LicenceKey value={lic.id} />
