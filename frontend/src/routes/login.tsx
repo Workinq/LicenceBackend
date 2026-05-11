@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useAccessTokenStore, type AuthUser } from '../auth/access-token-store';
+import { API_BASE } from '../auth/api-client';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -35,7 +36,7 @@ function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const res = await fetch('/sessions', {
+      const res = await fetch(`${API_BASE}/sessions`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

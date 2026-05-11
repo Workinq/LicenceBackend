@@ -1,6 +1,9 @@
 // frontend/src/auth/api-client.ts
 import { useAccessTokenStore, type AuthUser } from './access-token-store';
 
+// All backend calls go through this prefix; the dev proxy strips it. See vite.config.ts.
+export const API_BASE = '/api';
+
 // Single-flight refresh guard - ensures concurrent 401s fire only one refresh request.
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -8,7 +11,7 @@ let refreshPromise: Promise<boolean> | null = null;
 export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const send = async (): Promise<Response> => {
     const accessToken = useAccessTokenStore.getState().accessToken;
-    return fetch(url, {
+    return fetch(`${API_BASE}${url}`, {
       credentials: 'include',
       ...init,
       headers: {
@@ -49,7 +52,7 @@ const singleFlightRefresh = async (): Promise<boolean> => {
 
   refreshPromise = (async () => {
     try {
-      const res = await fetch('/sessions/refresh', {
+      const res = await fetch(`${API_BASE}/sessions/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
