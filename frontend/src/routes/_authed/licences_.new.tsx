@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
@@ -115,19 +115,10 @@ function NewLicencePage() {
                 onChange={field.onChange}
                 placeholder="Choose..."
                 searchPlaceholder="Search products"
-                emptyText="No products found"
-                disabled={productOptions.length === 0}
+                emptyText={productOptions.length === 0 ? 'There are no products' : 'No matching products'}
               />
             )}
           />
-          {productOptions.length === 0 && (
-            <Alert>
-              <AlertDescription>
-                There are no products yet. Create one before you can issue a licence.{' '}
-                <Link to="/products" className="underline underline-offset-2">Go to products</Link>
-              </AlertDescription>
-            </Alert>
-          )}
           {errors.productId && (
             <p className="text-xs text-status-revoked-fg">{errors.productId.message}</p>
           )}
@@ -146,8 +137,7 @@ function NewLicencePage() {
                 onChange={field.onChange}
                 placeholder="Choose..."
                 searchPlaceholder="Search users"
-                emptyText="No users found"
-                disabled={userOptions.length === 0}
+                emptyText={userOptions.length === 0 ? 'There are no users' : 'No matching users'}
               />
             )}
           />

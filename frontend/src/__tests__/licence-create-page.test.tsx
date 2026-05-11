@@ -50,12 +50,15 @@ describe('NewLicencePage', () => {
     expect(screen.getByText(/user/i)).toBeInTheDocument();
   });
 
-  it('shows a message when there are no products', async () => {
+  it('keeps the form usable and shows an empty state in the product picker when there are no products', async () => {
     vi.mocked(fetchProducts).mockResolvedValue({ items: [], total: 0, limit: 200, offset: 0 });
     vi.mocked(fetchUsers).mockResolvedValue({ items: [], total: 0, limit: 200, offset: 0 });
     renderNew();
-    expect(await screen.findByText(/no products|there are no products/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create licence/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /create licence/i })).toBeInTheDocument();
+    const productCombobox = screen.getAllByRole('combobox')[0];
+    await userEvent.click(productCombobox);
+    await userEvent.type(await screen.findByPlaceholderText('Search products'), 'x');
+    expect(await screen.findByText(/there are no products/i)).toBeInTheDocument();
   });
 
   it('shows a validation error when submitting without a product', async () => {
