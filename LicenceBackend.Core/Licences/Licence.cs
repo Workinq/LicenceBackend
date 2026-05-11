@@ -33,9 +33,11 @@ public sealed record Licence(
         return CryptographicOperations.FixedTimeEquals(HwidHmac, presentedHwidHmac);
     }
 
+    public bool IsIpAutoBindArmed => IpAllowlist is { Count: 0 };
+
     public bool IsIpAllowed(IPAddress remote)
     {
-        if (IpAllowlist is null) return true;
+        if (IpAllowlist is null || IpAllowlist.Count == 0) return true;
 
         foreach (var cidr in IpAllowlist)
             if (IPNetwork.TryParse(cidr, out var network) && network.Contains(remote))
