@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
 import { fetchLicences } from '@/api/licences';
@@ -62,9 +62,9 @@ function LicencesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Licences</h1>
-        <Button asChild>
-          <Link to="/licences/new">New licence</Link>
-        </Button>
+        <Link to="/licences/new" className={buttonVariants()}>
+          New licence
+        </Link>
       </div>
 
       <div className="flex items-center gap-3">

@@ -29,8 +29,13 @@ function renderLicences() {
     path: '/licences/$id',
     component: () => null,
   });
+  const newRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/licences/new',
+    component: () => null,
+  });
   const router = createRouter({
-    routeTree: rootRoute.addChildren([licencesRoute, detailRoute]),
+    routeTree: rootRoute.addChildren([licencesRoute, detailRoute, newRoute]),
     history: createMemoryHistory({ initialEntries: ['/licences'] }),
   });
   render(
@@ -72,6 +77,13 @@ describe('LicencesPage', () => {
     expect(screen.getByText('alice@example.com')).toBeInTheDocument();
     expect(screen.getByText('acme-lite')).toBeInTheDocument();
     expect(screen.getByText('revoked')).toBeInTheDocument();
+  });
+
+  it('has a New licence link pointing at /licences/new', async () => {
+    vi.mocked(fetchLicences).mockResolvedValue({ items: [], total: 0, limit: 25, offset: 0 });
+    renderLicences();
+    const link = await screen.findByRole('link', { name: /new licence/i });
+    expect(link).toHaveAttribute('href', '/licences/new');
   });
 
   it('shows an empty-state message when there are no licences', async () => {
