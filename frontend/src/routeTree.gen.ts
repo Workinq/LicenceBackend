@@ -16,8 +16,8 @@ import { Route as AuthedUsersRouteImport } from './routes/_authed/users'
 import { Route as AuthedProductsRouteImport } from './routes/_authed/products'
 import { Route as AuthedMeRouteImport } from './routes/_authed/me'
 import { Route as AuthedLicencesRouteImport } from './routes/_authed/licences'
-import { Route as AuthedLicencesNewRouteImport } from './routes/_authed/licences.new'
-import { Route as AuthedLicencesIdRouteImport } from './routes/_authed/licences.$id'
+import { Route as AuthedLicencesNewRouteImport } from './routes/_authed/licences_.new'
+import { Route as AuthedLicencesIdRouteImport } from './routes/_authed/licences_.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -54,20 +54,20 @@ const AuthedLicencesRoute = AuthedLicencesRouteImport.update({
   getParentRoute: () => AuthedRouteRoute,
 } as any)
 const AuthedLicencesNewRoute = AuthedLicencesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthedLicencesRoute,
+  id: '/licences_/new',
+  path: '/licences/new',
+  getParentRoute: () => AuthedRouteRoute,
 } as any)
 const AuthedLicencesIdRoute = AuthedLicencesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthedLicencesRoute,
+  id: '/licences_/$id',
+  path: '/licences/$id',
+  getParentRoute: () => AuthedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginRoute
-  '/licences': typeof AuthedLicencesRouteWithChildren
+  '/licences': typeof AuthedLicencesRoute
   '/me': typeof AuthedMeRoute
   '/products': typeof AuthedProductsRoute
   '/users': typeof AuthedUsersRoute
@@ -76,7 +76,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/licences': typeof AuthedLicencesRouteWithChildren
+  '/licences': typeof AuthedLicencesRoute
   '/me': typeof AuthedMeRoute
   '/products': typeof AuthedProductsRoute
   '/users': typeof AuthedUsersRoute
@@ -88,13 +88,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_authed/licences': typeof AuthedLicencesRouteWithChildren
+  '/_authed/licences': typeof AuthedLicencesRoute
   '/_authed/me': typeof AuthedMeRoute
   '/_authed/products': typeof AuthedProductsRoute
   '/_authed/users': typeof AuthedUsersRoute
   '/_authed/': typeof AuthedIndexRoute
-  '/_authed/licences/$id': typeof AuthedLicencesIdRoute
-  '/_authed/licences/new': typeof AuthedLicencesNewRoute
+  '/_authed/licences_/$id': typeof AuthedLicencesIdRoute
+  '/_authed/licences_/new': typeof AuthedLicencesNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,8 +126,8 @@ export interface FileRouteTypes {
     | '/_authed/products'
     | '/_authed/users'
     | '/_authed/'
-    | '/_authed/licences/$id'
-    | '/_authed/licences/new'
+    | '/_authed/licences_/$id'
+    | '/_authed/licences_/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -186,51 +186,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedLicencesRouteImport
       parentRoute: typeof AuthedRouteRoute
     }
-    '/_authed/licences/new': {
-      id: '/_authed/licences/new'
-      path: '/new'
+    '/_authed/licences_/new': {
+      id: '/_authed/licences_/new'
+      path: '/licences/new'
       fullPath: '/licences/new'
       preLoaderRoute: typeof AuthedLicencesNewRouteImport
-      parentRoute: typeof AuthedLicencesRoute
+      parentRoute: typeof AuthedRouteRoute
     }
-    '/_authed/licences/$id': {
-      id: '/_authed/licences/$id'
-      path: '/$id'
+    '/_authed/licences_/$id': {
+      id: '/_authed/licences_/$id'
+      path: '/licences/$id'
       fullPath: '/licences/$id'
       preLoaderRoute: typeof AuthedLicencesIdRouteImport
-      parentRoute: typeof AuthedLicencesRoute
+      parentRoute: typeof AuthedRouteRoute
     }
   }
 }
 
-interface AuthedLicencesRouteChildren {
-  AuthedLicencesIdRoute: typeof AuthedLicencesIdRoute
-  AuthedLicencesNewRoute: typeof AuthedLicencesNewRoute
-}
-
-const AuthedLicencesRouteChildren: AuthedLicencesRouteChildren = {
-  AuthedLicencesIdRoute: AuthedLicencesIdRoute,
-  AuthedLicencesNewRoute: AuthedLicencesNewRoute,
-}
-
-const AuthedLicencesRouteWithChildren = AuthedLicencesRoute._addFileChildren(
-  AuthedLicencesRouteChildren,
-)
-
 interface AuthedRouteRouteChildren {
-  AuthedLicencesRoute: typeof AuthedLicencesRouteWithChildren
+  AuthedLicencesRoute: typeof AuthedLicencesRoute
   AuthedMeRoute: typeof AuthedMeRoute
   AuthedProductsRoute: typeof AuthedProductsRoute
   AuthedUsersRoute: typeof AuthedUsersRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedLicencesIdRoute: typeof AuthedLicencesIdRoute
+  AuthedLicencesNewRoute: typeof AuthedLicencesNewRoute
 }
 
 const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
-  AuthedLicencesRoute: AuthedLicencesRouteWithChildren,
+  AuthedLicencesRoute: AuthedLicencesRoute,
   AuthedMeRoute: AuthedMeRoute,
   AuthedProductsRoute: AuthedProductsRoute,
   AuthedUsersRoute: AuthedUsersRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedLicencesIdRoute: AuthedLicencesIdRoute,
+  AuthedLicencesNewRoute: AuthedLicencesNewRoute,
 }
 
 const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(

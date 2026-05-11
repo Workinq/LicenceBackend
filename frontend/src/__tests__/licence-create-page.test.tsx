@@ -14,7 +14,7 @@ vi.mock('../api/users', () => ({ fetchUsers: vi.fn() }));
 vi.mock('../api/licences', () => ({ createLicence: vi.fn(), fetchLicences: vi.fn(), fetchLicence: vi.fn() }));
 import { fetchProducts } from '../api/products';
 import { fetchUsers } from '../api/users';
-import { Route as NewLicenceRoute } from '../routes/_authed/licences.new';
+import { Route as NewLicenceRoute } from '../routes/_authed/licences_.new';
 
 function renderNew() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

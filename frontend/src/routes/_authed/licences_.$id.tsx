@@ -7,7 +7,7 @@ import { LicenceKey } from '@/components/LicenceKey';
 import { fetchLicence } from '@/api/licences';
 import { LicenceActions } from '@/components/licences/LicenceActions';
 
-export const Route = createFileRoute('/_authed/licences/$id')({
+export const Route = createFileRoute('/_authed/licences_/$id')({
   component: LicenceDetailPage,
 });
 

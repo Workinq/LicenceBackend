@@ -24,7 +24,7 @@ import { createLicence } from '@/api/licences';
 import { ApiError } from '@/auth/api-client';
 import type { LicenceCreatedResponse } from '@/api/generated/api.schemas';
 
-export const Route = createFileRoute('/_authed/licences/new')({
+export const Route = createFileRoute('/_authed/licences_/new')({
   component: NewLicencePage,
 });
 
