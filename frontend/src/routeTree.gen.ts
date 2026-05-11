@@ -16,6 +16,7 @@ import { Route as AuthedUsersRouteImport } from './routes/_authed/users'
 import { Route as AuthedProductsRouteImport } from './routes/_authed/products'
 import { Route as AuthedMeRouteImport } from './routes/_authed/me'
 import { Route as AuthedLicencesRouteImport } from './routes/_authed/licences'
+import { Route as AuthedLicencesIdRouteImport } from './routes/_authed/licences.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -51,38 +52,60 @@ const AuthedLicencesRoute = AuthedLicencesRouteImport.update({
   path: '/licences',
   getParentRoute: () => AuthedRouteRoute,
 } as any)
+const AuthedLicencesIdRoute = AuthedLicencesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthedLicencesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginRoute
-  '/licences': typeof AuthedLicencesRoute
+  '/licences': typeof AuthedLicencesRouteWithChildren
   '/me': typeof AuthedMeRoute
   '/products': typeof AuthedProductsRoute
   '/users': typeof AuthedUsersRoute
+  '/licences/$id': typeof AuthedLicencesIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/licences': typeof AuthedLicencesRoute
+  '/licences': typeof AuthedLicencesRouteWithChildren
   '/me': typeof AuthedMeRoute
   '/products': typeof AuthedProductsRoute
   '/users': typeof AuthedUsersRoute
   '/': typeof AuthedIndexRoute
+  '/licences/$id': typeof AuthedLicencesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/_authed/licences': typeof AuthedLicencesRoute
+  '/_authed/licences': typeof AuthedLicencesRouteWithChildren
   '/_authed/me': typeof AuthedMeRoute
   '/_authed/products': typeof AuthedProductsRoute
   '/_authed/users': typeof AuthedUsersRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/licences/$id': typeof AuthedLicencesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/licences' | '/me' | '/products' | '/users'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/licences'
+    | '/me'
+    | '/products'
+    | '/users'
+    | '/licences/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/licences' | '/me' | '/products' | '/users' | '/'
+  to:
+    | '/login'
+    | '/licences'
+    | '/me'
+    | '/products'
+    | '/users'
+    | '/'
+    | '/licences/$id'
   id:
     | '__root__'
     | '/_authed'
@@ -92,6 +115,7 @@ export interface FileRouteTypes {
     | '/_authed/products'
     | '/_authed/users'
     | '/_authed/'
+    | '/_authed/licences/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -150,11 +174,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedLicencesRouteImport
       parentRoute: typeof AuthedRouteRoute
     }
+    '/_authed/licences/$id': {
+      id: '/_authed/licences/$id'
+      path: '/$id'
+      fullPath: '/licences/$id'
+      preLoaderRoute: typeof AuthedLicencesIdRouteImport
+      parentRoute: typeof AuthedLicencesRoute
+    }
   }
 }
 
+interface AuthedLicencesRouteChildren {
+  AuthedLicencesIdRoute: typeof AuthedLicencesIdRoute
+}
+
+const AuthedLicencesRouteChildren: AuthedLicencesRouteChildren = {
+  AuthedLicencesIdRoute: AuthedLicencesIdRoute,
+}
+
+const AuthedLicencesRouteWithChildren = AuthedLicencesRoute._addFileChildren(
+  AuthedLicencesRouteChildren,
+)
+
 interface AuthedRouteRouteChildren {
-  AuthedLicencesRoute: typeof AuthedLicencesRoute
+  AuthedLicencesRoute: typeof AuthedLicencesRouteWithChildren
   AuthedMeRoute: typeof AuthedMeRoute
   AuthedProductsRoute: typeof AuthedProductsRoute
   AuthedUsersRoute: typeof AuthedUsersRoute
@@ -162,7 +205,7 @@ interface AuthedRouteRouteChildren {
 }
 
 const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
-  AuthedLicencesRoute: AuthedLicencesRoute,
+  AuthedLicencesRoute: AuthedLicencesRouteWithChildren,
   AuthedMeRoute: AuthedMeRoute,
   AuthedProductsRoute: AuthedProductsRoute,
   AuthedUsersRoute: AuthedUsersRoute,
