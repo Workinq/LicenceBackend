@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fetchProduct, updateProduct, uploadProductImage, deleteProductImage } from '@/api/products';
 import { ApiError } from '@/auth/api-client';
+import type { ProductResponse } from '@/api/generated/api.schemas';
 
 export const Route = createFileRoute('/_authed/products_/$id')({
   component: ProductDetailPage,
@@ -41,12 +42,20 @@ function errorDetail(error: unknown, fallback: string): string {
 
 function ProductDetailPage() {
   const { id } = Route.useParams();
-  const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ['products', 'detail', id], queryFn: () => fetchProduct(id) });
+
+  if (query.isPending) return <Skeleton className="h-96 w-full max-w-2xl" />;
+  if (query.isError || !query.data) {
+    return <p className="text-sm text-status-revoked-fg">Failed to load this product.</p>;
+  }
+  return <ProductDetailContent product={query.data} />;
+}
+
+function ProductDetailContent({ product }: { product: ProductResponse }) {
+  const id = product.id;
+  const queryClient = useQueryClient();
   const [imageVersion, setImageVersion] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const product = query.data;
 
   const editMutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -95,42 +104,23 @@ function ProductDetailPage() {
     },
   });
 
-  const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      displayName: '',
-      description: '',
-      tagline: '',
-      isPublic: false,
-      price: '',
-      currency: '',
-      sortOrder: '',
+      displayName: product.displayName,
+      description: product.description ?? '',
+      tagline: product.tagline ?? '',
+      isPublic: product.isPublic,
+      price: product.price != null ? String(product.price) : '',
+      currency: product.currency,
+      sortOrder: String(product.sortOrder),
     },
   });
-
-  useEffect(() => {
-    if (product) {
-      reset({
-        displayName: product.displayName,
-        description: product.description ?? '',
-        tagline: product.tagline ?? '',
-        isPublic: product.isPublic,
-        price: product.price != null ? String(product.price) : '',
-        currency: product.currency,
-        sortOrder: String(product.sortOrder),
-      });
-    }
-  }, [product, reset]);
 
   const onSubmit = async (values: FormValues) => {
     setSubmitError(null);
     await editMutation.mutateAsync(values);
   };
-
-  if (query.isPending) return <Skeleton className="h-96 w-full max-w-2xl" />;
-  if (query.isError || !query.data) {
-    return <p className="text-sm text-status-revoked-fg">Failed to load this product.</p>;
-  }
 
   return (
     <div className="max-w-2xl space-y-6">
