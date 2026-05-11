@@ -433,6 +433,79 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         }
     }
 
+    public async Task<Licence?> RegenerateKeyAsync(
+        Guid licenceId,
+        PepperedHmac newKey,
+        Guid changedBy,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        const string selectSql = $"""
+                                  SELECT {LicenceColumns}
+                                  FROM licences
+                                  WHERE id = @Id
+                                  LIMIT 1;
+                                  """;
+
+        const string updateSql = $"""
+                                  UPDATE licences
+                                  SET key_hmac = @KeyHmac, key_hmac_pepper_version = @KeyHmacPepperVersion, updated_at = NOW()
+                                  WHERE id = @Id
+                                  RETURNING {LicenceColumns};
+                                  """;
+
+        const string insertHistorySql = """
+                                        INSERT INTO licence_key_history (
+                                            id, licence_id, previous_key_hmac, previous_key_pepper_ver,
+                                            new_key_hmac, new_key_pepper_ver, changed_by, reason
+                                        ) VALUES (
+                                            @Id, @LicenceId, @PreviousKeyHmac, @PreviousKeyPepperVer,
+                                            @NewKeyHmac, @NewKeyPepperVer, @ChangedBy, @Reason
+                                        );
+                                        """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
+                             new CommandDefinition(selectSql, new { Id = licenceId }, cancellationToken: cancellationToken));
+        if (currentRow is null) return null;
+
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var updatedRow = await connection.QuerySingleAsync<LicenceRow>(
+                                 new CommandDefinition(
+                                     updateSql,
+                                     new { Id = licenceId, KeyHmac = newKey.Hmac, KeyHmacPepperVersion = newKey.PepperVersion },
+                                     transaction,
+                                     cancellationToken: cancellationToken));
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                                              insertHistorySql,
+                                              new
+                                              {
+                                                  Id = Guid.NewGuid(),
+                                                  LicenceId = licenceId,
+                                                  PreviousKeyHmac = currentRow.KeyHmac,
+                                                  PreviousKeyPepperVer = currentRow.KeyHmacPepperVersion,
+                                                  NewKeyHmac = newKey.Hmac,
+                                                  NewKeyPepperVer = newKey.PepperVersion,
+                                                  ChangedBy = changedBy,
+                                                  Reason = reason
+                                              },
+                                              transaction,
+                                              cancellationToken: cancellationToken));
+
+            await transaction.CommitAsync(cancellationToken);
+            return updatedRow.ToDomain();
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     private static async Task InsertBindingHistoryAsync(
         IDbConnection connection,
         IDbTransaction transaction,

@@ -58,4 +58,12 @@ public interface ILicenceRepository
         string? reason,
         CancellationToken cancellationToken
     );
+
+    Task<Licence?> RegenerateKeyAsync(
+        Guid licenceId,
+        PepperedHmac newKey,
+        Guid changedBy,
+        string? reason,
+        CancellationToken cancellationToken
+    );
 }

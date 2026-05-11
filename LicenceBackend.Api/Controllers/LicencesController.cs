@@ -374,6 +374,54 @@ public sealed class LicencesController(
         return NoContent();
     }
 
+    [HttpPost("{id:guid}/regenerate-key")]
+    [ProducesResponseType(typeof(LicenceKeyRegeneratedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RegenerateKey(
+        Guid id,
+        [FromBody] RegenerateLicenceKeyRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+
+        var rawKey = keyGenerator.Generate();
+        var pepperedHmac = keyHasher.HashWithActive(rawKey);
+
+        var updated = await licences.RegenerateKeyAsync(
+                          id,
+                          pepperedHmac,
+                          currentUserId,
+                          string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                          cancellationToken
+                      );
+
+        if (updated is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.LicenceNotFound,
+                detail: $"No licence with id '{id}'."
+            );
+
+        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+
+        return Ok(new LicenceKeyRegeneratedResponse(
+            updated.Id,
+            updated.ProductId,
+            product?.Slug ?? string.Empty,
+            updated.UserId,
+            owner?.Email ?? string.Empty,
+            updated.Status.ToString().ToLowerInvariant(),
+            updated.ExpiresAt,
+            updated.Notes,
+            updated.HwidHmac is not null,
+            updated.IpAllowlist,
+            updated.CreatedAt,
+            rawKey
+        ));
+    }
+
     [HttpGet("{id:guid}/binding-history")]
     [ProducesResponseType(typeof(PagedResponse<BindingHistoryEntryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
