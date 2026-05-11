@@ -6,7 +6,7 @@ export default defineConfig({
     input: 'https://localhost:5001/openapi/v1.json',
     output: {
       target: './src/api/generated/api.ts',
-      client: 'react-query',
+      client: 'fetch',
       mode: 'split',
       override: {
         mutator: {

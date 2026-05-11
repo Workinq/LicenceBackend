@@ -7,7 +7,8 @@ export const API_BASE = '/api';
 // Single-flight refresh guard - ensures concurrent 401s fire only one refresh request.
 let refreshPromise: Promise<boolean> | null = null;
 
-// Fetch mutator used by orval-generated api.ts - signature: (url, init?) => Promise<T>
+// Fetch mutator used by orval-generated api.ts.
+// The fetch client codegen expects: (url, init?) => Promise<{ data: unknown, status: number, headers: Headers }>
 export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const send = async (): Promise<Response> => {
     const accessToken = useAccessTokenStore.getState().accessToken;
@@ -38,7 +39,8 @@ export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> 
     throw new ApiError(response.status, await safeJson(response));
   }
 
-  return (response.status === 204 ? (undefined as T) : await response.json()) as T;
+  const data: unknown = response.status === 204 ? undefined : (await response.json() as unknown);
+  return { data, status: response.status, headers: response.headers } as T;
 };
 
 interface RefreshBody {
