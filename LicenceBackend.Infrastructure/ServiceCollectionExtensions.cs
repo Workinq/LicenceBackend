@@ -63,6 +63,9 @@ public static class ServiceCollectionExtensions
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+        services.AddOptions<ProductImageStorageOptions>()
+                .Bind(configuration.GetSection(ProductImageStorageOptions.SectionName));
+
         var connectionString = configuration.GetConnectionString("Postgres") ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required.");
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 
@@ -103,6 +106,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILicenceBindingHistoryRepository, LicenceBindingHistoryRepository>();
         services.AddSingleton<ILicenceVerificationAttemptRepository, LicenceVerificationAttemptRepository>();
         services.AddSingleton<IProductRepository, ProductRepository>();
+        services.AddSingleton<IProductImageStorage, FileSystemProductImageStorage>();
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<IUserStatusHistoryRepository, UserStatusHistoryRepository>();
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
