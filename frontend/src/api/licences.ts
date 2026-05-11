@@ -1,10 +1,19 @@
-import { getLicences, getLicencesId, patchLicencesIdStatus, postLicences } from './generated/api';
+import {
+  getLicences,
+  getLicencesId,
+  patchLicencesIdStatus,
+  postLicences,
+  putLicencesIdHwid,
+  putLicencesIdIpAllowlist,
+} from './generated/api';
 import type {
   CreateLicenceRequest,
   GetLicencesParams,
   LicenceCreatedResponse,
   LicenceResponse,
   PagedResponseOfLicenceResponse,
+  UpdateLicenceHwidRequest,
+  UpdateLicenceIpAllowlistRequest,
   UpdateLicenceStatusRequest,
 } from './generated/api.schemas';
 
@@ -29,4 +38,18 @@ export async function updateLicenceStatus(
   body: UpdateLicenceStatusRequest,
 ): Promise<LicenceResponse> {
   return (await patchLicencesIdStatus(id, body)).data as LicenceResponse;
+}
+
+export async function updateLicenceHwid(
+  id: string,
+  body: UpdateLicenceHwidRequest,
+): Promise<LicenceResponse> {
+  return (await putLicencesIdHwid(id, body)).data as unknown as LicenceResponse;
+}
+
+export async function updateLicenceIpAllowlist(
+  id: string,
+  body: UpdateLicenceIpAllowlistRequest,
+): Promise<LicenceResponse> {
+  return (await putLicencesIdIpAllowlist(id, body)).data as unknown as LicenceResponse;
 }
