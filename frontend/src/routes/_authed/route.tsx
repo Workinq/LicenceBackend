@@ -1,8 +1,9 @@
 // frontend/src/routes/_authed/route.tsx
-import { createFileRoute, redirect, Outlet } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useAccessTokenStore, type AuthUser } from '../../auth/access-token-store';
-import { API_BASE, apiClient } from '../../auth/api-client';
+import { API_BASE } from '../../auth/api-client';
 import { useSilentRefresh } from '../../auth/use-silent-refresh';
+import { AppShell } from '../../components/layout/AppShell';
 
 export const Route = createFileRoute('/_authed')({
   beforeLoad: async () => {
@@ -37,49 +38,5 @@ export const Route = createFileRoute('/_authed')({
 
 function AuthedLayout() {
   useSilentRefresh();
-  const user = useAccessTokenStore((s) => s.user);
-
-  const handleSignOut = async () => {
-    try {
-      await apiClient<void>('/sessions', { method: 'DELETE' });
-    } finally {
-      useAccessTokenStore.getState().clear();
-      window.location.assign('/login');
-    }
-  };
-
-  const handleSignOutAll = async () => {
-    try {
-      await apiClient<void>('/sessions/all', { method: 'DELETE' });
-    } finally {
-      useAccessTokenStore.getState().clear();
-      window.location.assign('/login');
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-surface font-sans text-ink">
-      <header className="flex items-center justify-between border-b border-border px-6 py-3">
-        <span className="font-display text-lg font-semibold">LicenceBackend Admin</span>
-        <div className="flex items-center gap-3">
-          {user && <span className="text-sm text-ink-muted">{user.email}</span>}
-          <button
-            onClick={() => { void handleSignOut(); }}
-            className="rounded px-3 py-1.5 text-sm bg-ink text-surface-elevated hover:opacity-90"
-          >
-            Sign out
-          </button>
-          <button
-            onClick={() => { void handleSignOutAll(); }}
-            className="rounded px-3 py-1.5 text-sm border border-border text-ink-muted hover:bg-surface-sunken"
-          >
-            Sign out everywhere
-          </button>
-        </div>
-      </header>
-      <main className="p-6">
-        <Outlet />
-      </main>
-    </div>
-  );
+  return <AppShell />;
 }
