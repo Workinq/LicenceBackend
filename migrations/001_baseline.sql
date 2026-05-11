@@ -14,10 +14,18 @@ CREATE INDEX ix_users_role ON users (role);
 CREATE INDEX ix_users_status ON users (status);
 
 CREATE TABLE products (
-    id              UUID PRIMARY KEY,
-    slug            TEXT NOT NULL UNIQUE,
-    display_name    TEXT NOT NULL,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                  UUID PRIMARY KEY,
+    slug                TEXT NOT NULL UNIQUE,
+    display_name        TEXT NOT NULL,
+    description         TEXT,
+    tagline             TEXT,
+    is_public           BOOLEAN NOT NULL DEFAULT TRUE,
+    price               NUMERIC(12,2),
+    currency            CHAR(3) NOT NULL DEFAULT 'USD',
+    sort_order          INTEGER NOT NULL DEFAULT 0,
+    image_path          TEXT,
+    image_content_type  TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE licences (
