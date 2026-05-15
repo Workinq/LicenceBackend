@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: '**/TestResults/*.trx'
@@ -118,7 +118,7 @@ jobs:
         run: dotnet publish LicenceBackend.Api/LicenceBackend.Api.csproj --configuration Release --output ./publish
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: licencebackend-api-${{ github.sha }}
           path: ./publish
