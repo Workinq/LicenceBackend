@@ -14,9 +14,9 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.0" />
-        <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.17.0" />
+        <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.18.0" />
         <PackageReference Include="Npgsql" Version="10.0.2" />
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
         <PackageReference Include="System.Threading.RateLimiting" Version="10.0.7" />
     </ItemGroup>
 
