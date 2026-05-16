@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +18,12 @@ export interface ComboboxOption {
   label: string;
 }
 
+export interface ComboboxFooterAction {
+  label: string;
+  icon?: ReactNode;
+  onSelect: () => void;
+}
+
 interface ComboboxProps {
   options: ComboboxOption[];
   value: string;
@@ -26,6 +33,7 @@ interface ComboboxProps {
   emptyText?: string;
   id?: string;
   disabled?: boolean;
+  footerAction?: ComboboxFooterAction;
 }
 
 export function Combobox({
@@ -37,6 +45,7 @@ export function Combobox({
   emptyText = 'No results.',
   id,
   disabled = false,
+  footerAction,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -79,6 +88,21 @@ export function Combobox({
               ))}
             </CommandGroup>
           </CommandList>
+          {footerAction && (
+            <div className="border-t border-border p-1">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-ink hover:bg-accent-soft/40 focus:bg-accent-soft/40 focus:outline-none"
+                onClick={() => {
+                  setOpen(false);
+                  footerAction.onSelect();
+                }}
+              >
+                {footerAction.icon}
+                {footerAction.label}
+              </button>
+            </div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

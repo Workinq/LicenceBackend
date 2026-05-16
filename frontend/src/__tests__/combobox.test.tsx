@@ -35,4 +35,39 @@ describe('Combobox', () => {
     await userEvent.type(await screen.findByPlaceholderText('Search'), 'zzz');
     expect(await screen.findByText('Nothing found')).toBeInTheDocument();
   });
+
+  it('renders the footer action and fires onSelect when clicked', async () => {
+    const onSelect = vi.fn();
+    render(
+      <Combobox
+        options={opts}
+        value=""
+        onChange={() => {}}
+        searchPlaceholder="Search"
+        footerAction={{ label: 'Create new thing', onSelect }}
+      />,
+    );
+    await userEvent.click(screen.getByRole('combobox'));
+    const footer = await screen.findByRole('button', { name: /create new thing/i });
+    await userEvent.click(footer);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the footer action visible when the search filters all results out', async () => {
+    const onSelect = vi.fn();
+    render(
+      <Combobox
+        options={opts}
+        value=""
+        onChange={() => {}}
+        searchPlaceholder="Search"
+        emptyText="Nothing found"
+        footerAction={{ label: 'Create new thing', onSelect }}
+      />,
+    );
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.type(await screen.findByPlaceholderText('Search'), 'zzz');
+    expect(await screen.findByText('Nothing found')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /create new thing/i })).toBeInTheDocument();
+  });
 });

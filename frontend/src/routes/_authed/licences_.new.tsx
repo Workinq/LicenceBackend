@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
@@ -14,6 +15,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Combobox } from '@/components/Combobox';
 import { CidrListEditor } from '@/components/licences/CidrListEditor';
 import { SecretRevealOnce } from '@/components/SecretRevealOnce';
+import { QuickCreateProductDialog } from '@/components/QuickCreateProductDialog';
+import { QuickCreateUserDialog } from '@/components/QuickCreateUserDialog';
 import { fetchProducts } from '@/api/products';
 import { fetchUsers } from '@/api/users';
 import { createLicence } from '@/api/licences';
@@ -40,6 +43,8 @@ function NewLicencePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ipRestricted, setIpRestricted] = useState(false);
   const [ipCidrs, setIpCidrs] = useState<string[]>([]);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
 
   const products = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
   const users = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
@@ -48,6 +53,7 @@ function NewLicencePage() {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { productId: '', userId: '', expiresAt: '', notes: '' } });
 
@@ -123,6 +129,11 @@ function NewLicencePage() {
                 placeholder="Choose..."
                 searchPlaceholder="Search products"
                 emptyText={productOptions.length === 0 ? 'There are no products' : 'No matching products'}
+                footerAction={{
+                  label: 'Create new product',
+                  icon: <Plus className="size-4" aria-hidden="true" />,
+                  onSelect: () => { setProductDialogOpen(true); },
+                }}
               />
             )}
           />
@@ -145,6 +156,11 @@ function NewLicencePage() {
                 placeholder="Choose..."
                 searchPlaceholder="Search users"
                 emptyText={userOptions.length === 0 ? 'There are no users' : 'No matching users'}
+                footerAction={{
+                  label: 'Create new user',
+                  icon: <Plus className="size-4" aria-hidden="true" />,
+                  onSelect: () => { setUserDialogOpen(true); },
+                }}
               />
             )}
           />
@@ -187,6 +203,25 @@ function NewLicencePage() {
           Create licence
         </Button>
       </form>
+
+      <QuickCreateProductDialog
+        open={productDialogOpen}
+        onOpenChange={setProductDialogOpen}
+        onCreated={(product) => {
+          void queryClient.invalidateQueries({ queryKey: ['products'] });
+          setValue('productId', product.id, { shouldValidate: true });
+          setProductDialogOpen(false);
+        }}
+      />
+
+      <QuickCreateUserDialog
+        open={userDialogOpen}
+        onOpenChange={setUserDialogOpen}
+        onCreated={(user) => {
+          void queryClient.invalidateQueries({ queryKey: ['users'] });
+          setValue('userId', user.id, { shouldValidate: true });
+        }}
+      />
     </div>
   );
 }
