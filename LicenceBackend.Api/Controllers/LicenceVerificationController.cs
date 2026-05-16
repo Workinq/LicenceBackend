@@ -3,6 +3,8 @@ using System.Net.Sockets;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
+using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
@@ -26,7 +28,7 @@ public sealed class LicenceVerificationController(
     IHwidHasher hwidHasher,
     ILicenceVerificationSigner signer,
     LicenceVerifySigningKeySet signingKeySet,
-    ILicenceVerificationAttemptRepository attempts,
+    IAuditEventRepository auditEvents,
     ILicenceVerifyRateLimiter verifyRateLimiter,
     TimeProvider time,
     ILogger<LicenceVerificationController> logger
@@ -115,22 +117,10 @@ public sealed class LicenceVerificationController(
             }
         }
 
-        var attemptId = Guid.NewGuid();
         var auditRecorded = false;
         if (pendingFirstPin is not null && denialReason is null)
         {
-            var approvedAttempt = new LicenceVerificationAttempt(
-                attemptId,
-                licence.Id,
-                productId,
-                pendingFirstPin.Value.Hmac,
-                remoteIpText,
-                VerificationOutcome.Approved,
-                null,
-                now
-            );
-
-            var pinResult = await licences.PinHwidAndRecordAttemptAsync(licence.Id, pendingFirstPin.Value.Hmac, pendingFirstPin.Value.PepperVersion, remoteIpText, approvedAttempt, cancellationToken);
+            var pinResult = await licences.PinHwidAndRecordAttemptAsync(licence.Id, pendingFirstPin.Value.Hmac, pendingFirstPin.Value.PepperVersion, productId, remoteIpText, now, cancellationToken);
             switch (pinResult)
             {
                 case PinHwidResult.Pinned:
@@ -160,20 +150,24 @@ public sealed class LicenceVerificationController(
 
         if (!auditRecorded)
         {
-            var outcome = denialReason is null ? VerificationOutcome.Approved : VerificationOutcome.Denied;
-            await attempts.RecordAsync(
-                new LicenceVerificationAttempt(
-                    attemptId,
-                    licence.Id,
-                    productId,
-                    presentedHwidHmac,
-                    remoteIpText,
-                    outcome,
-                    denialReason,
-                    now
-                ),
-                cancellationToken
+            var payload = new LicenceVerifiedPayload(
+                productId,
+                presentedHwidHmac is null ? null : Convert.ToBase64String(presentedHwidHmac),
+                remoteIpText,
+                denialReason is null ? VerificationOutcomeNames.Approved : VerificationOutcomeNames.Denied,
+                VerificationDenialReasonNames.ToString(denialReason)
             );
+            var evt = AuditEvent.Create(
+                AuditEventTypes.LicenceVerified,
+                AuditSubjectTypes.Licence,
+                licence.Id,
+                AuditActorTypes.Anonymous,
+                actorUserId: null,
+                reason: null,
+                payload,
+                now
+            );
+            await auditEvents.RecordAsync(evt, cancellationToken);
         }
 
         if (denialReason is not null)

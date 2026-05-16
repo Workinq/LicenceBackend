@@ -15,6 +15,7 @@ internal static class ProblemTitles
     public const string InvalidProductImage = "invalid_product_image";
     public const string InvalidRefresh = "invalid_refresh";
     public const string InvalidStatus = "invalid_status";
+    public const string InvalidSubjectType = "invalid_subject_type";
     public const string LicenceNotFound = "licence_not_found";
     public const string MissingOwner = "missing_owner";
     public const string OwnerNotFound = "owner_not_found";

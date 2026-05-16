@@ -610,12 +610,13 @@ async Task<int> DisableUserAsync(string[] cmdArgs)
         await connection.ExecuteAsync(
             "UPDATE users SET status = 'suspended', updated_at = NOW() WHERE id = @Id;",
             new { Id = user.Value.id }, transaction);
+        var payloadJson = $$"""{"previousStatus":"{{user.Value.status}}","newStatus":"suspended"}""";
         await connection.ExecuteAsync(
             """
-            INSERT INTO user_status_history (id, user_id, previous_status, new_status, changed_by, reason)
-            VALUES (@Id, @UserId, @Prev, 'suspended', @UserId, 'devtools-disable-user');
+            INSERT INTO audit_events (id, event_type, subject_type, subject_id, actor_type, actor_user_id, reason, payload)
+            VALUES (@Id, 'user.status_changed', 'user', @UserId, 'admin', @UserId, 'devtools-disable-user', @Payload::jsonb);
             """,
-            new { Id = Guid.NewGuid(), UserId = user.Value.id, Prev = user.Value.status }, transaction);
+            new { Id = Guid.NewGuid(), UserId = user.Value.id, Payload = payloadJson }, transaction);
         await connection.ExecuteAsync(
             "UPDATE session_refresh_tokens SET revoked_at = NOW() WHERE user_id = @UserId AND revoked_at IS NULL;",
             new { UserId = user.Value.id }, transaction);

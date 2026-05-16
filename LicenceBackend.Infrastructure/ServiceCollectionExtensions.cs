@@ -1,4 +1,5 @@
 using Dapper;
+using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Sessions;
@@ -102,13 +103,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILicenceKeyGenerator, LicenceKeyGenerator>();
         services.AddSingleton<IPasswordHasher, Argon2IdPasswordHasher>();
         services.AddSingleton<ILicenceRepository, LicenceRepository>();
-        services.AddSingleton<ILicenceStatusHistoryRepository, LicenceStatusHistoryRepository>();
-        services.AddSingleton<ILicenceBindingHistoryRepository, LicenceBindingHistoryRepository>();
-        services.AddSingleton<ILicenceVerificationAttemptRepository, LicenceVerificationAttemptRepository>();
+        services.AddSingleton<IAuditEventRepository, AuditEventRepository>();
         services.AddSingleton<IProductRepository, ProductRepository>();
         services.AddSingleton<IProductImageStorage, FileSystemProductImageStorage>();
         services.AddSingleton<IUserRepository, UserRepository>();
-        services.AddSingleton<IUserStatusHistoryRepository, UserStatusHistoryRepository>();
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
         services.AddSingleton<ILicenceVerifyRateLimiter, LicenceVerifyRateLimiter>();

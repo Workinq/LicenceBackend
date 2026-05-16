@@ -5,10 +5,11 @@ using System.Text.Json;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
+using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
-using LicenceBackend.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -25,9 +26,7 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class LicencesController(
     ILicenceRepository licences,
-    ILicenceStatusHistoryRepository licenceStatusHistory,
-    ILicenceBindingHistoryRepository bindingHistory,
-    ILicenceVerificationAttemptRepository verificationAttempts,
+    IAuditEventRepository auditEvents,
     IProductRepository products,
     IUserRepository users,
     ILicenceKeyGenerator keyGenerator,
@@ -261,25 +260,34 @@ public sealed class LicencesController(
 
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
-        var page = await licenceStatusHistory.ListForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await auditEvents.QueryAsync(
+                       AuditSubjectTypes.Licence,
+                       id,
+                       AuditEventTypes.LicenceStatusChanged,
+                       effectiveLimit,
+                       effectiveOffset,
+                       cancellationToken);
 
         var emailByUserId = new Dictionary<Guid, string>();
-        foreach (var changerId in page.Items.Select(h => h.ChangedBy).Distinct())
+        foreach (var changerId in page.Items.Select(e => e.ActorUserId).OfType<Guid>().Distinct())
         {
             var changer = await users.FindByIdAsync(changerId, cancellationToken);
             if (changer is not null) emailByUserId[changerId] = changer.Email;
         }
 
         var items = page.Items
-                        .Select(history => new LicenceStatusHistoryResponse(
-                                    history.Id,
-                                    history.PreviousStatus.ToString().ToLowerInvariant(),
-                                    history.NewStatus.ToString().ToLowerInvariant(),
-                                    history.ChangedBy,
-                                    emailByUserId.GetValueOrDefault(history.ChangedBy),
-                                    history.ChangedAt,
-                                    history.Reason)
-                        )
+                        .Select(evt =>
+                            {
+                                var payload = evt.DeserializePayload<LicenceStatusChangedPayload>();
+                                return new LicenceStatusHistoryResponse(
+                                    evt.Id,
+                                    payload.PreviousStatus,
+                                    payload.NewStatus,
+                                    evt.ActorUserId ?? Guid.Empty,
+                                    evt.ActorUserId is { } changerId ? emailByUserId.GetValueOrDefault(changerId) : null,
+                                    evt.OccurredAt,
+                                    evt.Reason);
+                            })
                         .ToList();
 
         return Ok(new PagedResponse<LicenceStatusHistoryResponse>(items, page.Total, effectiveLimit, effectiveOffset));
@@ -424,7 +432,13 @@ public sealed class LicencesController(
 
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
-        var page = await bindingHistory.ListForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await auditEvents.QueryAsync(
+                       AuditSubjectTypes.Licence,
+                       id,
+                       AuditEventTypes.LicenceBindingChanged,
+                       effectiveLimit,
+                       effectiveOffset,
+                       cancellationToken);
 
         var items = page.Items.Select(ToBindingHistoryResponse).ToList();
         return Ok(new PagedResponse<BindingHistoryEntryResponse>(items, page.Total, effectiveLimit, effectiveOffset));
@@ -458,7 +472,7 @@ public sealed class LicencesController(
 
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
-        var page = await verificationAttempts.ListForLicenceAsync(id, filter, effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await auditEvents.QueryVerifiesAsync(id, OutcomeFilterToText(filter), effectiveLimit, effectiveOffset, cancellationToken);
 
         var items = page.Items.Select(ToVerificationAttemptResponse).ToList();
         return Ok(new PagedResponse<VerificationAttemptResponse>(items, page.Total, effectiveLimit, effectiveOffset));
@@ -509,32 +523,45 @@ public sealed class LicencesController(
         );
     }
 
-    internal static BindingHistoryEntryResponse ToBindingHistoryResponse(LicenceBindingHistoryEntry entry)
+    internal static BindingHistoryEntryResponse ToBindingHistoryResponse(AuditEvent evt)
     {
+        var payload = evt.DeserializePayload<LicenceBindingChangedPayload>();
         return new BindingHistoryEntryResponse(
-            entry.Id,
-            BindingTypeToString(entry.BindingType),
-            ParseJsonElement(entry.PreviousValueJson),
-            ParseJsonElement(entry.NewValueJson),
-            ChangeSourceToString(entry.ChangeSource),
-            entry.ChangedByUserId,
-            entry.ChangedAt,
-            entry.Reason
+            evt.Id,
+            payload.BindingType,
+            payload.PreviousValue,
+            payload.NewValue,
+            payload.ChangeSource,
+            evt.ActorUserId,
+            evt.OccurredAt,
+            evt.Reason
         );
     }
 
-    internal static VerificationAttemptResponse ToVerificationAttemptResponse(LicenceVerificationAttempt attempt)
+    internal static VerificationAttemptResponse ToVerificationAttemptResponse(AuditEvent evt)
     {
+        var payload = evt.DeserializePayload<LicenceVerifiedPayload>();
         return new VerificationAttemptResponse(
-            attempt.Id,
-            attempt.LicenceId,
-            attempt.ProductIdRequested,
-            attempt.HwidHmac is null ? null : Convert.ToBase64String(attempt.HwidHmac),
-            attempt.SourceIp,
-            LicenceVerificationAttemptRepository.OutcomeToString(attempt.Outcome),
-            LicenceVerificationAttemptRepository.DenialReasonToString(attempt.DenialReason),
-            attempt.AttemptedAt
+            evt.Id,
+            evt.SubjectId,
+            payload.ProductIdRequested,
+            payload.HwidHmacBase64,
+            payload.SourceIp,
+            payload.Outcome,
+            payload.DenialReason,
+            evt.OccurredAt
         );
+    }
+
+    internal static string? OutcomeFilterToText(VerificationAttemptOutcomeFilter filter)
+    {
+        return filter switch
+        {
+            VerificationAttemptOutcomeFilter.All => null,
+            VerificationAttemptOutcomeFilter.ApprovedOnly => VerificationOutcomeNames.Approved,
+            VerificationAttemptOutcomeFilter.DeniedOnly => VerificationOutcomeNames.Denied,
+            _ => throw new ArgumentOutOfRangeException(nameof(filter), filter, null)
+        };
     }
 
     private static bool TryNormaliseIpAllowlist(
@@ -574,30 +601,4 @@ public sealed class LicencesController(
         return true;
     }
 
-    private static JsonElement? ParseJsonElement(string? json)
-    {
-        if (string.IsNullOrEmpty(json)) return null;
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
-    }
-
-    private static string BindingTypeToString(LicenceBindingType type)
-    {
-        return type switch
-        {
-            LicenceBindingType.Hwid => "hwid",
-            LicenceBindingType.IpAllowlist => "ip_allowlist",
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
-    }
-
-    private static string ChangeSourceToString(BindingChangeSource source)
-    {
-        return source switch
-        {
-            BindingChangeSource.Admin => "admin",
-            BindingChangeSource.FirstUse => "first_use",
-            _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
-        };
-    }
 }

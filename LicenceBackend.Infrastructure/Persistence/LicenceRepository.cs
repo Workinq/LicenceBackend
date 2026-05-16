@@ -1,13 +1,15 @@
 using System.Data;
 using System.Text.Json;
 using Dapper;
+using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Common;
 using LicenceBackend.Core.Licences;
 using Npgsql;
 
 namespace LicenceBackend.Infrastructure.Persistence;
 
-public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRepository
+public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRepository auditEvents, TimeProvider time) : ILicenceRepository
 {
     private const string LicenceColumns =
         "id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, created_at, updated_at";
@@ -136,11 +138,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                   RETURNING {LicenceColumns};
                                   """;
 
-        const string insertHistorySql = """
-                                        INSERT INTO licence_status_history (id, licence_id, previous_status, new_status, changed_by, reason)
-                                        VALUES (@Id, @LicenceId, @PreviousStatus, @NewStatus, @ChangedBy, @Reason);
-                                        """;
-
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
 
         var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
@@ -163,19 +160,17 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                                              insertHistorySql,
-                                              new
-                                              {
-                                                  Id = Guid.NewGuid(),
-                                                  LicenceId = licenceId,
-                                                  PreviousStatus = previousStatusText,
-                                                  NewStatus = newStatusText,
-                                                  ChangedBy = changedBy,
-                                                  Reason = reason
-                                              },
-                                              transaction,
-                                              cancellationToken: cancellationToken));
+            var evt = AuditEvent.Create(
+                AuditEventTypes.LicenceStatusChanged,
+                AuditSubjectTypes.Licence,
+                licenceId,
+                AuditActorTypes.Admin,
+                changedBy,
+                reason,
+                new LicenceStatusChangedPayload(previousStatusText, newStatusText),
+                time.GetUtcNow()
+            );
+            await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
             return updatedRow.ToDomain();
@@ -228,8 +223,9 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         Guid licenceId,
         byte[] hwidHmac,
         short hwidHmacPepperVersion,
+        Guid productIdRequested,
         string sourceIp,
-        LicenceVerificationAttempt approvedAttempt,
+        DateTimeOffset attemptedAt,
         CancellationToken cancellationToken)
     {
         const string updateSql = """
@@ -240,16 +236,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                  """;
 
         const string existsSql = "SELECT 1 FROM licences WHERE id = @Id LIMIT 1;";
-
-        const string insertAttemptSql = """
-                                        INSERT INTO licence_verification_attempts (
-                                            id, licence_id, product_id_requested, hwid_hmac,
-                                            source_ip, outcome, denial_reason, attempted_at
-                                        ) VALUES (
-                                            @Id, @LicenceId, @ProductIdRequested, @HwidHmac,
-                                            @SourceIp::inet, @Outcome, @DenialReason, @AttemptedAt
-                                        );
-                                        """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -270,37 +256,40 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                 return exists.HasValue ? PinHwidResult.AlreadyBound : PinHwidResult.NotFound;
             }
 
-            var newValueJson = JsonSerializer.Serialize(new HwidHistoryValue(
-                                                            Convert.ToBase64String(hwidHmac),
-                                                            sourceIp));
+            var hwidBase64 = Convert.ToBase64String(hwidHmac);
+            var newValueElement = JsonSerializer.SerializeToElement(
+                new HwidHistoryValue(hwidBase64, sourceIp),
+                AuditEventJson.Options);
 
-            await InsertBindingHistoryAsync(
+            await InsertBindingChangedAsync(
                 connection,
                 transaction,
                 licenceId,
                 LicenceBindingType.Hwid,
-                null,
-                newValueJson,
-                BindingChangeSource.FirstUse,
-                null,
-                null,
+                previousValue: null,
+                newValue: newValueElement,
+                source: BindingChangeSource.FirstUse,
+                actorUserId: null,
+                reason: null,
                 cancellationToken);
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                                              insertAttemptSql,
-                                              new
-                                              {
-                                                  approvedAttempt.Id,
-                                                  approvedAttempt.LicenceId,
-                                                  approvedAttempt.ProductIdRequested,
-                                                  approvedAttempt.HwidHmac,
-                                                  approvedAttempt.SourceIp,
-                                                  Outcome = LicenceVerificationAttemptRepository.OutcomeToString(approvedAttempt.Outcome),
-                                                  DenialReason = LicenceVerificationAttemptRepository.DenialReasonToString(approvedAttempt.DenialReason),
-                                                  approvedAttempt.AttemptedAt
-                                              },
-                                              transaction,
-                                              cancellationToken: cancellationToken));
+            var verifyEvt = AuditEvent.Create(
+                AuditEventTypes.LicenceVerified,
+                AuditSubjectTypes.Licence,
+                licenceId,
+                AuditActorTypes.Anonymous,
+                actorUserId: null,
+                reason: null,
+                new LicenceVerifiedPayload(
+                    productIdRequested,
+                    hwidBase64,
+                    sourceIp,
+                    Outcome: "approved",
+                    DenialReason: null
+                ),
+                attemptedAt
+            );
+            await auditEvents.RecordInTxAsync(connection, transaction, verifyEvt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
             return PinHwidResult.Pinned;
@@ -344,22 +333,22 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
             var updatedRow = await connection.QuerySingleAsync<LicenceRow>(
                                  new CommandDefinition(updateSql, new { Id = licenceId }, transaction, cancellationToken: cancellationToken));
 
-            var previousValueJson = currentRow.HwidHmac is null
-                                        ? null
-                                        : JsonSerializer.Serialize(new HwidHistoryValue(
-                                                                       Convert.ToBase64String(currentRow.HwidHmac),
-                                                                       null));
+            JsonElement? previousValue = currentRow.HwidHmac is null
+                                            ? null
+                                            : JsonSerializer.SerializeToElement(
+                                                new HwidHistoryValue(Convert.ToBase64String(currentRow.HwidHmac), null),
+                                                AuditEventJson.Options);
 
-            await InsertBindingHistoryAsync(
+            await InsertBindingChangedAsync(
                 connection,
                 transaction,
                 licenceId,
                 LicenceBindingType.Hwid,
-                previousValueJson,
-                null,
-                BindingChangeSource.Admin,
-                changedByUserId,
-                reason,
+                previousValue,
+                newValue: null,
+                source: BindingChangeSource.Admin,
+                actorUserId: changedByUserId,
+                reason: reason,
                 cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -412,13 +401,13 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            await InsertBindingHistoryAsync(
+            await InsertBindingChangedAsync(
                 connection,
                 transaction,
                 licenceId,
                 LicenceBindingType.IpAllowlist,
-                previousJson,
-                newJson,
+                ParseJsonElement(previousJson),
+                ParseJsonElement(newJson),
                 BindingChangeSource.Admin,
                 changedByUserId,
                 reason,
@@ -455,16 +444,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                   RETURNING {LicenceColumns};
                                   """;
 
-        const string insertHistorySql = """
-                                        INSERT INTO licence_key_history (
-                                            id, licence_id, previous_key_hmac, previous_key_pepper_ver,
-                                            new_key_hmac, new_key_pepper_ver, changed_by, reason
-                                        ) VALUES (
-                                            @Id, @LicenceId, @PreviousKeyHmac, @PreviousKeyPepperVer,
-                                            @NewKeyHmac, @NewKeyPepperVer, @ChangedBy, @Reason
-                                        );
-                                        """;
-
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
 
         var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
@@ -481,21 +460,22 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                                              insertHistorySql,
-                                              new
-                                              {
-                                                  Id = Guid.NewGuid(),
-                                                  LicenceId = licenceId,
-                                                  PreviousKeyHmac = currentRow.KeyHmac,
-                                                  PreviousKeyPepperVer = currentRow.KeyHmacPepperVersion,
-                                                  NewKeyHmac = newKey.Hmac,
-                                                  NewKeyPepperVer = newKey.PepperVersion,
-                                                  ChangedBy = changedBy,
-                                                  Reason = reason
-                                              },
-                                              transaction,
-                                              cancellationToken: cancellationToken));
+            var evt = AuditEvent.Create(
+                AuditEventTypes.LicenceKeyRegenerated,
+                AuditSubjectTypes.Licence,
+                licenceId,
+                AuditActorTypes.Admin,
+                changedBy,
+                reason,
+                new LicenceKeyRegeneratedPayload(
+                    Convert.ToBase64String(currentRow.KeyHmac),
+                    currentRow.KeyHmacPepperVersion,
+                    Convert.ToBase64String(newKey.Hmac),
+                    newKey.PepperVersion
+                ),
+                time.GetUtcNow()
+            );
+            await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
             return updatedRow.ToDomain();
@@ -543,13 +523,13 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
                 return exists.HasValue ? IpBindResult.AlreadyBound : IpBindResult.NotFound;
             }
 
-            await InsertBindingHistoryAsync(
+            await InsertBindingChangedAsync(
                 connection,
                 transaction,
                 licenceId,
                 LicenceBindingType.IpAllowlist,
-                previousValueJson,
-                newValueJson,
+                ParseJsonElement(previousValueJson),
+                ParseJsonElement(newValueJson),
                 BindingChangeSource.FirstUse,
                 null,
                 null,
@@ -565,63 +545,42 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource) : ILicenceRep
         }
     }
 
-    private static async Task InsertBindingHistoryAsync(
+    private async Task InsertBindingChangedAsync(
         IDbConnection connection,
         IDbTransaction transaction,
         Guid licenceId,
         LicenceBindingType bindingType,
-        string? previousValueJson,
-        string? newValueJson,
+        JsonElement? previousValue,
+        JsonElement? newValue,
         BindingChangeSource source,
-        Guid? changedByUserId,
+        Guid? actorUserId,
         string? reason,
         CancellationToken cancellationToken)
     {
-        const string sql = """
-                           INSERT INTO licence_binding_history (
-                               id, licence_id, binding_type, previous_value, new_value,
-                               change_source, changed_by_user_id, reason
-                           ) VALUES (
-                               @Id, @LicenceId, @BindingType, @PreviousValue::jsonb, @NewValue::jsonb,
-                               @ChangeSource, @ChangedByUserId, @Reason
-                           );
-                           """;
-
-        await connection.ExecuteAsync(new CommandDefinition(
-                                          sql,
-                                          new
-                                          {
-                                              Id = Guid.NewGuid(),
-                                              LicenceId = licenceId,
-                                              BindingType = BindingTypeToString(bindingType),
-                                              PreviousValue = previousValueJson,
-                                              NewValue = newValueJson,
-                                              ChangeSource = ChangeSourceToString(source),
-                                              ChangedByUserId = changedByUserId,
-                                              Reason = reason
-                                          },
-                                          transaction,
-                                          cancellationToken: cancellationToken));
+        var actorType = source == BindingChangeSource.Admin ? AuditActorTypes.Admin : AuditActorTypes.System;
+        var evt = AuditEvent.Create(
+            AuditEventTypes.LicenceBindingChanged,
+            AuditSubjectTypes.Licence,
+            licenceId,
+            actorType,
+            actorUserId,
+            reason,
+            new LicenceBindingChangedPayload(
+                BindingTypeNames.ToString(bindingType),
+                BindingChangeSourceNames.ToString(source),
+                previousValue,
+                newValue
+            ),
+            time.GetUtcNow()
+        );
+        await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
     }
 
-    private static string BindingTypeToString(LicenceBindingType type)
+    private static JsonElement? ParseJsonElement(string? json)
     {
-        return type switch
-        {
-            LicenceBindingType.Hwid => "hwid",
-            LicenceBindingType.IpAllowlist => "ip_allowlist",
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-        };
-    }
-
-    private static string ChangeSourceToString(BindingChangeSource source)
-    {
-        return source switch
-        {
-            BindingChangeSource.Admin => "admin",
-            BindingChangeSource.FirstUse => "first_use",
-            _ => throw new ArgumentOutOfRangeException(nameof(source), source, null)
-        };
+        if (string.IsNullOrEmpty(json)) return null;
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.Clone();
     }
 
     private sealed record HwidHistoryValue(string HwidHmacBase64, string? SourceIp);

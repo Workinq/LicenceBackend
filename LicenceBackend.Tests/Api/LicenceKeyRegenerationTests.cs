@@ -58,17 +58,25 @@ public sealed class LicenceKeyRegenerationTests : IntegrationTestBase
 
         await using var db = await OpenDbAsync();
         var rows = (await db.QueryAsync(
-            "SELECT licence_id, changed_by, reason, previous_key_hmac, new_key_hmac FROM licence_key_history WHERE licence_id = @Id",
+            """
+            SELECT subject_id, actor_user_id, reason,
+                   (payload->>'previousKeyHmacBase64') AS previous_key_hmac_base64,
+                   (payload->>'newKeyHmacBase64') AS new_key_hmac_base64
+            FROM audit_events
+            WHERE event_type = 'licence.key_regenerated' AND subject_id = @Id
+            """,
             new { Id = created.Id })).ToList();
 
         Assert.Single(rows);
         var row = rows[0];
-        Assert.Equal(created.Id, (Guid)row.licence_id);
-        Assert.Equal(AdminUserId, (Guid)row.changed_by);
+        Assert.Equal(created.Id, (Guid)row.subject_id);
+        Assert.Equal(AdminUserId, (Guid)row.actor_user_id);
         Assert.Equal("rotating", (string)row.reason); // trimmed
-        Assert.NotNull((byte[])row.previous_key_hmac);
-        Assert.NotNull((byte[])row.new_key_hmac);
-        Assert.False(((byte[])row.previous_key_hmac).SequenceEqual((byte[])row.new_key_hmac));
+        var previousKeyHmac = Convert.FromBase64String((string)row.previous_key_hmac_base64);
+        var newKeyHmac = Convert.FromBase64String((string)row.new_key_hmac_base64);
+        Assert.NotNull(previousKeyHmac);
+        Assert.NotNull(newKeyHmac);
+        Assert.False(previousKeyHmac.SequenceEqual(newKeyHmac));
     }
 
     [SkippableFact]
@@ -84,7 +92,8 @@ public sealed class LicenceKeyRegenerationTests : IntegrationTestBase
 
         await using var db = await OpenDbAsync();
         var reason = await db.ExecuteScalarAsync<string?>(
-            "SELECT reason FROM licence_key_history WHERE licence_id = @Id", new { Id = created.Id });
+            "SELECT reason FROM audit_events WHERE event_type = 'licence.key_regenerated' AND subject_id = @Id",
+            new { Id = created.Id });
         Assert.Null(reason);
     }
 

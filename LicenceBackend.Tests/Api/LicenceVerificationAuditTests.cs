@@ -17,13 +17,20 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         await using var conn = await OpenDbAsync();
-        var rows = (await conn.QueryAsync<(string outcome, string? denial_reason, byte[]? hwid_hmac, string source_ip)>(
-                        "SELECT outcome, denial_reason, hwid_hmac, host(source_ip) AS source_ip FROM licence_verification_attempts WHERE licence_id = @Id",
+        var rows = (await conn.QueryAsync<(string outcome, string? denial_reason, string? hwid_hmac_base64, string source_ip)>(
+                        """
+                        SELECT (payload->>'outcome') AS outcome,
+                               (payload->>'denialReason') AS denial_reason,
+                               (payload->>'hwidHmacBase64') AS hwid_hmac_base64,
+                               (payload->>'sourceIp') AS source_ip
+                        FROM audit_events
+                        WHERE event_type = 'licence.verified' AND subject_id = @Id
+                        """,
                         new { Id = licenceId })).ToList();
         Assert.Single(rows);
         Assert.Equal("approved", rows[0].outcome);
         Assert.Null(rows[0].denial_reason);
-        Assert.NotNull(rows[0].hwid_hmac);
+        Assert.NotNull(rows[0].hwid_hmac_base64);
         Assert.Equal("127.0.0.1", rows[0].source_ip);
     }
 
@@ -86,13 +93,18 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
         Assert.NotNull(pinned.hwid_hmac);
         Assert.Equal((short)1, pinned.hwid_hmac_pepper_version);
 
-        var attempts = (await conn.QueryAsync<(string outcome, byte[]? hwid_hmac)>(
-                            "SELECT outcome, hwid_hmac FROM licence_verification_attempts WHERE licence_id = @Id",
+        var attempts = (await conn.QueryAsync<(string outcome, string? hwid_hmac_base64)>(
+                            """
+                            SELECT (payload->>'outcome') AS outcome,
+                                   (payload->>'hwidHmacBase64') AS hwid_hmac_base64
+                            FROM audit_events
+                            WHERE event_type = 'licence.verified' AND subject_id = @Id
+                            """,
                             new { Id = licenceId })).ToList();
         Assert.Single(attempts);
         Assert.Equal("approved", attempts[0].outcome);
-        Assert.NotNull(attempts[0].hwid_hmac);
-        Assert.Equal(pinned.hwid_hmac, attempts[0].hwid_hmac);
+        Assert.NotNull(attempts[0].hwid_hmac_base64);
+        Assert.Equal(pinned.hwid_hmac, Convert.FromBase64String(attempts[0].hwid_hmac_base64!));
     }
 
     [SkippableFact]
@@ -132,12 +144,12 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
 
         var (productId, _, _, _) = await CreateProductAndLicenceAsync("audit-unknown");
         await using var conn = await OpenDbAsync();
-        var before = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM licence_verification_attempts");
+        var before = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM audit_events WHERE event_type = 'licence.verified'");
 
         var response = await Factory!.CreateClient().PostAsJsonAsync("/licences/verify", new { licenceKey = "LIC-ABCDE-FGHJK-MNPQR-STVWX-YZ234", productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var after = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM licence_verification_attempts");
+        var after = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM audit_events WHERE event_type = 'licence.verified'");
         Assert.Equal(before, after);
     }
 
@@ -247,7 +259,12 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
     {
         await using var conn = await OpenDbAsync();
         var rows = (await conn.QueryAsync<(string outcome, string? denial_reason)>(
-                        "SELECT outcome, denial_reason FROM licence_verification_attempts WHERE licence_id = @Id",
+                        """
+                        SELECT (payload->>'outcome') AS outcome,
+                               (payload->>'denialReason') AS denial_reason
+                        FROM audit_events
+                        WHERE event_type = 'licence.verified' AND subject_id = @Id
+                        """,
                         new { Id = licenceId })).ToList();
         Assert.Single(rows);
         Assert.Equal("denied", rows[0].outcome);
@@ -258,7 +275,13 @@ public sealed class LicenceVerificationAuditTests : IntegrationTestBase
     {
         await using var conn = await OpenDbAsync();
         var rows = (await conn.QueryAsync<(string outcome, string? denial_reason)>(
-                        "SELECT outcome, denial_reason FROM licence_verification_attempts WHERE licence_id = @Id ORDER BY attempted_at DESC",
+                        """
+                        SELECT (payload->>'outcome') AS outcome,
+                               (payload->>'denialReason') AS denial_reason
+                        FROM audit_events
+                        WHERE event_type = 'licence.verified' AND subject_id = @Id
+                        ORDER BY occurred_at DESC
+                        """,
                         new { Id = licenceId })).ToList();
         Assert.Contains(rows, r => r.outcome == "denied" && r.denial_reason == expectedReason);
     }

@@ -39,8 +39,9 @@ public interface ILicenceRepository
         Guid licenceId,
         byte[] hwidHmac,
         short hwidHmacPepperVersion,
+        Guid productIdRequested,
         string sourceIp,
-        LicenceVerificationAttempt approvedAttempt,
+        DateTimeOffset attemptedAt,
         CancellationToken cancellationToken
     );
 

@@ -1,5 +1,6 @@
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
+using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Licences;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-public sealed class VerificationAttemptsController(ILicenceVerificationAttemptRepository verificationAttempts) : ControllerBase
+public sealed class VerificationAttemptsController(IAuditEventRepository auditEvents) : ControllerBase
 {
     private const int DefaultLimit = 50;
     private const int MaxLimit = 200;
@@ -38,7 +39,12 @@ public sealed class VerificationAttemptsController(ILicenceVerificationAttemptRe
 
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
-        var page = await verificationAttempts.ListAsync(filter, effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await auditEvents.QueryVerifiesAsync(
+                       licenceId: null,
+                       LicencesController.OutcomeFilterToText(filter),
+                       effectiveLimit,
+                       effectiveOffset,
+                       cancellationToken);
 
         var items = page.Items.Select(LicencesController.ToVerificationAttemptResponse).ToList();
         return Ok(new PagedResponse<VerificationAttemptResponse>(items, page.Total, effectiveLimit, effectiveOffset));

@@ -52,28 +52,6 @@ CREATE INDEX ix_licences_user_id ON licences (user_id);
 CREATE INDEX ix_licences_status ON licences (status);
 CREATE INDEX ix_licences_created_at ON licences (created_at DESC);
 
-CREATE TABLE user_status_history (
-    id              UUID PRIMARY KEY,
-    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    previous_status TEXT NOT NULL CHECK (previous_status IN ('active', 'suspended')),
-    new_status      TEXT NOT NULL CHECK (new_status IN ('active', 'suspended')),
-    changed_by      UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    changed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reason          TEXT NULL
-);
-CREATE INDEX ix_user_status_history_user_id ON user_status_history (user_id, changed_at DESC);
-
-CREATE TABLE licence_status_history (
-    id              UUID PRIMARY KEY,
-    licence_id      UUID NOT NULL REFERENCES licences(id) ON DELETE RESTRICT,
-    previous_status TEXT NOT NULL CHECK (previous_status IN ('active', 'suspended', 'revoked')),
-    new_status      TEXT NOT NULL CHECK (new_status IN ('active', 'suspended', 'revoked')),
-    changed_by      UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    changed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reason          TEXT NULL
-);
-CREATE INDEX ix_licence_status_history_licence_id ON licence_status_history (licence_id, changed_at DESC);
-
 CREATE TABLE session_refresh_tokens (
     id              UUID PRIMARY KEY,
     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -85,52 +63,24 @@ CREATE TABLE session_refresh_tokens (
 );
 CREATE INDEX ix_session_refresh_tokens_user_active ON session_refresh_tokens (user_id) WHERE revoked_at IS NULL;
 
-CREATE TABLE licence_binding_history (
-    id                   UUID PRIMARY KEY,
-    licence_id           UUID NOT NULL REFERENCES licences(id) ON DELETE CASCADE,
-    binding_type         TEXT NOT NULL CHECK (binding_type IN ('hwid', 'ip_allowlist')),
-    previous_value       JSONB NULL,
-    new_value            JSONB NULL,
-    change_source        TEXT NOT NULL CHECK (change_source IN ('admin', 'first_use')),
-    changed_by_user_id   UUID NULL REFERENCES users(id) ON DELETE SET NULL,
-    changed_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reason               TEXT NULL
+CREATE TABLE audit_events (
+    id            UUID PRIMARY KEY,
+    occurred_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    event_type    TEXT NOT NULL,
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('user', 'licence')),
+    subject_id    UUID NOT NULL,
+    actor_type    TEXT NOT NULL CHECK (actor_type IN ('admin', 'system', 'anonymous')),
+    actor_user_id UUID NULL REFERENCES users(id) ON DELETE RESTRICT,
+    reason        TEXT NULL,
+    payload       JSONB NOT NULL,
+    CONSTRAINT audit_events_actor_user_id_when_admin
+        CHECK ((actor_type = 'admin' AND actor_user_id IS NOT NULL)
+            OR (actor_type IN ('system', 'anonymous') AND actor_user_id IS NULL))
 );
-CREATE INDEX ix_licence_binding_history_licence_changed
-    ON licence_binding_history (licence_id, changed_at DESC);
-
-CREATE TABLE licence_key_history (
-    id                        UUID PRIMARY KEY,
-    licence_id                UUID NOT NULL REFERENCES licences(id) ON DELETE RESTRICT,
-    previous_key_hmac         BYTEA NOT NULL,
-    previous_key_pepper_ver   SMALLINT NOT NULL,
-    new_key_hmac              BYTEA NOT NULL,
-    new_key_pepper_ver        SMALLINT NOT NULL,
-    changed_by                UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    changed_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    reason                    TEXT NULL
-);
-CREATE INDEX ix_licence_key_history_licence_id ON licence_key_history (licence_id, changed_at DESC);
-
-CREATE TABLE licence_verification_attempts (
-    id                   UUID PRIMARY KEY,
-    licence_id           UUID NOT NULL REFERENCES licences(id) ON DELETE CASCADE,
-    product_id_requested UUID NULL,
-    hwid_hmac            BYTEA NULL,
-    source_ip            INET NOT NULL,
-    outcome              TEXT NOT NULL CHECK (outcome IN ('approved', 'denied')),
-    denial_reason        TEXT NULL CHECK (denial_reason IN (
-        'product_mismatch',
-        'licence_not_usable',
-        'owner_suspended',
-        'ip_not_allowlisted',
-        'hwid_missing',
-        'hwid_mismatch'
-    )),
-    attempted_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX ix_licence_verification_attempts_licence_time
-    ON licence_verification_attempts (licence_id, attempted_at DESC);
-CREATE INDEX ix_licence_verification_attempts_denials_time
-    ON licence_verification_attempts (attempted_at DESC)
-    WHERE outcome = 'denied';
+CREATE INDEX ix_audit_events_subject
+    ON audit_events (subject_type, subject_id, occurred_at DESC);
+CREATE INDEX ix_audit_events_event_type
+    ON audit_events (event_type, occurred_at DESC);
+CREATE INDEX ix_audit_events_denied_verifies
+    ON audit_events (occurred_at DESC)
+    WHERE event_type = 'licence.verified' AND (payload->>'outcome') = 'denied';

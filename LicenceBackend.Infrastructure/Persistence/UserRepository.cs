@@ -1,11 +1,13 @@
 using Dapper;
+using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Common;
 using LicenceBackend.Core.Users;
 using Npgsql;
 
 namespace LicenceBackend.Infrastructure.Persistence;
 
-public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepository
+public sealed class UserRepository(NpgsqlDataSource dataSource, IAuditEventRepository auditEvents, TimeProvider time) : IUserRepository
 {
     public async Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -118,11 +120,6 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
                                  RETURNING id, email, email_lower, password_hash, display_name, role, status, created_at, updated_at;
                                  """;
 
-        const string insertHistorySql = """
-                                        INSERT INTO user_status_history (id, user_id, previous_status, new_status, changed_by, reason)
-                                        VALUES (@Id, @UserId, @PreviousStatus, @NewStatus, @ChangedBy, @Reason);
-                                        """;
-
         const string revokeRefreshesSql = """
                                           UPDATE session_refresh_tokens
                                           SET revoked_at = NOW()
@@ -151,19 +148,17 @@ public sealed class UserRepository(NpgsqlDataSource dataSource) : IUserRepositor
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            await connection.ExecuteAsync(new CommandDefinition(
-                                              insertHistorySql,
-                                              new
-                                              {
-                                                  Id = Guid.NewGuid(),
-                                                  UserId = userId,
-                                                  PreviousStatus = previousStatusText,
-                                                  NewStatus = newStatusText,
-                                                  ChangedBy = changedBy,
-                                                  Reason = reason
-                                              },
-                                              transaction,
-                                              cancellationToken: cancellationToken));
+            var evt = AuditEvent.Create(
+                AuditEventTypes.UserStatusChanged,
+                AuditSubjectTypes.User,
+                userId,
+                AuditActorTypes.Admin,
+                changedBy,
+                reason,
+                new UserStatusChangedPayload(previousStatusText, newStatusText),
+                time.GetUtcNow()
+            );
+            await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
 
             if (newStatus == UserStatus.Suspended)
                 await connection.ExecuteAsync(new CommandDefinition(

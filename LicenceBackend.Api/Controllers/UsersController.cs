@@ -3,6 +3,8 @@ using System.Security.Claims;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
+using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
@@ -19,9 +21,8 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class UsersController(
     IUserRepository users,
-    IUserStatusHistoryRepository userStatusHistory,
+    IAuditEventRepository auditEvents,
     ILicenceRepository licences,
-    ILicenceVerificationAttemptRepository verificationAttempts,
     IProductRepository products,
     IPasswordHasher passwordHasher,
     TimeProvider time
@@ -165,25 +166,34 @@ public sealed class UsersController(
 
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
-        var page = await userStatusHistory.ListForUserAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await auditEvents.QueryAsync(
+                       AuditSubjectTypes.User,
+                       id,
+                       AuditEventTypes.UserStatusChanged,
+                       effectiveLimit,
+                       effectiveOffset,
+                       cancellationToken);
 
         var emailByUserId = new Dictionary<Guid, string>();
-        foreach (var changerId in page.Items.Select(h => h.ChangedBy).Distinct())
+        foreach (var changerId in page.Items.Select(e => e.ActorUserId).OfType<Guid>().Distinct())
         {
             var changer = await users.FindByIdAsync(changerId, cancellationToken);
             if (changer is not null) emailByUserId[changerId] = changer.Email;
         }
 
         var items = page.Items
-                        .Select(h => new UserStatusHistoryResponse(
-                                    h.Id,
-                                    h.PreviousStatus.ToString().ToLowerInvariant(),
-                                    h.NewStatus.ToString().ToLowerInvariant(),
-                                    h.ChangedBy,
-                                    emailByUserId.GetValueOrDefault(h.ChangedBy),
-                                    h.ChangedAt,
-                                    h.Reason)
-                        )
+                        .Select(evt =>
+                            {
+                                var payload = evt.DeserializePayload<UserStatusChangedPayload>();
+                                return new UserStatusHistoryResponse(
+                                    evt.Id,
+                                    payload.PreviousStatus,
+                                    payload.NewStatus,
+                                    evt.ActorUserId ?? Guid.Empty,
+                                    evt.ActorUserId is { } changerId ? emailByUserId.GetValueOrDefault(changerId) : null,
+                                    evt.OccurredAt,
+                                    evt.Reason);
+                            })
                         .ToList();
 
         return Ok(new PagedResponse<UserStatusHistoryResponse>(items, page.Total, effectiveLimit, effectiveOffset));
@@ -275,9 +285,9 @@ public sealed class UsersController(
 
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
-        var page = await verificationAttempts.ListForLicenceAsync(
+        var page = await auditEvents.QueryVerifiesAsync(
                        id,
-                       VerificationAttemptOutcomeFilter.ApprovedOnly,
+                       VerificationOutcomeNames.Approved,
                        effectiveLimit,
                        effectiveOffset,
                        cancellationToken

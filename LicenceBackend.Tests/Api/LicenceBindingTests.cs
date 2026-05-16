@@ -22,8 +22,11 @@ public sealed class LicenceBindingTests : IntegrationTestBase
         var row = await conn.QuerySingleAsync<(byte[]? hwid_hmac, int history_count)>(
                       """
                       SELECT l.hwid_hmac,
-                             (SELECT COUNT(*) FROM licence_binding_history
-                              WHERE licence_id = l.id AND binding_type = 'hwid' AND change_source = 'first_use')::int AS history_count
+                             (SELECT COUNT(*) FROM audit_events
+                              WHERE event_type = 'licence.binding_changed'
+                                AND subject_id = l.id
+                                AND payload->>'bindingType' = 'hwid'
+                                AND payload->>'changeSource' = 'first_use')::int AS history_count
                       FROM licences l WHERE l.id = @Id;
                       """,
                       new { Id = licenceId });
@@ -210,8 +213,11 @@ public sealed class LicenceBindingTests : IntegrationTestBase
         var row = await conn.QuerySingleAsync<(string? ip_allowlist, int first_use_count)>(
                       """
                       SELECT l.ip_allowlist::text,
-                             (SELECT COUNT(*) FROM licence_binding_history
-                              WHERE licence_id = l.id AND binding_type = 'ip_allowlist' AND change_source = 'first_use')::int
+                             (SELECT COUNT(*) FROM audit_events
+                              WHERE event_type = 'licence.binding_changed'
+                                AND subject_id = l.id
+                                AND payload->>'bindingType' = 'ip_allowlist'
+                                AND payload->>'changeSource' = 'first_use')::int
                       FROM licences l WHERE l.id = @Id;
                       """,
                       new { Id = licenceId });
@@ -271,8 +277,11 @@ public sealed class LicenceBindingTests : IntegrationTestBase
         var row = await conn.QuerySingleAsync<(string? ip_allowlist, int first_use_count)>(
                       """
                       SELECT l.ip_allowlist::text,
-                             (SELECT COUNT(*) FROM licence_binding_history
-                              WHERE licence_id = l.id AND binding_type = 'ip_allowlist' AND change_source = 'first_use')::int
+                             (SELECT COUNT(*) FROM audit_events
+                              WHERE event_type = 'licence.binding_changed'
+                                AND subject_id = l.id
+                                AND payload->>'bindingType' = 'ip_allowlist'
+                                AND payload->>'changeSource' = 'first_use')::int
                       FROM licences l WHERE l.id = @Id;
                       """,
                       new { Id = licence.Id });
