@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAccessTokenStore } from '@/auth/access-token-store';
 import { fetchMyLicences } from '@/api/me-licences';
+import { fetchProducts } from '@/api/products';
 
 export const Route = createFileRoute('/portal/')({
   component: PortalOverview,
@@ -11,9 +12,13 @@ export const Route = createFileRoute('/portal/')({
 
 function PortalOverview() {
   const user = useAccessTokenStore((s) => s.user);
-  const summary = useQuery({
+  const licences = useQuery({
     queryKey: ['portal', 'overview', 'licences'],
     queryFn: () => fetchMyLicences({ limit: 1, offset: 0 }),
+  });
+  const products = useQuery({
+    queryKey: ['portal', 'overview', 'products'],
+    queryFn: () => fetchProducts({ limit: 1, offset: 0 }),
   });
 
   return (
@@ -28,44 +33,56 @@ function PortalOverview() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your licences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {summary.isPending && <Skeleton className="h-8 w-24" />}
-            {summary.isError && (
-              <p className="text-sm text-status-revoked-fg">Failed to load.</p>
-            )}
-            {summary.data && (
-              <>
-                <p className="font-display text-3xl font-semibold text-ink">{summary.data.total}</p>
-                <Link
-                  to="/portal/licences"
-                  className="text-sm font-medium text-ink underline-offset-2 hover:underline"
-                >
-                  View all
-                </Link>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Browse products</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm text-ink-muted">See what is available in the catalog.</p>
-            <Link
-              to="/portal/products"
-              className="text-sm font-medium text-ink underline-offset-2 hover:underline"
-            >
-              Open catalog
-            </Link>
-          </CardContent>
-        </Card>
+        <SummaryCard
+          title="Your licences"
+          description="Licences you own or are a member of."
+          isPending={licences.isPending}
+          isError={licences.isError}
+          count={licences.data?.total}
+          to="/portal/licences"
+          linkLabel="View all"
+        />
+        <SummaryCard
+          title="Browse products"
+          description="Products available in the catalog."
+          isPending={products.isPending}
+          isError={products.isError}
+          count={products.data?.total}
+          to="/portal/products"
+          linkLabel="Open catalog"
+        />
       </div>
     </div>
+  );
+}
+
+interface SummaryCardProps {
+  title: string;
+  description: string;
+  isPending: boolean;
+  isError: boolean;
+  count: number | undefined;
+  to: '/portal/licences' | '/portal/products';
+  linkLabel: string;
+}
+
+function SummaryCard({ title, description, isPending, isError, count, to, linkLabel }: SummaryCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {isPending && <Skeleton className="h-9 w-24" />}
+        {isError && <p className="text-sm text-status-revoked-fg">Failed to load.</p>}
+        {!isPending && !isError && (
+          <p className="font-display text-3xl font-semibold text-ink">{count ?? 0}</p>
+        )}
+        <p className="text-sm text-ink-muted">{description}</p>
+        <Link to={to} className="text-sm font-medium text-ink underline-offset-2 hover:underline">
+          {linkLabel}
+        </Link>
+      </CardContent>
+    </Card>
   );
 }
