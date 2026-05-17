@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ThemeMenu } from '@/components/ThemeMenu';
 import { useAccessTokenStore } from '@/auth/access-token-store';
 import { apiClient } from '@/auth/api-client';
 
@@ -48,6 +49,7 @@ export function Header() {
             )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <ThemeMenu />
           <DropdownMenuItem onSelect={() => void navigate({ to: '/admin/me' })}>
             My profile
           </DropdownMenuItem>

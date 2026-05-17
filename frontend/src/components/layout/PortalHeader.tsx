@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ThemeMenu } from '@/components/ThemeMenu';
 import { useAccessTokenStore } from '@/auth/access-token-store';
 import { apiClient } from '@/auth/api-client';
 
@@ -48,6 +49,7 @@ export function PortalHeader() {
             )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <ThemeMenu />
           <DropdownMenuItem onSelect={() => void navigate({ to: '/portal/me' })}>
             My profile
           </DropdownMenuItem>

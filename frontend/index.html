@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LicenceBackend Admin</title>
+    <script>
+      // Apply the persisted theme before paint to avoid a flash of light mode.
+      (function () {
+        try {
+          var stored = localStorage.getItem('licencebackend.theme');
+          var mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = mode === 'dark' || (mode === 'system' && prefersDark);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          // localStorage / matchMedia unavailable; default to light.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

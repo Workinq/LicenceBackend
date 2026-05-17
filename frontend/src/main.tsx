@@ -12,6 +12,7 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 
 import './index.css';
+import './theme/theme-store';
 import { App } from './App';
 
 createRoot(document.getElementById('root')!).render(
