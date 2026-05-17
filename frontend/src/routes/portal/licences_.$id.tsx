@@ -136,13 +136,21 @@ function PortalLicenceDetail() {
           <p className="text-sm text-ink-muted">
             The licence key is shown only once at creation. Only the licence owner can perform actions on it.
           </p>
-          {isOwner ? (
+          {isOwner && lic.status === 'active' && (
             <RegenerateKeyDialog
               licenceId={lic.id}
               regenerate={(id) => regenerateMyLicenceKey(id, { reason: null })}
               invalidateQueryKey={['portal', 'licences', 'detail', lic.id]}
             />
-          ) : (
+          )}
+          {isOwner && lic.status !== 'active' && (
+            <span title={`The key cannot be regenerated for a ${lic.status} licence.`} className="inline-block">
+              <Button variant="outline" disabled className="pointer-events-none">
+                Regenerate key
+              </Button>
+            </span>
+          )}
+          {!isOwner && (
             <span title="Only the owner can regenerate the key." className="inline-block">
               <Button variant="outline" disabled className="pointer-events-none">
                 Regenerate key

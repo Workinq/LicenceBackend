@@ -552,6 +552,7 @@ public sealed class UsersController(
     [HttpPost("/me/licences/{id:guid}/regenerate-key")]
     [Authorize]
     [ProducesResponseType(typeof(LicenceKeyRegeneratedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RegenerateMyLicenceKey(
         Guid id,
@@ -563,6 +564,13 @@ public sealed class UsersController(
 
         var licence = await licences.FindByIdAsync(id, cancellationToken);
         if (licence is null || licence.UserId != userId) return LicenceNotFound(id);
+
+        if (licence.Status != LicenceStatus.Active)
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: ProblemTitles.InvalidStatus,
+                detail: $"Cannot regenerate the key for a {licence.Status.ToString().ToLowerInvariant()} licence."
+            );
 
         var rawKey = keyGenerator.Generate();
         var pepperedHmac = keyHasher.HashWithActive(rawKey);

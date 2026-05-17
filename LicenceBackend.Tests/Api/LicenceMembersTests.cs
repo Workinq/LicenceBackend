@@ -293,6 +293,56 @@ public sealed class LicenceMembersTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task Owner_regenerate_on_revoked_licence_returns_400()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-revoked", "Regen Revoked");
+        var ownerEmail = "regen-revoked-owner@test.local";
+        var ownerPassword = "regen-revoked-pw-12345";
+        var ownerId = await CreateUserAsync(ownerEmail, ownerPassword);
+        var licence = await CreateLicenceAsync(product.Id, ownerId);
+
+        var revoke = await AuthedClient.PatchAsJsonAsync($"/licences/{licence.Id}/status", new { status = "revoked", reason = (string?)null });
+        Assert.Equal(HttpStatusCode.OK, revoke.StatusCode);
+
+        using var ownerClient = await CreateLoggedInClientAsync(ownerEmail, ownerPassword);
+        var response = await ownerClient.PostAsJsonAsync($"/me/licences/{licence.Id}/regenerate-key", new { reason = (string?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Admin_regenerate_on_revoked_licence_returns_400()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("admin-regen-revoked", "Admin Regen Revoked");
+        var licence = await CreateLicenceAsync(product.Id, AdminUserId);
+
+        var revoke = await AuthedClient.PatchAsJsonAsync($"/licences/{licence.Id}/status", new { status = "revoked", reason = (string?)null });
+        Assert.Equal(HttpStatusCode.OK, revoke.StatusCode);
+
+        var response = await AuthedClient.PostAsJsonAsync($"/licences/{licence.Id}/regenerate-key", new { reason = (string?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Owner_regenerate_on_suspended_licence_returns_400()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-suspended", "Regen Suspended");
+        var ownerEmail = "regen-suspended-owner@test.local";
+        var ownerPassword = "regen-suspended-pw-12345";
+        var ownerId = await CreateUserAsync(ownerEmail, ownerPassword);
+        var licence = await CreateLicenceAsync(product.Id, ownerId);
+
+        var suspend = await AuthedClient.PatchAsJsonAsync($"/licences/{licence.Id}/status", new { status = "suspended", reason = (string?)null });
+        Assert.Equal(HttpStatusCode.OK, suspend.StatusCode);
+
+        using var ownerClient = await CreateLoggedInClientAsync(ownerEmail, ownerPassword);
+        var response = await ownerClient.PostAsJsonAsync($"/me/licences/{licence.Id}/regenerate-key", new { reason = (string?)null });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [SkippableFact]
     public async Task Non_owner_regenerate_via_me_endpoint_returns_404()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");

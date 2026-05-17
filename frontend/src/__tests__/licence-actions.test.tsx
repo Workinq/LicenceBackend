@@ -32,7 +32,7 @@ describe('LicenceActions', () => {
     renderActions('suspended');
     expect(screen.getByRole('button', { name: /reinstate/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^revoke$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /regenerate key/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /regenerate key/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^suspend$/i })).not.toBeInTheDocument();
   });
 

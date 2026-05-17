@@ -59,7 +59,6 @@ export function LicenceActions({ licence }: { licence: LicenceResponse }) {
           Reinstate
         </Button>
         {revokeAction}
-        <RegenerateKeyDialog licenceId={licence.id} />
       </div>
     );
   }
