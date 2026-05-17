@@ -23,8 +23,11 @@ public sealed class UsersController(
     IUserRepository users,
     IAuditEventRepository auditEvents,
     ILicenceRepository licences,
+    ILicenceMemberRepository licenceMembers,
     IProductRepository products,
     IPasswordHasher passwordHasher,
+    ILicenceKeyGenerator keyGenerator,
+    ILicenceKeyHasher keyHasher,
     TimeProvider time
 ) : ControllerBase
 {
@@ -49,7 +52,6 @@ public sealed class UsersController(
                 detail: $"A user with email '{request.Email}' already exists."
             );
 
-        var role = Enum.Parse<UserRole>(request.Role, true);
         var now = time.GetUtcNow();
         var user = new User(
             Guid.NewGuid(),
@@ -57,7 +59,7 @@ public sealed class UsersController(
             request.Email.Trim().ToLowerInvariant(),
             passwordHasher.Hash(request.Password),
             string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim(),
-            role,
+            UserRole.User,
             UserStatus.Active,
             now,
             now
@@ -72,17 +74,45 @@ public sealed class UsersController(
     [HttpGet]
     [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(PagedResponse<UserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(
         [FromQuery] int? limit,
         [FromQuery] int? offset,
+        [FromQuery] string? q,
+        [FromQuery] string? role,
+        [FromQuery] string? status,
         CancellationToken cancellationToken
     )
     {
+        UserRole? parsedRole = null;
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            if (!Enum.TryParse<UserRole>(role, true, out var r))
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: ProblemTitles.InvalidRole,
+                    detail: "role must be one of: user, admin."
+                );
+            parsedRole = r;
+        }
+
+        UserStatus? parsedStatus = null;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<UserStatus>(status, true, out var s))
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: ProblemTitles.InvalidStatus,
+                    detail: "status must be one of: active, suspended."
+                );
+            parsedStatus = s;
+        }
+
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
 
-        var page = await users.ListAsync(effectiveLimit, effectiveOffset, cancellationToken);
+        var page = await users.ListAsync(effectiveLimit, effectiveOffset, q, parsedRole, parsedStatus, cancellationToken);
         var items = page.Items.Select(ToUserResponse).ToList();
         return Ok(new PagedResponse<UserResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
@@ -103,6 +133,70 @@ public sealed class UsersController(
             );
 
         return Ok(ToUserResponse(user));
+    }
+
+    [HttpGet("{id:guid}/licences")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(typeof(PagedResponse<LicenceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserLicences(
+        Guid id,
+        [FromQuery] string? status,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
+        CancellationToken cancellationToken
+    )
+    {
+        var user = await users.FindByIdAsync(id, cancellationToken);
+        if (user is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.UserNotFound,
+                detail: $"No user with id '{id}'."
+            );
+
+        LicenceStatus? parsedStatus = null;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<LicenceStatus>(status, true, out var s))
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: ProblemTitles.InvalidStatus,
+                    detail: "status must be one of: active, suspended, revoked."
+                );
+            parsedStatus = s;
+        }
+
+        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
+        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var page = await licences.ListForUserAsync(id, parsedStatus, effectiveLimit, effectiveOffset, cancellationToken);
+
+        var slugByProductId = new Dictionary<Guid, string>();
+        foreach (var pid in page.Items.Select(l => l.Licence.ProductId).Distinct())
+        {
+            var product = await products.FindByIdAsync(pid, cancellationToken);
+            if (product is not null) slugByProductId[pid] = product.Slug;
+        }
+
+        var emailByUserId = new Dictionary<Guid, string>();
+        foreach (var ownerId in page.Items.Select(l => l.Licence.UserId).Distinct())
+        {
+            var owner = await users.FindByIdAsync(ownerId, cancellationToken);
+            if (owner is not null) emailByUserId[ownerId] = owner.Email;
+        }
+
+        var items = page.Items
+                        .Select(entry => LicencesController.ToLicenceResponse(
+                                    entry.Licence,
+                                    slugByProductId.GetValueOrDefault(entry.Licence.ProductId, string.Empty),
+                                    emailByUserId.GetValueOrDefault(entry.Licence.UserId, string.Empty),
+                                    entry.Relationship)
+                        )
+                        .ToList();
+
+        return Ok(new PagedResponse<LicenceResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
 
     [HttpPatch("{id:guid}/status")]
@@ -169,7 +263,7 @@ public sealed class UsersController(
         var page = await auditEvents.QueryAsync(
                        AuditSubjectTypes.User,
                        id,
-                       AuditEventTypes.UserStatusChanged,
+                       new[] { AuditEventTypes.UserStatusChanged },
                        effectiveLimit,
                        effectiveOffset,
                        cancellationToken);
@@ -212,6 +306,58 @@ public sealed class UsersController(
         return Ok(ToUserResponse(user));
     }
 
+    [HttpPatch("/me")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateMe(
+        [FromBody] UpdateProfileRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var updated = await users.UpdateDisplayNameAsync(userId, request.DisplayName, cancellationToken);
+        if (updated is null) return Unauthorized();
+
+        return Ok(ToUserResponse(updated));
+    }
+
+    [HttpPatch("/me/password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var user = await users.FindByIdAsync(userId, cancellationToken);
+        if (user is null) return Unauthorized();
+
+        if (!passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: ProblemTitles.InvalidCredentials,
+                detail: "Current password is incorrect."
+            );
+
+        var newHash = passwordHasher.Hash(request.NewPassword);
+        var currentSid = TryGetCurrentSessionId(out var sid) ? sid : (Guid?)null;
+        var updated = await users.UpdatePasswordAsync(userId, newHash, currentSid, cancellationToken);
+        if (updated is null) return Unauthorized();
+
+        return NoContent();
+    }
+
+    private bool TryGetCurrentSessionId(out Guid sessionId)
+    {
+        var sidClaim = User.FindFirst("sid")?.Value;
+        return Guid.TryParse(sidClaim, out sessionId);
+    }
+
     [HttpGet("/me/licences")]
     [Authorize]
     [ProducesResponseType(typeof(PagedResponse<LicenceResponse>), StatusCodes.Status200OK)]
@@ -240,27 +386,248 @@ public sealed class UsersController(
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
 
-        var owner = await users.FindByIdAsync(userId, cancellationToken);
-        if (owner is null) return Unauthorized();
-        var page = await licences.ListForOwnerAsync(userId, parsedStatus, effectiveLimit, effectiveOffset, cancellationToken);
+        var caller = await users.FindByIdAsync(userId, cancellationToken);
+        if (caller is null) return Unauthorized();
+        var page = await licences.ListForUserAsync(userId, parsedStatus, effectiveLimit, effectiveOffset, cancellationToken);
 
         var slugByProductId = new Dictionary<Guid, string>();
-        foreach (var pid in page.Items.Select(l => l.ProductId).Distinct())
+        foreach (var pid in page.Items.Select(l => l.Licence.ProductId).Distinct())
         {
             var product = await products.FindByIdAsync(pid, cancellationToken);
             if (product is not null) slugByProductId[pid] = product.Slug;
         }
 
+        var emailByUserId = new Dictionary<Guid, string>();
+        foreach (var ownerId in page.Items.Select(l => l.Licence.UserId).Distinct())
+        {
+            var owner = await users.FindByIdAsync(ownerId, cancellationToken);
+            if (owner is not null) emailByUserId[ownerId] = owner.Email;
+        }
+
         var items = page.Items
-                        .Select(licence => LicencesController.ToLicenceResponse(
-                                    licence,
-                                    slugByProductId.GetValueOrDefault(licence.ProductId, string.Empty),
-                                    owner.Email)
+                        .Select(entry => LicencesController.ToLicenceResponse(
+                                    entry.Licence,
+                                    slugByProductId.GetValueOrDefault(entry.Licence.ProductId, string.Empty),
+                                    emailByUserId.GetValueOrDefault(entry.Licence.UserId, string.Empty),
+                                    entry.Relationship)
                         )
                         .ToList();
 
         return Ok(new PagedResponse<LicenceResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
+
+    [HttpGet("/me/licences/{id:guid}")]
+    [Authorize]
+    [ProducesResponseType(typeof(LicenceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyLicence(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null) return LicenceNotFound(id);
+
+        var isOwner = licence.UserId == userId;
+        var isMember = !isOwner && await licenceMembers.IsMemberAsync(id, userId, cancellationToken);
+        if (!isOwner && !isMember) return LicenceNotFound(id);
+
+        var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
+        var relationship = isOwner ? UserLicenceRelationships.Owner : UserLicenceRelationships.Member;
+        return Ok(LicencesController.ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty, relationship));
+    }
+
+    [HttpGet("/me/licences/{id:guid}/members")]
+    [Authorize]
+    [ProducesResponseType(typeof(IReadOnlyList<LicenceMemberResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListMyLicenceMembers(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null || licence.UserId != userId) return LicenceNotFound(id);
+
+        var responses = await BuildMemberResponsesAsync(id, cancellationToken);
+        return Ok(responses);
+    }
+
+    [HttpPost("/me/licences/{id:guid}/members")]
+    [Authorize]
+    [ProducesResponseType(typeof(LicenceMemberResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddMyLicenceMember(
+        Guid id,
+        [FromBody] AddLicenceMemberRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null || licence.UserId != userId) return LicenceNotFound(id);
+
+        var memberUser = await users.FindByEmailAsync(request.Email.Trim(), cancellationToken);
+        if (memberUser is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.UserNotFound,
+                detail: $"No user with email '{request.Email}'."
+            );
+
+        if (memberUser.Id == licence.UserId)
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: ProblemTitles.MemberIsOwner,
+                detail: "The owner of a licence cannot also be a member."
+            );
+
+        if (await licenceMembers.IsMemberAsync(id, memberUser.Id, cancellationToken))
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: ProblemTitles.MemberAlreadyExists,
+                detail: $"User '{memberUser.Email}' is already a member of this licence."
+            );
+
+        var now = time.GetUtcNow();
+        await licenceMembers.AddAsync(new LicenceMember(id, memberUser.Id, userId, now), cancellationToken);
+
+        var auditEvent = AuditEvent.Create(
+            AuditEventTypes.LicenceMemberAdded,
+            AuditSubjectTypes.Licence,
+            id,
+            AuditActorTypes.Admin,
+            userId,
+            null,
+            new LicenceMemberChangedPayload(memberUser.Id, memberUser.Email),
+            now
+        );
+        await auditEvents.RecordAsync(auditEvent, cancellationToken);
+
+        var actor = await users.FindByIdAsync(userId, cancellationToken);
+        var response = new LicenceMemberResponse(
+            memberUser.Id,
+            memberUser.Email,
+            memberUser.DisplayName,
+            userId,
+            actor?.Email,
+            now
+        );
+        return CreatedAtAction(nameof(ListMyLicenceMembers), new { id }, response);
+    }
+
+    [HttpDelete("/me/licences/{id:guid}/members/{memberId:guid}")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveMyLicenceMember(Guid id, Guid memberId, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null || licence.UserId != userId) return LicenceNotFound(id);
+
+        var memberUser = await users.FindByIdAsync(memberId, cancellationToken);
+        var removed = await licenceMembers.RemoveAsync(id, memberId, cancellationToken);
+        if (!removed)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.UserNotFound,
+                detail: $"User '{memberId}' is not a member of this licence."
+            );
+
+        var auditEvent = AuditEvent.Create(
+            AuditEventTypes.LicenceMemberRemoved,
+            AuditSubjectTypes.Licence,
+            id,
+            AuditActorTypes.Admin,
+            userId,
+            null,
+            new LicenceMemberChangedPayload(memberId, memberUser?.Email ?? string.Empty),
+            time.GetUtcNow()
+        );
+        await auditEvents.RecordAsync(auditEvent, cancellationToken);
+
+        return NoContent();
+    }
+
+    [HttpPost("/me/licences/{id:guid}/regenerate-key")]
+    [Authorize]
+    [ProducesResponseType(typeof(LicenceKeyRegeneratedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RegenerateMyLicenceKey(
+        Guid id,
+        [FromBody] RegenerateLicenceKeyRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null || licence.UserId != userId) return LicenceNotFound(id);
+
+        var rawKey = keyGenerator.Generate();
+        var pepperedHmac = keyHasher.HashWithActive(rawKey);
+
+        var updated = await licences.RegenerateKeyAsync(
+            id,
+            pepperedHmac,
+            userId,
+            string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+            cancellationToken
+        );
+        if (updated is null) return LicenceNotFound(id);
+
+        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+
+        return Ok(new LicenceKeyRegeneratedResponse(
+            updated.Id,
+            updated.ProductId,
+            product?.Slug ?? string.Empty,
+            updated.UserId,
+            owner?.Email ?? string.Empty,
+            updated.Status.ToString().ToLowerInvariant(),
+            updated.ExpiresAt,
+            updated.Notes,
+            updated.HwidHmac is not null,
+            updated.IpAllowlist,
+            updated.CreatedAt,
+            rawKey
+        ));
+    }
+
+    private async Task<IReadOnlyList<LicenceMemberResponse>> BuildMemberResponsesAsync(Guid licenceId, CancellationToken cancellationToken)
+    {
+        var rows = await licenceMembers.ListByLicenceAsync(licenceId, cancellationToken);
+        if (rows.Count == 0) return Array.Empty<LicenceMemberResponse>();
+
+        var distinctUserIds = rows.Select(r => r.UserId).Concat(rows.Select(r => r.AddedBy)).Distinct();
+        var userById = new Dictionary<Guid, User>();
+        foreach (var uid in distinctUserIds)
+        {
+            var u = await users.FindByIdAsync(uid, cancellationToken);
+            if (u is not null) userById[uid] = u;
+        }
+
+        return rows.Select(r =>
+        {
+            var memberUser = userById.GetValueOrDefault(r.UserId);
+            var addedByUser = userById.GetValueOrDefault(r.AddedBy);
+            return new LicenceMemberResponse(
+                r.UserId,
+                memberUser?.Email ?? string.Empty,
+                memberUser?.DisplayName,
+                r.AddedBy,
+                addedByUser?.Email,
+                r.AddedAt
+            );
+        }).ToList();
+    }
+
+    private IActionResult LicenceNotFound(Guid id) => Problem(
+        statusCode: StatusCodes.Status404NotFound,
+        title: ProblemTitles.LicenceNotFound,
+        detail: $"No licence with id '{id}'."
+    );
 
     [HttpGet("/me/licences/{id:guid}/verification-attempts")]
     [Authorize]

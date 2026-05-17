@@ -12,7 +12,7 @@ public interface IAuditEventRepository
     Task<PagedResult<AuditEvent>> QueryAsync(
         string? subjectType,
         Guid? subjectId,
-        string? eventType,
+        IReadOnlyList<string>? eventTypes,
         int limit,
         int offset,
         CancellationToken cancellationToken

@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
 import { fetchLicences } from '@/api/licences';
 
-export const Route = createFileRoute('/_authed/licences')({
+export const Route = createFileRoute('/admin/licences')({
   component: LicencesPage,
 });
 
@@ -62,7 +62,7 @@ function LicencesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Licences</h1>
-        <Link to="/licences/new" className={buttonVariants()}>
+        <Link to="/admin/licences/new" className={buttonVariants()}>
           New licence
         </Link>
       </div>
@@ -113,7 +113,7 @@ function LicencesPage() {
               <TableRow key={lic.id}>
                 <TableCell>
                   <Link
-                    to="/licences/$id"
+                    to="/admin/licences/$id"
                     params={{ id: lic.id }}
                     className="font-medium text-ink underline-offset-2 hover:underline"
                   >

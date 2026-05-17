@@ -19,7 +19,7 @@ vi.mock('../api/products', () => ({
   deleteProductImage: vi.fn(),
 }));
 import { fetchProducts } from '../api/products';
-import { Route as ProductsRoute } from '../routes/_authed/products';
+import { Route as ProductsRoute } from '../routes/admin/products';
 
 type ProductResponse = {
   id: string;
@@ -109,25 +109,27 @@ describe('ProductsPage', () => {
     vi.mocked(fetchProducts).mockResolvedValue({ items: [], total: 0, limit: 200, offset: 0 });
     renderProducts();
     expect((await screen.findByRole('link', { name: /new product/i })).getAttribute('href')).toBe(
-      '/products/new',
+      '/admin/products/new',
     );
   });
 
-  it('filters the cards by display name via the search box', async () => {
-    vi.mocked(fetchProducts).mockResolvedValue({
-      items: [
-        product({ id: 'p1', displayName: 'Acme Pro' }),
-        product({ id: 'p2', slug: 'acme-lite', displayName: 'Acme Lite' }),
-      ],
-      total: 2,
-      limit: 200,
-      offset: 0,
+  it('sends the search box value to fetchProducts as the q param and resets offset', async () => {
+    vi.mocked(fetchProducts).mockImplementation((params) => {
+      const items = (params?.q ?? '').toLowerCase().includes('pro')
+        ? [product({ id: 'p1', displayName: 'Acme Pro' })]
+        : [
+            product({ id: 'p1', displayName: 'Acme Pro' }),
+            product({ id: 'p2', slug: 'acme-lite', displayName: 'Acme Lite' }),
+          ];
+      return Promise.resolve({ items, total: items.length, limit: 24, offset: 0 });
     });
     renderProducts();
     await screen.findByText('Acme Pro');
     await userEvent.type(screen.getByPlaceholderText(/search/i), 'pro');
-    expect(screen.getByText('Acme Pro')).toBeInTheDocument();
+    expect(await screen.findByText('Acme Pro')).toBeInTheDocument();
     expect(screen.queryByText('Acme Lite')).not.toBeInTheDocument();
+    const calls = vi.mocked(fetchProducts).mock.calls;
+    expect(calls.at(-1)?.[0]).toEqual({ q: 'pro', limit: 6, offset: 0 });
   });
 
   it('shows an empty-state message when there are no products', async () => {

@@ -4,7 +4,29 @@
  * LicenceBackend API
  * OpenAPI spec version: 1.0.0
  */
-export type NullableOfJsonElement = unknown;
+export interface AddLicenceMemberRequest {
+  email: string;
+}
+
+export interface JsonElement {}
+
+export interface AuditEventResponse {
+  id: string;
+  occurredAt: string;
+  eventType: string;
+  subjectType: string;
+  subjectId: string;
+  actorType: string;
+  /** @nullable */
+  actorUserId: string | null;
+  /** @nullable */
+  actorUserEmail: string | null;
+  /** @nullable */
+  reason: string | null;
+  payload: JsonElement;
+}
+
+export type NullableOfJsonElement = unknown | null;
 
 export interface BindingHistoryEntryResponse {
   id: string;
@@ -17,6 +39,19 @@ export interface BindingHistoryEntryResponse {
   changedAt: string;
   /** @nullable */
   reason: string | null;
+}
+
+export interface ChangePasswordRequest {
+  /**
+     * @minLength 0
+     * @maxLength 256
+     */
+  currentPassword: string;
+  /**
+     * @minLength 12
+     * @maxLength 256
+     */
+  newPassword: string;
 }
 
 export interface CreateLicenceRequest {
@@ -51,11 +86,22 @@ export interface CreateProductRequest {
 }
 
 export interface CreateUserRequest {
+  /**
+     * @minLength 0
+     * @maxLength 256
+     */
   email: string;
+  /**
+     * @minLength 12
+     * @maxLength 256
+     */
   password: string;
-  /** @nullable */
-  displayName: string | null;
-  role: string;
+  /**
+     * @minLength 0
+     * @maxLength 200
+     * @nullable
+     */
+  displayName?: string | null;
 }
 
 export interface HealthResponse {
@@ -95,6 +141,8 @@ export interface LicenceCreatedResponse {
   /** @nullable */
   ipAllowlist: string[] | null;
   createdAt: string;
+  /** @nullable */
+  relationship?: string | null;
 }
 
 export interface LicenceKeyRegeneratedResponse {
@@ -113,6 +161,19 @@ export interface LicenceKeyRegeneratedResponse {
   /** @nullable */
   ipAllowlist: string[] | null;
   createdAt: string;
+  /** @nullable */
+  relationship?: string | null;
+}
+
+export interface LicenceMemberResponse {
+  userId: string;
+  email: string;
+  /** @nullable */
+  displayName: string | null;
+  addedBy: string;
+  /** @nullable */
+  addedByEmail: string | null;
+  addedAt: string;
 }
 
 export interface LicenceResponse {
@@ -130,6 +191,8 @@ export interface LicenceResponse {
   /** @nullable */
   ipAllowlist: string[] | null;
   createdAt: string;
+  /** @nullable */
+  relationship?: string | null;
 }
 
 export interface LicenceStatusHistoryResponse {
@@ -147,6 +210,13 @@ export interface LicenceStatusHistoryResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface PagedResponseOfAuditEventResponse {
+  items: AuditEventResponse[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface PagedResponseOfBindingHistoryEntryResponse {
@@ -317,6 +387,11 @@ export interface UpdateProductRequest {
   sortOrder: number | null;
 }
 
+export interface UpdateProfileRequest {
+  /** @nullable */
+  displayName: string | null;
+}
+
 export interface UpdateUserStatusRequest {
   status: string;
   /** @nullable */
@@ -333,6 +408,14 @@ export interface VerifyLicenceRequest {
   /** @nullable */
   hwid: string | null;
 }
+
+export type GetAuditEventsParams = {
+subject_type?: string;
+subject_id?: string;
+event_type?: string[];
+limit?: number;
+offset?: number;
+};
 
 export type GetLicencesParams = {
 productId?: string;
@@ -361,6 +444,7 @@ offset?: number;
 export type GetProductsParams = {
 limit?: number;
 offset?: number;
+q?: string;
 };
 
 export type PostProductsIdImageBody = {
@@ -368,6 +452,15 @@ export type PostProductsIdImageBody = {
 };
 
 export type GetUsersParams = {
+limit?: number;
+offset?: number;
+q?: string;
+role?: string;
+status?: string;
+};
+
+export type GetUsersIdLicencesParams = {
+status?: string;
 limit?: number;
 offset?: number;
 };

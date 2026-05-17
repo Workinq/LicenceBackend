@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -15,13 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { SecretRevealOnce } from '@/components/SecretRevealOnce';
 import { createUser } from '@/api/users';
 import { generatePassword } from '@/lib/generate-password';
@@ -31,7 +24,6 @@ import type { UserResponse } from '@/api/generated/api.schemas';
 const schema = z.object({
   email: z.string().min(1, 'Required').email('Enter a valid email'),
   displayName: z.string().optional(),
-  role: z.enum(['user', 'admin']),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -53,13 +45,12 @@ export function QuickCreateUserDialog({ open, onOpenChange, onCreated }: QuickCr
 
   const {
     register,
-    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', displayName: '', role: 'user' },
+    defaultValues: { email: '', displayName: '' },
   });
 
   const mutation = useMutation({
@@ -69,7 +60,6 @@ export function QuickCreateUserDialog({ open, onOpenChange, onCreated }: QuickCr
         email: values.email,
         password,
         displayName: values.displayName ? values.displayName : null,
-        role: values.role,
       });
       return { user, password };
     },
@@ -91,7 +81,7 @@ export function QuickCreateUserDialog({ open, onOpenChange, onCreated }: QuickCr
     try {
       await mutation.mutateAsync(values);
     } catch {
-      // Surface handled via onError; swallow here so the form does not throw.
+      // onError handler on the mutation already surfaces the message via setSubmitError; swallow here.
     }
   };
 
@@ -160,25 +150,6 @@ export function QuickCreateUserDialog({ open, onOpenChange, onCreated }: QuickCr
               <div className="space-y-1">
                 <Label htmlFor="qc-user-display">Display name (optional)</Label>
                 <Input id="qc-user-display" {...register('displayName')} />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="qc-user-role">Role</Label>
-                <Controller
-                  name="role"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="qc-user-role" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
               </div>
 
               <DialogFooter>

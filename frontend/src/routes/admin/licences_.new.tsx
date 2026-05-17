@@ -23,7 +23,7 @@ import { createLicence } from '@/api/licences';
 import { ApiError } from '@/auth/api-client';
 import type { LicenceCreatedResponse } from '@/api/generated/api.schemas';
 
-export const Route = createFileRoute('/_authed/licences_/new')({
+export const Route = createFileRoute('/admin/licences_/new')({
   component: NewLicencePage,
 });
 
@@ -46,8 +46,8 @@ function NewLicencePage() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
 
-  const products = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
-  const users = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+  const products = useQuery({ queryKey: ['products', 'picker'], queryFn: () => fetchProducts({ limit: 200 }) });
+  const users = useQuery({ queryKey: ['users', 'picker'], queryFn: () => fetchUsers({ limit: 200, offset: 0 }) });
 
   const {
     register,
@@ -90,7 +90,7 @@ function NewLicencePage() {
       <div className="max-w-2xl space-y-6">
         <h1 className="font-display text-2xl font-semibold text-ink">Licence created</h1>
         <SecretRevealOnce label="Licence key" value={created.licenceKey} />
-        <Button onClick={() => { void navigate({ to: '/licences/$id', params: { id: created.id } }); }}>
+        <Button onClick={() => { void navigate({ to: '/admin/licences/$id', params: { id: created.id } }); }}>
           Go to licence
         </Button>
       </div>

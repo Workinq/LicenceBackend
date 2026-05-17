@@ -14,7 +14,7 @@ vi.mock('../api/licences', () => ({
   fetchLicence: vi.fn(),
 }));
 import { fetchLicences } from '../api/licences';
-import { Route as LicencesRoute } from '../routes/_authed/licences';
+import { Route as LicencesRoute } from '../routes/admin/licences';
 
 function renderLicences() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -83,7 +83,7 @@ describe('LicencesPage', () => {
     vi.mocked(fetchLicences).mockResolvedValue({ items: [], total: 0, limit: 25, offset: 0 });
     renderLicences();
     const link = await screen.findByRole('link', { name: /new licence/i });
-    expect(link).toHaveAttribute('href', '/licences/new');
+    expect(link).toHaveAttribute('href', '/admin/licences/new');
   });
 
   it('shows an empty-state message when there are no licences', async () => {

@@ -17,7 +17,7 @@ import { createProduct, uploadProductImage } from '@/api/products';
 import type { ProductResponse } from '@/api/generated/api.schemas';
 import { ApiError } from '@/auth/api-client';
 
-export const Route = createFileRoute('/_authed/products_/new')({
+export const Route = createFileRoute('/admin/products_/new')({
   component: NewProductPage,
 });
 
@@ -72,13 +72,13 @@ function NewProductPage() {
         } catch {
           void queryClient.invalidateQueries({ queryKey: ['products'] });
           toast.error('Product created, but the image upload failed. You can add it from the product page.');
-          void navigate({ to: '/products/$id', params: { id: created.id } });
+          void navigate({ to: '/admin/products/$id', params: { id: created.id } });
           return;
         }
       }
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created.');
-      void navigate({ to: '/products' });
+      void navigate({ to: '/admin/products' });
     },
     onError: (error) => {
       setSubmitError(
@@ -187,7 +187,7 @@ function NewProductPage() {
           <Button type="submit" disabled={isSubmitting || mutation.isPending}>
             Create product
           </Button>
-          <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/products' }); }}>
+          <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/admin/products' }); }}>
             Cancel
           </Button>
         </div>

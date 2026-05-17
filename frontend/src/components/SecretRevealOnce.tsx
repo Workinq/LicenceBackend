@@ -11,7 +11,7 @@ export function SecretRevealOnce({ label, value }: { label: string; value: strin
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard unavailable - nothing useful to do
+      // clipboard.writeText can throw on insecure contexts; the visible value still gets copied manually.
     }
   };
 
@@ -20,7 +20,7 @@ export function SecretRevealOnce({ label, value }: { label: string; value: strin
       <div className="flex items-start gap-2 text-sm text-ink">
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
         <p>
-          <span className="font-medium">{label}.</span> Copy this now - you will not be able to see it again.
+          <span className="font-medium">{label}.</span> You will not be able to see this after leaving this page.
         </p>
       </div>
       <div className="mt-3 flex items-center gap-2">

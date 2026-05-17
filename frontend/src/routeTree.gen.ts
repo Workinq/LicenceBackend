@@ -10,152 +10,276 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthedRouteRouteImport } from './routes/_authed/route'
-import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
-import { Route as AuthedUsersRouteImport } from './routes/_authed/users'
-import { Route as AuthedProductsRouteImport } from './routes/_authed/products'
-import { Route as AuthedMeRouteImport } from './routes/_authed/me'
-import { Route as AuthedLicencesRouteImport } from './routes/_authed/licences'
-import { Route as AuthedProductsNewRouteImport } from './routes/_authed/products_.new'
-import { Route as AuthedProductsIdRouteImport } from './routes/_authed/products_.$id'
-import { Route as AuthedLicencesNewRouteImport } from './routes/_authed/licences_.new'
-import { Route as AuthedLicencesIdRouteImport } from './routes/_authed/licences_.$id'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as PortalRouteRouteImport } from './routes/portal/route'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as PortalProductsRouteImport } from './routes/portal/products'
+import { Route as PortalMeRouteImport } from './routes/portal/me'
+import { Route as PortalLicencesRouteImport } from './routes/portal/licences'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminProductsRouteImport } from './routes/admin/products'
+import { Route as AdminMeRouteImport } from './routes/admin/me'
+import { Route as AdminLicencesRouteImport } from './routes/admin/licences'
+import { Route as PortalLicencesIdRouteImport } from './routes/portal/licences_.$id'
+import { Route as AdminUsersNewRouteImport } from './routes/admin/users_.new'
+import { Route as AdminUsersIdRouteImport } from './routes/admin/users_.$id'
+import { Route as AdminProductsNewRouteImport } from './routes/admin/products_.new'
+import { Route as AdminProductsIdRouteImport } from './routes/admin/products_.$id'
+import { Route as AdminLicencesNewRouteImport } from './routes/admin/licences_.new'
+import { Route as AdminLicencesIdRouteImport } from './routes/admin/licences_.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedRouteRoute = AuthedRouteRouteImport.update({
-  id: '/_authed',
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedIndexRoute = AuthedIndexRouteImport.update({
+const PortalRouteRoute = PortalRouteRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedUsersRoute = AuthedUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthedRouteRoute,
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRouteRoute,
 } as any)
-const AuthedProductsRoute = AuthedProductsRouteImport.update({
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const PortalProductsRoute = PortalProductsRouteImport.update({
   id: '/products',
   path: '/products',
-  getParentRoute: () => AuthedRouteRoute,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
-const AuthedMeRoute = AuthedMeRouteImport.update({
+const PortalMeRoute = PortalMeRouteImport.update({
   id: '/me',
   path: '/me',
-  getParentRoute: () => AuthedRouteRoute,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
-const AuthedLicencesRoute = AuthedLicencesRouteImport.update({
+const PortalLicencesRoute = PortalLicencesRouteImport.update({
   id: '/licences',
   path: '/licences',
-  getParentRoute: () => AuthedRouteRoute,
+  getParentRoute: () => PortalRouteRoute,
 } as any)
-const AuthedProductsNewRoute = AuthedProductsNewRouteImport.update({
-  id: '/products_/new',
-  path: '/products/new',
-  getParentRoute: () => AuthedRouteRoute,
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
-const AuthedProductsIdRoute = AuthedProductsIdRouteImport.update({
-  id: '/products_/$id',
-  path: '/products/$id',
-  getParentRoute: () => AuthedRouteRoute,
+const AdminProductsRoute = AdminProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
-const AuthedLicencesNewRoute = AuthedLicencesNewRouteImport.update({
-  id: '/licences_/new',
-  path: '/licences/new',
-  getParentRoute: () => AuthedRouteRoute,
+const AdminMeRoute = AdminMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
-const AuthedLicencesIdRoute = AuthedLicencesIdRouteImport.update({
+const AdminLicencesRoute = AdminLicencesRouteImport.update({
+  id: '/licences',
+  path: '/licences',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const PortalLicencesIdRoute = PortalLicencesIdRouteImport.update({
   id: '/licences_/$id',
   path: '/licences/$id',
-  getParentRoute: () => AuthedRouteRoute,
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const AdminUsersNewRoute = AdminUsersNewRouteImport.update({
+  id: '/users_/new',
+  path: '/users/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersIdRoute = AdminUsersIdRouteImport.update({
+  id: '/users_/$id',
+  path: '/users/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminProductsNewRoute = AdminProductsNewRouteImport.update({
+  id: '/products_/new',
+  path: '/products/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminProductsIdRoute = AdminProductsIdRouteImport.update({
+  id: '/products_/$id',
+  path: '/products/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminLicencesNewRoute = AdminLicencesNewRouteImport.update({
+  id: '/licences_/new',
+  path: '/licences/new',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminLicencesIdRoute = AdminLicencesIdRouteImport.update({
+  id: '/licences_/$id',
+  path: '/licences/$id',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthedIndexRoute
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/portal': typeof PortalRouteRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/licences': typeof AuthedLicencesRoute
-  '/me': typeof AuthedMeRoute
-  '/products': typeof AuthedProductsRoute
-  '/users': typeof AuthedUsersRoute
-  '/licences/$id': typeof AuthedLicencesIdRoute
-  '/licences/new': typeof AuthedLicencesNewRoute
-  '/products/$id': typeof AuthedProductsIdRoute
-  '/products/new': typeof AuthedProductsNewRoute
+  '/admin/licences': typeof AdminLicencesRoute
+  '/admin/me': typeof AdminMeRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/portal/licences': typeof PortalLicencesRoute
+  '/portal/me': typeof PortalMeRoute
+  '/portal/products': typeof PortalProductsRoute
+  '/admin/': typeof AdminIndexRoute
+  '/portal/': typeof PortalIndexRoute
+  '/admin/licences/$id': typeof AdminLicencesIdRoute
+  '/admin/licences/new': typeof AdminLicencesNewRoute
+  '/admin/products/$id': typeof AdminProductsIdRoute
+  '/admin/products/new': typeof AdminProductsNewRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/users/new': typeof AdminUsersNewRoute
+  '/portal/licences/$id': typeof PortalLicencesIdRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/licences': typeof AuthedLicencesRoute
-  '/me': typeof AuthedMeRoute
-  '/products': typeof AuthedProductsRoute
-  '/users': typeof AuthedUsersRoute
-  '/': typeof AuthedIndexRoute
-  '/licences/$id': typeof AuthedLicencesIdRoute
-  '/licences/new': typeof AuthedLicencesNewRoute
-  '/products/$id': typeof AuthedProductsIdRoute
-  '/products/new': typeof AuthedProductsNewRoute
+  '/admin/licences': typeof AdminLicencesRoute
+  '/admin/me': typeof AdminMeRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/portal/licences': typeof PortalLicencesRoute
+  '/portal/me': typeof PortalMeRoute
+  '/portal/products': typeof PortalProductsRoute
+  '/admin': typeof AdminIndexRoute
+  '/portal': typeof PortalIndexRoute
+  '/admin/licences/$id': typeof AdminLicencesIdRoute
+  '/admin/licences/new': typeof AdminLicencesNewRoute
+  '/admin/products/$id': typeof AdminProductsIdRoute
+  '/admin/products/new': typeof AdminProductsNewRoute
+  '/admin/users/$id': typeof AdminUsersIdRoute
+  '/admin/users/new': typeof AdminUsersNewRoute
+  '/portal/licences/$id': typeof PortalLicencesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_authed': typeof AuthedRouteRouteWithChildren
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/portal': typeof PortalRouteRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
-  '/_authed/licences': typeof AuthedLicencesRoute
-  '/_authed/me': typeof AuthedMeRoute
-  '/_authed/products': typeof AuthedProductsRoute
-  '/_authed/users': typeof AuthedUsersRoute
-  '/_authed/': typeof AuthedIndexRoute
-  '/_authed/licences_/$id': typeof AuthedLicencesIdRoute
-  '/_authed/licences_/new': typeof AuthedLicencesNewRoute
-  '/_authed/products_/$id': typeof AuthedProductsIdRoute
-  '/_authed/products_/new': typeof AuthedProductsNewRoute
+  '/admin/licences': typeof AdminLicencesRoute
+  '/admin/me': typeof AdminMeRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/portal/licences': typeof PortalLicencesRoute
+  '/portal/me': typeof PortalMeRoute
+  '/portal/products': typeof PortalProductsRoute
+  '/admin/': typeof AdminIndexRoute
+  '/portal/': typeof PortalIndexRoute
+  '/admin/licences_/$id': typeof AdminLicencesIdRoute
+  '/admin/licences_/new': typeof AdminLicencesNewRoute
+  '/admin/products_/$id': typeof AdminProductsIdRoute
+  '/admin/products_/new': typeof AdminProductsNewRoute
+  '/admin/users_/$id': typeof AdminUsersIdRoute
+  '/admin/users_/new': typeof AdminUsersNewRoute
+  '/portal/licences_/$id': typeof PortalLicencesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/portal'
+    | '/forgot-password'
     | '/login'
-    | '/licences'
-    | '/me'
-    | '/products'
-    | '/users'
-    | '/licences/$id'
-    | '/licences/new'
-    | '/products/$id'
-    | '/products/new'
+    | '/admin/licences'
+    | '/admin/me'
+    | '/admin/products'
+    | '/admin/users'
+    | '/portal/licences'
+    | '/portal/me'
+    | '/portal/products'
+    | '/admin/'
+    | '/portal/'
+    | '/admin/licences/$id'
+    | '/admin/licences/new'
+    | '/admin/products/$id'
+    | '/admin/products/new'
+    | '/admin/users/$id'
+    | '/admin/users/new'
+    | '/portal/licences/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/login'
-    | '/licences'
-    | '/me'
-    | '/products'
-    | '/users'
     | '/'
-    | '/licences/$id'
-    | '/licences/new'
-    | '/products/$id'
-    | '/products/new'
+    | '/forgot-password'
+    | '/login'
+    | '/admin/licences'
+    | '/admin/me'
+    | '/admin/products'
+    | '/admin/users'
+    | '/portal/licences'
+    | '/portal/me'
+    | '/portal/products'
+    | '/admin'
+    | '/portal'
+    | '/admin/licences/$id'
+    | '/admin/licences/new'
+    | '/admin/products/$id'
+    | '/admin/products/new'
+    | '/admin/users/$id'
+    | '/admin/users/new'
+    | '/portal/licences/$id'
   id:
     | '__root__'
-    | '/_authed'
+    | '/'
+    | '/admin'
+    | '/portal'
+    | '/forgot-password'
     | '/login'
-    | '/_authed/licences'
-    | '/_authed/me'
-    | '/_authed/products'
-    | '/_authed/users'
-    | '/_authed/'
-    | '/_authed/licences_/$id'
-    | '/_authed/licences_/new'
-    | '/_authed/products_/$id'
-    | '/_authed/products_/new'
+    | '/admin/licences'
+    | '/admin/me'
+    | '/admin/products'
+    | '/admin/users'
+    | '/portal/licences'
+    | '/portal/me'
+    | '/portal/products'
+    | '/admin/'
+    | '/portal/'
+    | '/admin/licences_/$id'
+    | '/admin/licences_/new'
+    | '/admin/products_/$id'
+    | '/admin/products_/new'
+    | '/admin/users_/$id'
+    | '/admin/users_/new'
+    | '/portal/licences_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthedRouteRoute: typeof AuthedRouteRouteWithChildren
+  IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  PortalRouteRoute: typeof PortalRouteRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
 }
 
@@ -168,109 +292,206 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed': {
-      id: '/_authed'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthedRouteRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed/': {
-      id: '/_authed/'
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthedIndexRouteImport
-      parentRoute: typeof AuthedRouteRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authed/users': {
-      id: '/_authed/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof AuthedUsersRouteImport
-      parentRoute: typeof AuthedRouteRoute
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
-    '/_authed/products': {
-      id: '/_authed/products'
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/portal/products': {
+      id: '/portal/products'
       path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof AuthedProductsRouteImport
-      parentRoute: typeof AuthedRouteRoute
+      fullPath: '/portal/products'
+      preLoaderRoute: typeof PortalProductsRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
-    '/_authed/me': {
-      id: '/_authed/me'
+    '/portal/me': {
+      id: '/portal/me'
       path: '/me'
-      fullPath: '/me'
-      preLoaderRoute: typeof AuthedMeRouteImport
-      parentRoute: typeof AuthedRouteRoute
+      fullPath: '/portal/me'
+      preLoaderRoute: typeof PortalMeRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
-    '/_authed/licences': {
-      id: '/_authed/licences'
+    '/portal/licences': {
+      id: '/portal/licences'
       path: '/licences'
-      fullPath: '/licences'
-      preLoaderRoute: typeof AuthedLicencesRouteImport
-      parentRoute: typeof AuthedRouteRoute
+      fullPath: '/portal/licences'
+      preLoaderRoute: typeof PortalLicencesRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
-    '/_authed/products_/new': {
-      id: '/_authed/products_/new'
-      path: '/products/new'
-      fullPath: '/products/new'
-      preLoaderRoute: typeof AuthedProductsNewRouteImport
-      parentRoute: typeof AuthedRouteRoute
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/_authed/products_/$id': {
-      id: '/_authed/products_/$id'
-      path: '/products/$id'
-      fullPath: '/products/$id'
-      preLoaderRoute: typeof AuthedProductsIdRouteImport
-      parentRoute: typeof AuthedRouteRoute
+    '/admin/products': {
+      id: '/admin/products'
+      path: '/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/_authed/licences_/new': {
-      id: '/_authed/licences_/new'
-      path: '/licences/new'
-      fullPath: '/licences/new'
-      preLoaderRoute: typeof AuthedLicencesNewRouteImport
-      parentRoute: typeof AuthedRouteRoute
+    '/admin/me': {
+      id: '/admin/me'
+      path: '/me'
+      fullPath: '/admin/me'
+      preLoaderRoute: typeof AdminMeRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
-    '/_authed/licences_/$id': {
-      id: '/_authed/licences_/$id'
+    '/admin/licences': {
+      id: '/admin/licences'
+      path: '/licences'
+      fullPath: '/admin/licences'
+      preLoaderRoute: typeof AdminLicencesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/portal/licences_/$id': {
+      id: '/portal/licences_/$id'
       path: '/licences/$id'
-      fullPath: '/licences/$id'
-      preLoaderRoute: typeof AuthedLicencesIdRouteImport
-      parentRoute: typeof AuthedRouteRoute
+      fullPath: '/portal/licences/$id'
+      preLoaderRoute: typeof PortalLicencesIdRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/admin/users_/new': {
+      id: '/admin/users_/new'
+      path: '/users/new'
+      fullPath: '/admin/users/new'
+      preLoaderRoute: typeof AdminUsersNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users_/$id': {
+      id: '/admin/users_/$id'
+      path: '/users/$id'
+      fullPath: '/admin/users/$id'
+      preLoaderRoute: typeof AdminUsersIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/products_/new': {
+      id: '/admin/products_/new'
+      path: '/products/new'
+      fullPath: '/admin/products/new'
+      preLoaderRoute: typeof AdminProductsNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/products_/$id': {
+      id: '/admin/products_/$id'
+      path: '/products/$id'
+      fullPath: '/admin/products/$id'
+      preLoaderRoute: typeof AdminProductsIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/licences_/new': {
+      id: '/admin/licences_/new'
+      path: '/licences/new'
+      fullPath: '/admin/licences/new'
+      preLoaderRoute: typeof AdminLicencesNewRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/licences_/$id': {
+      id: '/admin/licences_/$id'
+      path: '/licences/$id'
+      fullPath: '/admin/licences/$id'
+      preLoaderRoute: typeof AdminLicencesIdRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
   }
 }
 
-interface AuthedRouteRouteChildren {
-  AuthedLicencesRoute: typeof AuthedLicencesRoute
-  AuthedMeRoute: typeof AuthedMeRoute
-  AuthedProductsRoute: typeof AuthedProductsRoute
-  AuthedUsersRoute: typeof AuthedUsersRoute
-  AuthedIndexRoute: typeof AuthedIndexRoute
-  AuthedLicencesIdRoute: typeof AuthedLicencesIdRoute
-  AuthedLicencesNewRoute: typeof AuthedLicencesNewRoute
-  AuthedProductsIdRoute: typeof AuthedProductsIdRoute
-  AuthedProductsNewRoute: typeof AuthedProductsNewRoute
+interface AdminRouteRouteChildren {
+  AdminLicencesRoute: typeof AdminLicencesRoute
+  AdminMeRoute: typeof AdminMeRoute
+  AdminProductsRoute: typeof AdminProductsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminLicencesIdRoute: typeof AdminLicencesIdRoute
+  AdminLicencesNewRoute: typeof AdminLicencesNewRoute
+  AdminProductsIdRoute: typeof AdminProductsIdRoute
+  AdminProductsNewRoute: typeof AdminProductsNewRoute
+  AdminUsersIdRoute: typeof AdminUsersIdRoute
+  AdminUsersNewRoute: typeof AdminUsersNewRoute
 }
 
-const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
-  AuthedLicencesRoute: AuthedLicencesRoute,
-  AuthedMeRoute: AuthedMeRoute,
-  AuthedProductsRoute: AuthedProductsRoute,
-  AuthedUsersRoute: AuthedUsersRoute,
-  AuthedIndexRoute: AuthedIndexRoute,
-  AuthedLicencesIdRoute: AuthedLicencesIdRoute,
-  AuthedLicencesNewRoute: AuthedLicencesNewRoute,
-  AuthedProductsIdRoute: AuthedProductsIdRoute,
-  AuthedProductsNewRoute: AuthedProductsNewRoute,
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminLicencesRoute: AdminLicencesRoute,
+  AdminMeRoute: AdminMeRoute,
+  AdminProductsRoute: AdminProductsRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminLicencesIdRoute: AdminLicencesIdRoute,
+  AdminLicencesNewRoute: AdminLicencesNewRoute,
+  AdminProductsIdRoute: AdminProductsIdRoute,
+  AdminProductsNewRoute: AdminProductsNewRoute,
+  AdminUsersIdRoute: AdminUsersIdRoute,
+  AdminUsersNewRoute: AdminUsersNewRoute,
 }
 
-const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(
-  AuthedRouteRouteChildren,
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
+interface PortalRouteRouteChildren {
+  PortalLicencesRoute: typeof PortalLicencesRoute
+  PortalMeRoute: typeof PortalMeRoute
+  PortalProductsRoute: typeof PortalProductsRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+  PortalLicencesIdRoute: typeof PortalLicencesIdRoute
+}
+
+const PortalRouteRouteChildren: PortalRouteRouteChildren = {
+  PortalLicencesRoute: PortalLicencesRoute,
+  PortalMeRoute: PortalMeRoute,
+  PortalProductsRoute: PortalProductsRoute,
+  PortalIndexRoute: PortalIndexRoute,
+  PortalLicencesIdRoute: PortalLicencesIdRoute,
+}
+
+const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(
+  PortalRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  AuthedRouteRoute: AuthedRouteRouteWithChildren,
+  IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  PortalRouteRoute: PortalRouteRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

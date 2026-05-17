@@ -1,20 +1,25 @@
 import {
+  deleteLicencesIdMembersMemberId,
   getLicences,
   getLicencesId,
   getLicencesIdBindingHistory,
+  getLicencesIdMembers,
   getLicencesIdStatusHistory,
   getLicencesIdVerificationAttempts,
   patchLicencesIdStatus,
   postLicences,
+  postLicencesIdMembers,
   postLicencesIdRegenerateKey,
   putLicencesIdHwid,
   putLicencesIdIpAllowlist,
 } from './generated/api';
 import type {
+  AddLicenceMemberRequest,
   CreateLicenceRequest,
   GetLicencesParams,
   LicenceCreatedResponse,
   LicenceKeyRegeneratedResponse,
+  LicenceMemberResponse,
   LicenceResponse,
   PagedResponseOfBindingHistoryEntryResponse,
   PagedResponseOfLicenceResponse,
@@ -87,4 +92,16 @@ export async function fetchLicenceVerificationAttempts(
   params: { outcome?: string; limit?: number; offset?: number },
 ): Promise<PagedResponseOfVerificationAttemptResponse> {
   return (await getLicencesIdVerificationAttempts(id, params)).data as PagedResponseOfVerificationAttemptResponse;
+}
+
+export async function fetchLicenceMembers(id: string): Promise<LicenceMemberResponse[]> {
+  return (await getLicencesIdMembers(id)).data as LicenceMemberResponse[];
+}
+
+export async function addLicenceMember(id: string, body: AddLicenceMemberRequest): Promise<LicenceMemberResponse> {
+  return (await postLicencesIdMembers(id, body)).data as LicenceMemberResponse;
+}
+
+export async function removeLicenceMember(id: string, memberId: string): Promise<void> {
+  await deleteLicencesIdMembersMemberId(id, memberId);
 }

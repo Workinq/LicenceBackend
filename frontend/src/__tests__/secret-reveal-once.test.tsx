@@ -17,7 +17,7 @@ describe('SecretRevealOnce', () => {
   it('renders the secret value and a one-time warning', () => {
     render(<SecretRevealOnce label="Licence key" value="LK-abc-123" />);
     expect(screen.getByText('LK-abc-123')).toBeInTheDocument();
-    expect(screen.getByText(/will not be able to see it again/i)).toBeInTheDocument();
+    expect(screen.getByText(/will not be able to see this/i)).toBeInTheDocument();
   });
 
   it('copies the value when the copy button is clicked', async () => {

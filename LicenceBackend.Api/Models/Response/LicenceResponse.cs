@@ -11,7 +11,8 @@ public record LicenceResponse(
     string? Notes,
     bool HwidBound,
     IReadOnlyList<string>? IpAllowlist,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    string? Relationship = null
 );
 
 public sealed record LicenceCreatedResponse(
@@ -27,4 +28,4 @@ public sealed record LicenceCreatedResponse(
     IReadOnlyList<string>? IpAllowlist,
     DateTimeOffset CreatedAt,
     string LicenceKey
-) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, CreatedAt);
+) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, CreatedAt, null);

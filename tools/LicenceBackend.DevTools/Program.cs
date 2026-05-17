@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Dapper;
+using LicenceBackend.Core.Users;
 using LicenceBackend.Infrastructure.Crypto;
 using LicenceBackend.Infrastructure.Persistence;
 using Npgsql;
@@ -36,6 +37,7 @@ try
         "list-users" => await ListUsersAsync(args),
         "disable-user" => await DisableUserAsync(args),
         "reset-password" => await ResetPasswordAsync(args),
+        "set-role" => await SetRoleAsync(args),
         "--help" or "-h" or "help" => PrintUsageReturn(),
         _ => UnknownCommand(args[0])
     };
@@ -76,6 +78,8 @@ void PrintUsage()
     Console.WriteLine("  list-users     [--limit <n>] [--offset <n>]      List users (id, email, role, status). Default limit 50.");
     Console.WriteLine("  disable-user   --email <email>                   Suspend a user and revoke every live refresh token for them.");
     Console.WriteLine("  reset-password --email <email> [--password <p>]  Set a user's password. If --password omitted, a 24-char password is generated and printed once.");
+    Console.WriteLine("  set-role       --email <email> --role <user|admin>");
+    Console.WriteLine("                                                   Change a user's role. Refuses to demote the last remaining admin. Demoting revokes every live refresh token for the user.");
     Console.WriteLine();
     Console.WriteLine("Connection string for migrate/seed-dev/create-admin is resolved in order:");
     Console.WriteLine($"  1. {connEnvVar} environment variable");
@@ -449,9 +453,9 @@ async Task<int> CreateAdminAsync(string[] cmdArgs)
         password = GenerateReadablePassword(24);
         passwordGenerated = true;
     }
-    else if (password.Length < 12)
+    else if (password.Length < PasswordPolicy.MinLength)
     {
-        await Console.Error.WriteLineAsync("Password must be at least 12 characters.");
+        await Console.Error.WriteLineAsync($"Password must be at least {PasswordPolicy.MinLength} characters.");
         return 2;
     }
 
@@ -674,9 +678,9 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
         password = GenerateReadablePassword(24);
         passwordGenerated = true;
     }
-    else if (password.Length < 12)
+    else if (password.Length < PasswordPolicy.MinLength)
     {
-        await Console.Error.WriteLineAsync("Password must be at least 12 characters.");
+        await Console.Error.WriteLineAsync($"Password must be at least {PasswordPolicy.MinLength} characters.");
         return 2;
     }
 
@@ -722,6 +726,115 @@ async Task<int> ResetPasswordAsync(string[] cmdArgs)
         Console.WriteLine($"  {password}");
     }
 
+    return 0;
+}
+
+async Task<int> SetRoleAsync(string[] cmdArgs)
+{
+    string? email = null;
+    string? role = null;
+    for (var i = 1; i < cmdArgs.Length; i++)
+        switch (cmdArgs[i])
+        {
+            case "--email":
+                if (i + 1 >= cmdArgs.Length)
+                {
+                    await Console.Error.WriteLineAsync("--email requires a value.");
+                    return 2;
+                }
+
+                email = cmdArgs[++i];
+                break;
+            case "--role":
+                if (i + 1 >= cmdArgs.Length)
+                {
+                    await Console.Error.WriteLineAsync("--role requires a value.");
+                    return 2;
+                }
+
+                role = cmdArgs[++i];
+                break;
+            default:
+                await Console.Error.WriteLineAsync($"unknown flag: {cmdArgs[i]}");
+                return 2;
+        }
+
+    if (string.IsNullOrWhiteSpace(email))
+    {
+        await Console.Error.WriteLineAsync("--email is required.");
+        return 2;
+    }
+
+    if (string.IsNullOrWhiteSpace(role) || (role != "user" && role != "admin"))
+    {
+        await Console.Error.WriteLineAsync("--role must be 'user' or 'admin'.");
+        return 2;
+    }
+
+    var connectionString = RequireConnectionString();
+    var emailLower = email.Trim().ToLowerInvariant();
+
+    await using var connection = new NpgsqlConnection(connectionString);
+    await connection.OpenAsync();
+
+    var user = await connection.QuerySingleOrDefaultAsync<(Guid id, string role)?>(
+                   "SELECT id, role FROM users WHERE email_lower = @EmailLower LIMIT 1;",
+                   new { EmailLower = emailLower });
+    if (user is null)
+    {
+        await Console.Error.WriteLineAsync($"No user with email '{email}'.");
+        return 1;
+    }
+
+    if (user.Value.role == role)
+    {
+        Console.WriteLine($"User {user.Value.id} ({email}) is already role={role}. No change.");
+        return 0;
+    }
+
+    var demoting = user.Value.role == "admin" && role == "user";
+    if (demoting)
+    {
+        var remainingAdmins = await connection.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM users WHERE role = 'admin' AND id <> @Id;",
+            new { Id = user.Value.id });
+        if (remainingAdmins == 0)
+        {
+            await Console.Error.WriteLineAsync($"Refusing to demote user {user.Value.id} ({email}): this would leave zero admins.");
+            return 1;
+        }
+    }
+
+    await using var transaction = await connection.BeginTransactionAsync();
+    try
+    {
+        await connection.ExecuteAsync(
+            "UPDATE users SET role = @Role, updated_at = NOW() WHERE id = @Id;",
+            new { Id = user.Value.id, Role = role }, transaction);
+        var payloadJson = $$"""{"previousRole":"{{user.Value.role}}","newRole":"{{role}}"}""";
+        await connection.ExecuteAsync(
+            """
+            INSERT INTO audit_events (id, event_type, subject_type, subject_id, actor_type, actor_user_id, reason, payload)
+            VALUES (@Id, 'user.role_changed', 'user', @UserId, 'admin', @UserId, 'devtools-set-role', @Payload::jsonb);
+            """,
+            new { Id = Guid.NewGuid(), UserId = user.Value.id, Payload = payloadJson }, transaction);
+        if (demoting)
+        {
+            await connection.ExecuteAsync(
+                "UPDATE session_refresh_tokens SET revoked_at = NOW() WHERE user_id = @UserId AND revoked_at IS NULL;",
+                new { UserId = user.Value.id }, transaction);
+        }
+
+        await transaction.CommitAsync();
+    }
+    catch
+    {
+        await transaction.RollbackAsync();
+        throw;
+    }
+
+    Console.WriteLine($"Set role for user {user.Value.id} ({email}): {user.Value.role} -> {role}.");
+    if (demoting) Console.WriteLine("Every live refresh token for this user has been revoked.");
     return 0;
 }
 

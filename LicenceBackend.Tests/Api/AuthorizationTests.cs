@@ -53,7 +53,7 @@ public sealed class AuthorizationTests : IntegrationTestBase
 
         using var regularClient = await CreateLoggedInClientAsync("regular@test.local", "regular-user-pw-12345");
 
-        var productsResponse = await regularClient.GetAsync("/products");
+        var productsResponse = await regularClient.PostAsJsonAsync("/products", new { slug = "denied-by-regular", displayName = "Denied" });
         Assert.Equal(HttpStatusCode.Forbidden, productsResponse.StatusCode);
 
         var licencesResponse = await regularClient.GetAsync("/licences");

@@ -1,0 +1,256 @@
+import { useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ImageOff, LayoutGrid, List } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { fetchProducts } from '@/api/products';
+
+const searchSchema = z.object({
+  view: z.enum(['cards', 'table']).optional(),
+});
+
+export const Route = createFileRoute('/portal/products')({
+  component: PortalProductsPage,
+  validateSearch: searchSchema,
+});
+
+const CARD_PAGE_SIZE = 6;
+const TABLE_PAGE_SIZE = 25;
+
+function formatPrice(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
+function formatDate(value: string): string {
+  return new Date(value).toLocaleDateString();
+}
+
+function PortalProductsPage() {
+  const navigate = Route.useNavigate();
+  const { view: viewParam } = Route.useSearch();
+  const view = viewParam ?? 'cards';
+  const pageSize = view === 'cards' ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
+
+  const [offset, setOffset] = useState(0);
+
+  const query = useQuery({
+    queryKey: ['portal', 'products', { offset, pageSize }],
+    queryFn: () => fetchProducts({ limit: pageSize, offset }),
+    placeholderData: keepPreviousData,
+  });
+
+  const setView = (next: 'cards' | 'table') => {
+    if (next === view) return;
+    setOffset(0);
+    void navigate({ search: { view: next === 'cards' ? undefined : next } });
+  };
+
+  const data = query.data;
+  const rangeLabel = data
+    ? `${data.total === 0 ? 0 : data.offset + 1}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
+    : '';
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink">Products</h1>
+          <p className="text-sm text-ink-muted">Browse the available product catalog.</p>
+        </div>
+        <div className="inline-flex rounded-md border border-border p-0.5">
+          <button
+            type="button"
+            onClick={() => { setView('cards'); }}
+            aria-label="Card view"
+            aria-pressed={view === 'cards'}
+            title="Card view"
+            className={cn(
+              'inline-flex items-center justify-center rounded p-1.5 transition-colors',
+              view === 'cards' ? 'bg-ink text-surface-elevated' : 'text-ink-muted hover:text-ink',
+            )}
+          >
+            <LayoutGrid className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView('table'); }}
+            aria-label="Table view"
+            aria-pressed={view === 'table'}
+            title="Table view"
+            className={cn(
+              'inline-flex items-center justify-center rounded p-1.5 transition-colors',
+              view === 'table' ? 'bg-ink text-surface-elevated' : 'text-ink-muted hover:text-ink',
+            )}
+          >
+            <List className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      {query.isError && (
+        <p className="text-sm text-status-revoked-fg">Failed to load products.</p>
+      )}
+
+      {view === 'cards' && (
+        <CardsView isPending={query.isPending} items={data?.items ?? []} total={data?.total ?? 0} />
+      )}
+
+      {view === 'table' && (
+        <TableView isPending={query.isPending} items={data?.items ?? []} total={data?.total ?? 0} />
+      )}
+
+      <div className="flex items-center justify-between text-sm text-ink-muted">
+        <span>{rangeLabel}</span>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - pageSize))}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!data || offset + pageSize >= data.total}
+            onClick={() => setOffset(offset + pageSize)}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ProductRow = {
+  id: string;
+  slug: string;
+  displayName: string;
+  price: number | null;
+  currency: string;
+  imageUrl: string | null;
+  tagline: string | null;
+  createdAt: string;
+};
+
+interface ViewProps {
+  isPending: boolean;
+  items: ProductRow[];
+  total: number;
+}
+
+function CardsView({ isPending, items, total }: ViewProps) {
+  if (isPending) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: CARD_PAGE_SIZE }, (_, i) => i).map((i) => (
+          <Card key={i} className="overflow-hidden py-0 gap-0">
+            <Skeleton className="aspect-video w-full" />
+            <CardHeader className="p-3">
+              <Skeleton className="h-4 w-2/3" />
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (total === 0) {
+    return <p className="text-sm text-ink-muted">No products are available yet.</p>;
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((p) => (
+        <Card key={p.id} className="overflow-hidden py-0 gap-0">
+          {p.imageUrl ? (
+            <img src={`/api${p.imageUrl}`} alt="" className="aspect-video w-full object-cover" />
+          ) : (
+            <div className="flex aspect-video w-full items-center justify-center bg-surface-sunken text-ink-subtle">
+              <ImageOff className="size-5" aria-hidden="true" />
+            </div>
+          )}
+          <CardHeader className="p-3 gap-1">
+            <CardTitle className="truncate text-sm">{p.displayName}</CardTitle>
+            <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
+            {p.tagline && <p className="text-xs text-ink-muted">{p.tagline}</p>}
+          </CardHeader>
+          <CardContent className="px-3 pb-3 text-xs">
+            {p.price != null ? formatPrice(p.price, p.currency) : <span className="text-ink-subtle">No price</span>}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function TableView({ isPending, items, total }: ViewProps) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-14"></TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Slug</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Available since</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isPending && (
+            <TableRow>
+              <TableCell colSpan={5}>
+                <Skeleton className="h-6 w-full" />
+              </TableCell>
+            </TableRow>
+          )}
+          {!isPending && total === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-sm text-ink-muted">
+                No products are available yet.
+              </TableCell>
+            </TableRow>
+          )}
+          {!isPending && items.map((p) => (
+            <TableRow key={p.id}>
+              <TableCell>
+                {p.imageUrl ? (
+                  <img src={`/api${p.imageUrl}`} alt="" className="size-10 rounded object-cover" />
+                ) : (
+                  <div className="flex size-10 items-center justify-center rounded bg-surface-sunken text-ink-subtle">
+                    <ImageOff className="size-4" aria-hidden="true" />
+                  </div>
+                )}
+              </TableCell>
+              <TableCell className="font-medium text-ink">{p.displayName}</TableCell>
+              <TableCell className="font-mono text-xs text-ink-muted">{p.slug}</TableCell>
+              <TableCell className="text-ink-muted">
+                {p.price != null ? formatPrice(p.price, p.currency) : '-'}
+              </TableCell>
+              <TableCell className="text-ink-muted">{formatDate(p.createdAt)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}

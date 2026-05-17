@@ -1,8 +1,8 @@
 import { getProducts, postProducts, getProductsId, patchProductsId, postProductsIdImage, deleteProductsIdImage } from './generated/api';
-import type { PagedResponseOfProductResponse, CreateProductRequest, ProductResponse, UpdateProductRequest } from './generated/api.schemas';
+import type { GetProductsParams, PagedResponseOfProductResponse, CreateProductRequest, ProductResponse, UpdateProductRequest } from './generated/api.schemas';
 
-export async function fetchProducts(): Promise<PagedResponseOfProductResponse> {
-  return (await getProducts({ limit: 200, offset: 0 })).data as PagedResponseOfProductResponse;
+export async function fetchProducts(params: GetProductsParams = {}): Promise<PagedResponseOfProductResponse> {
+  return (await getProducts(params)).data as PagedResponseOfProductResponse;
 }
 
 export async function createProduct(body: CreateProductRequest): Promise<ProductResponse> {

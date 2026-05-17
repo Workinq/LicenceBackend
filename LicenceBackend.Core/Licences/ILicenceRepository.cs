@@ -27,6 +27,14 @@ public interface ILicenceRepository
         CancellationToken cancellationToken
     );
 
+    Task<PagedResult<UserLicence>> ListForUserAsync(
+        Guid userId,
+        LicenceStatus? status,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken
+    );
+
     Task<Licence?> UpdateStatusAsync(
         Guid licenceId,
         LicenceStatus newStatus,

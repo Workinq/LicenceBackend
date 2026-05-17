@@ -13,14 +13,14 @@ function renderAt(path: string) {
   const rootRoute = createRootRoute({
     component: () => (
       <nav>
-        <NavItem to="/licences" label="Licences" />
-        <NavItem to="/products" label="Products" />
+        <NavItem to="/admin/licences" label="Licences" />
+        <NavItem to="/admin/products" label="Products" />
       </nav>
     ),
   });
   const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: () => null });
-  const licencesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/licences', component: () => null });
-  const productsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/products', component: () => null });
+  const licencesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin/licences', component: () => null });
+  const productsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin/products', component: () => null });
   const router = createRouter({
     routeTree: rootRoute.addChildren([indexRoute, licencesRoute, productsRoute]),
     history: createMemoryHistory({ initialEntries: [path] }),
@@ -32,17 +32,17 @@ describe('NavItem', () => {
   it('renders the label as a link to the target', async () => {
     renderAt('/');
     const link = await screen.findByRole('link', { name: 'Licences' });
-    expect(link).toHaveAttribute('href', '/licences');
+    expect(link).toHaveAttribute('href', '/admin/licences');
   });
 
   it('marks the link active when the current route matches', async () => {
-    renderAt('/licences');
+    renderAt('/admin/licences');
     const link = await screen.findByRole('link', { name: 'Licences' });
     expect(link).toHaveAttribute('aria-current', 'page');
   });
 
   it('does not mark other links active', async () => {
-    renderAt('/licences');
+    renderAt('/admin/licences');
     const other = await screen.findByRole('link', { name: 'Products' });
     expect(other).not.toHaveAttribute('aria-current', 'page');
   });

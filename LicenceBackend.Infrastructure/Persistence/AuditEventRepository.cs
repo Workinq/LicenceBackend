@@ -34,7 +34,7 @@ public sealed class AuditEventRepository(NpgsqlDataSource dataSource) : IAuditEv
     public async Task<PagedResult<AuditEvent>> QueryAsync(
         string? subjectType,
         Guid? subjectId,
-        string? eventType,
+        IReadOnlyList<string>? eventTypes,
         int limit,
         int offset,
         CancellationToken cancellationToken)
@@ -45,21 +45,22 @@ public sealed class AuditEventRepository(NpgsqlDataSource dataSource) : IAuditEv
                            FROM audit_events
                            WHERE (@SubjectType::text IS NULL OR subject_type = @SubjectType::text)
                              AND (@SubjectId::uuid    IS NULL OR subject_id   = @SubjectId::uuid)
-                             AND (@EventType::text   IS NULL OR event_type   = @EventType::text)
+                             AND (@EventTypes::text[] IS NULL OR event_type = ANY(@EventTypes::text[]))
                            ORDER BY occurred_at DESC, id DESC
                            LIMIT @Limit OFFSET @Offset;
 
                            SELECT COUNT(*) FROM audit_events
                            WHERE (@SubjectType::text IS NULL OR subject_type = @SubjectType::text)
                              AND (@SubjectId::uuid    IS NULL OR subject_id   = @SubjectId::uuid)
-                             AND (@EventType::text   IS NULL OR event_type   = @EventType::text);
+                             AND (@EventTypes::text[] IS NULL OR event_type = ANY(@EventTypes::text[]));
                            """;
 
+        var eventTypeArray = eventTypes is { Count: > 0 } ? eventTypes.ToArray() : null;
         var parameters = new
         {
             SubjectType = subjectType,
             SubjectId = subjectId,
-            EventType = eventType,
+            EventTypes = eventTypeArray,
             Limit = limit,
             Offset = offset
         };

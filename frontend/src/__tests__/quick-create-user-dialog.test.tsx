@@ -38,7 +38,6 @@ describe('QuickCreateUserDialog', () => {
 
     const call = vi.mocked(createUser).mock.calls[0][0];
     expect(call.email).toBe('bob@example.com');
-    expect(call.role).toBe('user');
     expect(call.password).toHaveLength(24);
 
     await userEvent.click(screen.getByRole('button', { name: /done/i }));

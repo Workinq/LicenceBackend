@@ -18,7 +18,7 @@ vi.mock('../api/products', () => ({
   createProduct: vi.fn(),
 }));
 import { fetchProduct } from '../api/products';
-import { Route as ProductDetailRoute } from '../routes/_authed/products_.$id';
+import { Route as ProductDetailRoute } from '../routes/admin/products_.$id';
 
 function makeProduct(over: Record<string, unknown> = {}) {
   return {

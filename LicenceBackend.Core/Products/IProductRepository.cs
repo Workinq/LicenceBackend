@@ -10,7 +10,7 @@ public interface IProductRepository
 
     Task CreateAsync(Product product, CancellationToken cancellationToken);
 
-    Task<PagedResult<Product>> ListAsync(int limit, int offset, CancellationToken cancellationToken);
+    Task<PagedResult<Product>> ListAsync(int limit, int offset, string? q, bool publicOnly, CancellationToken cancellationToken);
 
     Task UpdateAsync(Product product, CancellationToken cancellationToken);
 }

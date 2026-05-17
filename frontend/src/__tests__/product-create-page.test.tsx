@@ -12,7 +12,7 @@ import {
 
 vi.mock('../api/products', () => ({ createProduct: vi.fn(), fetchProducts: vi.fn(), fetchProduct: vi.fn(), updateProduct: vi.fn(), uploadProductImage: vi.fn(), deleteProductImage: vi.fn() }));
 import { createProduct } from '../api/products';
-import { Route as NewProductRoute } from '../routes/_authed/products_.new';
+import { Route as NewProductRoute } from '../routes/admin/products_.new';
 
 function renderNew() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

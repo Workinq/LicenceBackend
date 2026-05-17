@@ -64,6 +64,24 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task List_filters_by_q_case_insensitively_on_display_name()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        await AuthedClient.PostAsJsonAsync("/products", new { slug = "alpha-editor", displayName = "Alpha Editor" });
+        await AuthedClient.PostAsJsonAsync("/products", new { slug = "beta-console", displayName = "Beta Console" });
+        await AuthedClient.PostAsJsonAsync("/products", new { slug = "alpha-studio", displayName = "Alpha Studio" });
+
+        var response = await AuthedClient.GetAsync("/products?q=alpha");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<PagedProductsPayload>();
+        Assert.NotNull(body);
+        Assert.Equal(2, body.Total);
+        Assert.Equal(2, body.Items.Count);
+        Assert.All(body.Items, p => Assert.Contains("Alpha", p.DisplayName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [SkippableFact]
     public async Task GetById_returns_the_product()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
@@ -78,6 +96,59 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
         Assert.NotNull(fetched);
         Assert.Equal(created.Id, fetched.Id);
         Assert.Equal("single", fetched.Slug);
+    }
+
+    [SkippableFact]
+    public async Task Non_admin_list_returns_only_public_products()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        await AuthedClient.PostAsJsonAsync("/products", new { slug = "public-1", displayName = "Public One", isPublic = true });
+        await AuthedClient.PostAsJsonAsync("/products", new { slug = "private-1", displayName = "Private One", isPublic = false });
+
+        var userEmail = "products-customer@test.local";
+        var userPassword = "products-customer-pw-12345";
+        var createUser = await AuthedClient.PostAsJsonAsync("/users", new { email = userEmail, password = userPassword });
+        Assert.Equal(HttpStatusCode.Created, createUser.StatusCode);
+
+        using var customerClient = await CreateLoggedInClientAsync(userEmail, userPassword);
+        var page = await customerClient.GetFromJsonAsync<PagedProductsPayload>("/products?limit=100");
+        Assert.NotNull(page);
+        Assert.All(page.Items, p => Assert.True(p.IsPublic, $"Non-admin saw non-public product '{p.Slug}'."));
+        Assert.Contains(page.Items, p => p.Slug == "public-1");
+        Assert.DoesNotContain(page.Items, p => p.Slug == "private-1");
+    }
+
+    [SkippableFact]
+    public async Task Non_admin_get_private_product_returns_404()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var createPrivate = await AuthedClient.PostAsJsonAsync("/products", new { slug = "private-detail", displayName = "Private Detail", isPublic = false });
+        var created = await createPrivate.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(created);
+
+        var userEmail = "private-customer@test.local";
+        var userPassword = "private-customer-pw-12345";
+        await AuthedClient.PostAsJsonAsync("/users", new { email = userEmail, password = userPassword });
+
+        using var customerClient = await CreateLoggedInClientAsync(userEmail, userPassword);
+        var response = await customerClient.GetAsync($"/products/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Non_admin_create_product_returns_403()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var userEmail = "create-denied@test.local";
+        var userPassword = "create-denied-pw-12345";
+        await AuthedClient.PostAsJsonAsync("/users", new { email = userEmail, password = userPassword });
+
+        using var customerClient = await CreateLoggedInClientAsync(userEmail, userPassword);
+        var response = await customerClient.PostAsJsonAsync("/products", new { slug = "denied", displayName = "Denied" });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [SkippableFact]

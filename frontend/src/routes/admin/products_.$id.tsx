@@ -20,7 +20,7 @@ import { fetchProduct, updateProduct, uploadProductImage, deleteProductImage } f
 import { ApiError } from '@/auth/api-client';
 import type { ProductResponse } from '@/api/generated/api.schemas';
 
-export const Route = createFileRoute('/_authed/products_/$id')({
+export const Route = createFileRoute('/admin/products_/$id')({
   component: ProductDetailPage,
 });
 
@@ -241,7 +241,7 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
               <Button type="submit" disabled={isSubmitting || editMutation.isPending}>
                 Save changes
               </Button>
-              <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/products' }); }}>
+              <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/admin/products' }); }}>
                 Cancel
               </Button>
             </div>

@@ -14,15 +14,29 @@ import {
 } from '@/components/ui/dialog';
 import { regenerateLicenceKey } from '@/api/licences';
 import { ApiError } from '@/auth/api-client';
+import type { LicenceKeyRegeneratedResponse } from '@/api/generated/api.schemas';
 
-export function RegenerateKeyDialog({ licenceId }: { licenceId: string }) {
+interface RegenerateKeyDialogProps {
+  licenceId: string;
+  regenerate?: (licenceId: string) => Promise<LicenceKeyRegeneratedResponse>;
+  invalidateQueryKey?: readonly unknown[];
+}
+
+export function RegenerateKeyDialog({
+  licenceId,
+  regenerate,
+  invalidateQueryKey,
+}: RegenerateKeyDialogProps) {
   const queryClient = useQueryClient();
   const [newKey, setNewKey] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () => regenerateLicenceKey(licenceId, { reason: null }),
+    mutationFn: () =>
+      regenerate ? regenerate(licenceId) : regenerateLicenceKey(licenceId, { reason: null }),
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licenceId] });
+      void queryClient.invalidateQueries({
+        queryKey: invalidateQueryKey ?? ['licences', 'detail', licenceId],
+      });
       setNewKey(data.licenceKey);
     },
     onError: (error) => {
@@ -47,7 +61,7 @@ export function RegenerateKeyDialog({ licenceId }: { licenceId: string }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New licence key</DialogTitle>
-            <DialogDescription>The old key no longer works. Copy this now.</DialogDescription>
+            <DialogDescription>The old key no longer works. You won't be able to see this new one again.</DialogDescription>
           </DialogHeader>
           {newKey !== null && <SecretRevealOnce label="New licence key" value={newKey} />}
           <DialogFooter>

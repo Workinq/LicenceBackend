@@ -182,6 +182,49 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         }
     }
 
+    public async Task<PagedResult<UserLicence>> ListForUserAsync(
+        Guid userId,
+        LicenceStatus? status,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken)
+    {
+        const string sql = $"""
+                            SELECT {LicenceColumns},
+                                   CASE WHEN user_id = @UserId THEN 'owner' ELSE 'member' END AS relationship
+                            FROM licences
+                            WHERE (user_id = @UserId
+                                OR EXISTS (SELECT 1 FROM licence_members m WHERE m.licence_id = licences.id AND m.user_id = @UserId))
+                              AND (@Status::text IS NULL OR status = @Status::text)
+                            ORDER BY created_at DESC
+                            LIMIT @Limit OFFSET @Offset;
+
+                            SELECT COUNT(*) FROM licences
+                            WHERE (user_id = @UserId
+                                OR EXISTS (SELECT 1 FROM licence_members m WHERE m.licence_id = licences.id AND m.user_id = @UserId))
+                              AND (@Status::text IS NULL OR status = @Status::text);
+                            """;
+
+        var parameters = new
+        {
+            UserId = userId,
+            Status = status?.ToString().ToLowerInvariant(),
+            Limit = limit,
+            Offset = offset
+        };
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<UserLicenceRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
+
+        return new PagedResult<UserLicence>(
+            rows.Select(r => new UserLicence(r.ToLicenceRow().ToDomain(), r.Relationship)).ToList(),
+            total
+        );
+    }
+
     public async Task<PagedResult<Licence>> ListForOwnerAsync(
         Guid ownerId,
         LicenceStatus? status,
@@ -584,6 +627,30 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
     }
 
     private sealed record HwidHistoryValue(string HwidHmacBase64, string? SourceIp);
+
+    private sealed record UserLicenceRow(
+        Guid Id,
+        Guid ProductId,
+        Guid UserId,
+        byte[] KeyHmac,
+        short KeyHmacPepperVersion,
+        string Status,
+        DateTime? ExpiresAt,
+        string? Notes,
+        byte[]? HwidHmac,
+        short? HwidHmacPepperVersion,
+        string? IpAllowlist,
+        DateTime CreatedAt,
+        DateTime UpdatedAt,
+        string Relationship
+    )
+    {
+        public LicenceRow ToLicenceRow() => new(
+            Id, ProductId, UserId, KeyHmac, KeyHmacPepperVersion, Status,
+            ExpiresAt, Notes, HwidHmac, HwidHmacPepperVersion, IpAllowlist,
+            CreatedAt, UpdatedAt
+        );
+    }
 
     private sealed record LicenceRow(
         Guid Id,

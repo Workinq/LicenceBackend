@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { History, Link2, CheckCircle2, XCircle } from 'lucide-react';
+import { History, Link2, CheckCircle2, XCircle, UserPlus, UserMinus, Users, KeyRound } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { AuditTimeline, type AuditEvent } from '@/components/AuditTimeline';
@@ -9,7 +9,9 @@ import {
   fetchLicenceBindingHistory,
   fetchLicenceVerificationAttempts,
 } from '@/api/licences';
+import { fetchAuditEvents } from '@/api/audit-events';
 import type {
+  AuditEventResponse,
   LicenceStatusHistoryResponse,
   BindingHistoryEntryResponse,
   VerificationAttemptResponse,
@@ -64,12 +66,32 @@ function PagedAuditTab<T>({
   );
 }
 
+function memberPayloadEmail(event: AuditEventResponse): string {
+  const payload = event.payload as Record<string, unknown> | null;
+  const email = payload?.memberEmail;
+  return typeof email === 'string' && email.length > 0 ? email : 'unknown';
+}
+
+function memberEventIcon(eventType: string) {
+  if (eventType === 'licence.member_added') return UserPlus;
+  if (eventType === 'licence.member_removed') return UserMinus;
+  return Users;
+}
+
+function memberEventTitle(eventType: string, email: string): string {
+  if (eventType === 'licence.member_added') return `Added ${email}`;
+  if (eventType === 'licence.member_removed') return `Removed ${email}`;
+  return `${eventType}: ${email}`;
+}
+
 export function LicenceHistory({ licenceId }: { licenceId: string }) {
   return (
     <Tabs defaultValue="status">
       <TabsList>
         <TabsTrigger value="status">Status history</TabsTrigger>
         <TabsTrigger value="bindings">Binding history</TabsTrigger>
+        <TabsTrigger value="members">Member history</TabsTrigger>
+        <TabsTrigger value="key">Key history</TabsTrigger>
         <TabsTrigger value="verifications">Verification attempts</TabsTrigger>
       </TabsList>
       <TabsContent value="status" className="pt-4">
@@ -97,6 +119,46 @@ export function LicenceHistory({ licenceId }: { licenceId: string }) {
             title: `${b.bindingType}: ${formatJson(b.previousValue)} -> ${formatJson(b.newValue)}`,
             meta: [b.changeSource, b.reason].filter(Boolean).join(' - ') || undefined,
             timestamp: b.changedAt,
+          })}
+        />
+      </TabsContent>
+      <TabsContent value="members" className="pt-4">
+        <PagedAuditTab<AuditEventResponse>
+          queryKey={['licences', 'history', 'members', licenceId]}
+          queryFn={(p) => fetchAuditEvents({
+            subject_type: 'licence',
+            subject_id: licenceId,
+            event_type: ['licence.member_added', 'licence.member_removed'],
+            limit: p.limit,
+            offset: p.offset,
+          })}
+          emptyText="No member changes yet."
+          mapEvent={(e) => ({
+            id: e.id,
+            icon: memberEventIcon(e.eventType),
+            title: memberEventTitle(e.eventType, memberPayloadEmail(e)),
+            meta: [e.actorUserEmail, e.reason].filter(Boolean).join(' - ') || undefined,
+            timestamp: e.occurredAt,
+          })}
+        />
+      </TabsContent>
+      <TabsContent value="key" className="pt-4">
+        <PagedAuditTab<AuditEventResponse>
+          queryKey={['licences', 'history', 'key', licenceId]}
+          queryFn={(p) => fetchAuditEvents({
+            subject_type: 'licence',
+            subject_id: licenceId,
+            event_type: ['licence.key_regenerated'],
+            limit: p.limit,
+            offset: p.offset,
+          })}
+          emptyText="No key regenerations yet."
+          mapEvent={(e) => ({
+            id: e.id,
+            icon: KeyRound,
+            title: 'Licence key regenerated',
+            meta: [e.actorUserEmail, e.reason].filter(Boolean).join(' - ') || undefined,
+            timestamp: e.occurredAt,
           })}
         />
       </TabsContent>

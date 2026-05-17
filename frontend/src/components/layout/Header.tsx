@@ -48,7 +48,7 @@ export function Header() {
             )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => void navigate({ to: '/me' })}>
+          <DropdownMenuItem onSelect={() => void navigate({ to: '/admin/me' })}>
             My profile
           </DropdownMenuItem>
           <DropdownMenuSeparator />

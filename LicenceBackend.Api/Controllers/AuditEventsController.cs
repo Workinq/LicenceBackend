@@ -27,7 +27,7 @@ public sealed class AuditEventsController(IAuditEventRepository auditEvents, IUs
     public async Task<IActionResult> List(
         [FromQuery(Name = "subject_type")] string? subjectType,
         [FromQuery(Name = "subject_id")] Guid? subjectId,
-        [FromQuery(Name = "event_type")] string? eventType,
+        [FromQuery(Name = "event_type")] string[]? eventType,
         [FromQuery] int? limit,
         [FromQuery] int? offset,
         CancellationToken cancellationToken

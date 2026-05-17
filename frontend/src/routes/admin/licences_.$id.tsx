@@ -8,8 +8,9 @@ import { fetchLicence } from '@/api/licences';
 import { LicenceActions } from '@/components/licences/LicenceActions';
 import { LicenceBindings } from '@/components/licences/LicenceBindings';
 import { LicenceHistory } from '@/components/licences/LicenceHistory';
+import { LicenceMembers } from '@/components/licences/LicenceMembers';
 
-export const Route = createFileRoute('/_authed/licences_/$id')({
+export const Route = createFileRoute('/admin/licences_/$id')({
   component: LicenceDetailPage,
 });
 
@@ -79,6 +80,15 @@ function LicenceDetailPage() {
         </CardHeader>
         <CardContent>
           <LicenceBindings licence={lic} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Members</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LicenceMembers licenceId={lic.id} />
         </CardContent>
       </Card>
 

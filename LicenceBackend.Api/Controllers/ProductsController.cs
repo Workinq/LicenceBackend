@@ -10,7 +10,7 @@ namespace LicenceBackend.Api.Controllers;
 
 [ApiController]
 [Route("products")]
-[Authorize(Roles = "admin")]
+[Authorize]
 [EnableRateLimiting(RateLimiterPolicyNames.Admin)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -32,8 +32,10 @@ public sealed class ProductsController(
     private const long MaxImageBytes = 2 * 1024 * 1024;
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateProductRequest request,
@@ -73,12 +75,14 @@ public sealed class ProductsController(
     public async Task<IActionResult> List(
         [FromQuery] int? limit,
         [FromQuery] int? offset,
+        [FromQuery] string? q,
         CancellationToken cancellationToken)
     {
         var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
         var effectiveOffset = Math.Max(offset ?? 0, 0);
 
-        var page = await products.ListAsync(effectiveLimit, effectiveOffset, cancellationToken);
+        var publicOnly = !User.IsInRole("admin");
+        var page = await products.ListAsync(effectiveLimit, effectiveOffset, q, publicOnly, cancellationToken);
         var items = page.Items.Select(ToResponse).ToList();
         return Ok(new PagedResponse<ProductResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
@@ -89,7 +93,8 @@ public sealed class ProductsController(
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var product = await products.FindByIdAsync(id, cancellationToken);
-        if (product is null)
+        var isAdmin = User.IsInRole("admin");
+        if (product is null || (!isAdmin && !product.IsPublic))
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
                 title: ProblemTitles.ProductNotFound,
@@ -100,8 +105,10 @@ public sealed class ProductsController(
     }
 
     [HttpPatch("{id:guid}")]
+    [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request, CancellationToken cancellationToken)
     {
@@ -130,6 +137,7 @@ public sealed class ProductsController(
     }
 
     [HttpPost("{id:guid}/image")]
+    [Authorize(Roles = "admin")]
     [RequestSizeLimit(MaxImageBytes)]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -170,6 +178,7 @@ public sealed class ProductsController(
     }
 
     [HttpDelete("{id:guid}/image")]
+    [Authorize(Roles = "admin")]
     [ProducesResponseType(typeof(ProductResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteImage(Guid id, CancellationToken cancellationToken)

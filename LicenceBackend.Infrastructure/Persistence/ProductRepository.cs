@@ -47,19 +47,25 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
         await connection.ExecuteAsync(command);
     }
 
-    public async Task<PagedResult<Product>> ListAsync(int limit, int offset, CancellationToken cancellationToken)
+    public async Task<PagedResult<Product>> ListAsync(int limit, int offset, string? q, bool publicOnly, CancellationToken cancellationToken)
     {
         const string sql = """
                            SELECT id, slug, display_name, description, tagline, is_public, price, currency, sort_order, image_path, image_content_type, created_at
                            FROM products
+                           WHERE (@Q IS NULL OR display_name ILIKE '%' || @Q || '%')
+                             AND (NOT @PublicOnly OR is_public = TRUE)
                            ORDER BY created_at DESC
                            LIMIT @Limit OFFSET @Offset;
 
-                           SELECT COUNT(*) FROM products;
+                           SELECT COUNT(*) FROM products
+                           WHERE (@Q IS NULL OR display_name ILIKE '%' || @Q || '%')
+                             AND (NOT @PublicOnly OR is_public = TRUE);
                            """;
 
+        var trimmedQ = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
+
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(sql, new { Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
+        var command = new CommandDefinition(sql, new { Limit = limit, Offset = offset, Q = trimmedQ, PublicOnly = publicOnly }, cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
         var rows = (await multi.ReadAsync<ProductRow>()).ToList();
         var total = await multi.ReadFirstAsync<int>();

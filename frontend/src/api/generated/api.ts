@@ -5,9 +5,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AddLicenceMemberRequest,
+  ChangePasswordRequest,
   CreateLicenceRequest,
   CreateProductRequest,
   CreateUserRequest,
+  GetAuditEventsParams,
   GetLicencesIdBindingHistoryParams,
   GetLicencesIdStatusHistoryParams,
   GetLicencesIdVerificationAttemptsParams,
@@ -15,6 +18,7 @@ import type {
   GetMeLicencesIdVerificationAttemptsParams,
   GetMeLicencesParams,
   GetProductsParams,
+  GetUsersIdLicencesParams,
   GetUsersIdStatusHistoryParams,
   GetUsersParams,
   GetVerificationAttemptsParams,
@@ -22,8 +26,10 @@ import type {
   JwksResponse,
   LicenceCreatedResponse,
   LicenceKeyRegeneratedResponse,
+  LicenceMemberResponse,
   LicenceResponse,
   LoginRequest,
+  PagedResponseOfAuditEventResponse,
   PagedResponseOfBindingHistoryEntryResponse,
   PagedResponseOfLicenceResponse,
   PagedResponseOfLicenceStatusHistoryResponse,
@@ -41,12 +47,75 @@ import type {
   UpdateLicenceIpAllowlistRequest,
   UpdateLicenceStatusRequest,
   UpdateProductRequest,
+  UpdateProfileRequest,
   UpdateUserStatusRequest,
   UserResponse,
   VerifyLicenceRequest
 } from './api.schemas';
 
 import { apiClient } from '../../auth/api-client';
+
+export type getAuditEventsResponse200 = {
+  data: PagedResponseOfAuditEventResponse
+  status: 200
+}
+
+export type getAuditEventsResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getAuditEventsResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getAuditEventsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAuditEventsResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getAuditEventsResponseSuccess = (getAuditEventsResponse200) & {
+  headers: Headers;
+};
+export type getAuditEventsResponseError = (getAuditEventsResponse400 | getAuditEventsResponse401 | getAuditEventsResponse403 | getAuditEventsResponse429) & {
+  headers: Headers;
+};
+
+export type getAuditEventsResponse = (getAuditEventsResponseSuccess | getAuditEventsResponseError)
+
+export const getGetAuditEventsUrl = (params?: GetAuditEventsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/audit-events?${stringifiedParams}` : `/audit-events`
+}
+
+export const getAuditEvents = async (params?: GetAuditEventsParams, options?: RequestInit): Promise<getAuditEventsResponse> => {
+
+  return apiClient<getAuditEventsResponse>(getGetAuditEventsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
 
 export type getHealthResponse200 = {
   data: HealthResponse
@@ -721,6 +790,195 @@ export const getLicencesIdVerificationAttempts = async (id: string,
 
 
 
+export type getLicencesIdMembersResponse200 = {
+  data: LicenceMemberResponse[]
+  status: 200
+}
+
+export type getLicencesIdMembersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getLicencesIdMembersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getLicencesIdMembersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getLicencesIdMembersResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getLicencesIdMembersResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getLicencesIdMembersResponseSuccess = (getLicencesIdMembersResponse200) & {
+  headers: Headers;
+};
+export type getLicencesIdMembersResponseError = (getLicencesIdMembersResponse400 | getLicencesIdMembersResponse401 | getLicencesIdMembersResponse403 | getLicencesIdMembersResponse404 | getLicencesIdMembersResponse429) & {
+  headers: Headers;
+};
+
+export type getLicencesIdMembersResponse = (getLicencesIdMembersResponseSuccess | getLicencesIdMembersResponseError)
+
+export const getGetLicencesIdMembersUrl = (id: string,) => {
+
+
+
+
+  return `/licences/${id}/members`
+}
+
+export const getLicencesIdMembers = async (id: string, options?: RequestInit): Promise<getLicencesIdMembersResponse> => {
+
+  return apiClient<getLicencesIdMembersResponse>(getGetLicencesIdMembersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type postLicencesIdMembersResponse201 = {
+  data: LicenceMemberResponse
+  status: 201
+}
+
+export type postLicencesIdMembersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postLicencesIdMembersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postLicencesIdMembersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type postLicencesIdMembersResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postLicencesIdMembersResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type postLicencesIdMembersResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postLicencesIdMembersResponseSuccess = (postLicencesIdMembersResponse201) & {
+  headers: Headers;
+};
+export type postLicencesIdMembersResponseError = (postLicencesIdMembersResponse400 | postLicencesIdMembersResponse401 | postLicencesIdMembersResponse403 | postLicencesIdMembersResponse404 | postLicencesIdMembersResponse409 | postLicencesIdMembersResponse429) & {
+  headers: Headers;
+};
+
+export type postLicencesIdMembersResponse = (postLicencesIdMembersResponseSuccess | postLicencesIdMembersResponseError)
+
+export const getPostLicencesIdMembersUrl = (id: string,) => {
+
+
+
+
+  return `/licences/${id}/members`
+}
+
+export const postLicencesIdMembers = async (id: string,
+    addLicenceMemberRequest: AddLicenceMemberRequest, options?: RequestInit): Promise<postLicencesIdMembersResponse> => {
+
+  return apiClient<postLicencesIdMembersResponse>(getPostLicencesIdMembersUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addLicenceMemberRequest,)
+  }
+);}
+
+
+
+export type deleteLicencesIdMembersMemberIdResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteLicencesIdMembersMemberIdResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type deleteLicencesIdMembersMemberIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type deleteLicencesIdMembersMemberIdResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteLicencesIdMembersMemberIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type deleteLicencesIdMembersMemberIdResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type deleteLicencesIdMembersMemberIdResponseSuccess = (deleteLicencesIdMembersMemberIdResponse204) & {
+  headers: Headers;
+};
+export type deleteLicencesIdMembersMemberIdResponseError = (deleteLicencesIdMembersMemberIdResponse400 | deleteLicencesIdMembersMemberIdResponse401 | deleteLicencesIdMembersMemberIdResponse403 | deleteLicencesIdMembersMemberIdResponse404 | deleteLicencesIdMembersMemberIdResponse429) & {
+  headers: Headers;
+};
+
+export type deleteLicencesIdMembersMemberIdResponse = (deleteLicencesIdMembersMemberIdResponseSuccess | deleteLicencesIdMembersMemberIdResponseError)
+
+export const getDeleteLicencesIdMembersMemberIdUrl = (id: string,
+    memberId: string,) => {
+
+
+
+
+  return `/licences/${id}/members/${memberId}`
+}
+
+export const deleteLicencesIdMembersMemberId = async (id: string,
+    memberId: string, options?: RequestInit): Promise<deleteLicencesIdMembersMemberIdResponse> => {
+
+  return apiClient<deleteLicencesIdMembersMemberIdResponse>(getDeleteLicencesIdMembersMemberIdUrl(id,memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
 export type postLicencesVerifyResponse200 = {
   data: SignedLicenceVerificationResponse
   status: 200
@@ -822,6 +1080,11 @@ export type postProductsResponse401 = {
   status: 401
 }
 
+export type postProductsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type postProductsResponse409 = {
   data: ProblemDetails
   status: 409
@@ -835,7 +1098,7 @@ export type postProductsResponse429 = {
 export type postProductsResponseSuccess = (postProductsResponse201) & {
   headers: Headers;
 };
-export type postProductsResponseError = (postProductsResponse400 | postProductsResponse401 | postProductsResponse409 | postProductsResponse429) & {
+export type postProductsResponseError = (postProductsResponse400 | postProductsResponse401 | postProductsResponse403 | postProductsResponse409 | postProductsResponse429) & {
   headers: Headers;
 };
 
@@ -980,6 +1243,11 @@ export type patchProductsIdResponse401 = {
   status: 401
 }
 
+export type patchProductsIdResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
 export type patchProductsIdResponse404 = {
   data: ProblemDetails
   status: 404
@@ -993,7 +1261,7 @@ export type patchProductsIdResponse429 = {
 export type patchProductsIdResponseSuccess = (patchProductsIdResponse200) & {
   headers: Headers;
 };
-export type patchProductsIdResponseError = (patchProductsIdResponse400 | patchProductsIdResponse401 | patchProductsIdResponse404 | patchProductsIdResponse429) & {
+export type patchProductsIdResponseError = (patchProductsIdResponse400 | patchProductsIdResponse401 | patchProductsIdResponse403 | patchProductsIdResponse404 | patchProductsIdResponse429) & {
   headers: Headers;
 };
 
@@ -1425,6 +1693,11 @@ export type getUsersResponse200 = {
   status: 200
 }
 
+export type getUsersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
 export type getUsersResponse401 = {
   data: ProblemDetails
   status: 401
@@ -1443,7 +1716,7 @@ export type getUsersResponse429 = {
 export type getUsersResponseSuccess = (getUsersResponse200) & {
   headers: Headers;
 };
-export type getUsersResponseError = (getUsersResponse401 | getUsersResponse403 | getUsersResponse429) & {
+export type getUsersResponseError = (getUsersResponse400 | getUsersResponse401 | getUsersResponse403 | getUsersResponse429) & {
   headers: Headers;
 };
 
@@ -1522,6 +1795,75 @@ export const getGetUsersIdUrl = (id: string,) => {
 export const getUsersId = async (id: string, options?: RequestInit): Promise<getUsersIdResponse> => {
 
   return apiClient<getUsersIdResponse>(getGetUsersIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getUsersIdLicencesResponse200 = {
+  data: PagedResponseOfLicenceResponse
+  status: 200
+}
+
+export type getUsersIdLicencesResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getUsersIdLicencesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getUsersIdLicencesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getUsersIdLicencesResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getUsersIdLicencesResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getUsersIdLicencesResponseSuccess = (getUsersIdLicencesResponse200) & {
+  headers: Headers;
+};
+export type getUsersIdLicencesResponseError = (getUsersIdLicencesResponse400 | getUsersIdLicencesResponse401 | getUsersIdLicencesResponse403 | getUsersIdLicencesResponse404 | getUsersIdLicencesResponse429) & {
+  headers: Headers;
+};
+
+export type getUsersIdLicencesResponse = (getUsersIdLicencesResponseSuccess | getUsersIdLicencesResponseError)
+
+export const getGetUsersIdLicencesUrl = (id: string,
+    params?: GetUsersIdLicencesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/users/${id}/licences?${stringifiedParams}` : `/users/${id}/licences`
+}
+
+export const getUsersIdLicences = async (id: string,
+    params?: GetUsersIdLicencesParams, options?: RequestInit): Promise<getUsersIdLicencesResponse> => {
+
+  return apiClient<getUsersIdLicencesResponse>(getGetUsersIdLicencesUrl(id,params),
   {
     ...options,
     method: 'GET'
@@ -1703,6 +2045,108 @@ export const getMe = async ( options?: RequestInit): Promise<getMeResponse> => {
 
 
 
+export type patchMeResponse200 = {
+  data: UserResponse
+  status: 200
+}
+
+export type patchMeResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchMeResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type patchMeResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type patchMeResponseSuccess = (patchMeResponse200) & {
+  headers: Headers;
+};
+export type patchMeResponseError = (patchMeResponse400 | patchMeResponse401 | patchMeResponse429) & {
+  headers: Headers;
+};
+
+export type patchMeResponse = (patchMeResponseSuccess | patchMeResponseError)
+
+export const getPatchMeUrl = () => {
+
+
+
+
+  return `/me`
+}
+
+export const patchMe = async (updateProfileRequest: UpdateProfileRequest, options?: RequestInit): Promise<patchMeResponse> => {
+
+  return apiClient<patchMeResponse>(getPatchMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateProfileRequest,)
+  }
+);}
+
+
+
+export type patchMePasswordResponse204 = {
+  data: void
+  status: 204
+}
+
+export type patchMePasswordResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchMePasswordResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type patchMePasswordResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type patchMePasswordResponseSuccess = (patchMePasswordResponse204) & {
+  headers: Headers;
+};
+export type patchMePasswordResponseError = (patchMePasswordResponse400 | patchMePasswordResponse401 | patchMePasswordResponse429) & {
+  headers: Headers;
+};
+
+export type patchMePasswordResponse = (patchMePasswordResponseSuccess | patchMePasswordResponseError)
+
+export const getPatchMePasswordUrl = () => {
+
+
+
+
+  return `/me/password`
+}
+
+export const patchMePassword = async (changePasswordRequest: ChangePasswordRequest, options?: RequestInit): Promise<patchMePasswordResponse> => {
+
+  return apiClient<patchMePasswordResponse>(getPatchMePasswordUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      changePasswordRequest,)
+  }
+);}
+
+
+
 export type getMeLicencesResponse200 = {
   data: PagedResponseOfLicenceResponse
   status: 200
@@ -1755,6 +2199,267 @@ export const getMeLicences = async (params?: GetMeLicencesParams, options?: Requ
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type getMeLicencesIdResponse200 = {
+  data: LicenceResponse
+  status: 200
+}
+
+export type getMeLicencesIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeLicencesIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getMeLicencesIdResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getMeLicencesIdResponseSuccess = (getMeLicencesIdResponse200) & {
+  headers: Headers;
+};
+export type getMeLicencesIdResponseError = (getMeLicencesIdResponse401 | getMeLicencesIdResponse404 | getMeLicencesIdResponse429) & {
+  headers: Headers;
+};
+
+export type getMeLicencesIdResponse = (getMeLicencesIdResponseSuccess | getMeLicencesIdResponseError)
+
+export const getGetMeLicencesIdUrl = (id: string,) => {
+
+
+
+
+  return `/me/licences/${id}`
+}
+
+export const getMeLicencesId = async (id: string, options?: RequestInit): Promise<getMeLicencesIdResponse> => {
+
+  return apiClient<getMeLicencesIdResponse>(getGetMeLicencesIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getMeLicencesIdMembersResponse200 = {
+  data: LicenceMemberResponse[]
+  status: 200
+}
+
+export type getMeLicencesIdMembersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeLicencesIdMembersResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getMeLicencesIdMembersResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getMeLicencesIdMembersResponseSuccess = (getMeLicencesIdMembersResponse200) & {
+  headers: Headers;
+};
+export type getMeLicencesIdMembersResponseError = (getMeLicencesIdMembersResponse401 | getMeLicencesIdMembersResponse404 | getMeLicencesIdMembersResponse429) & {
+  headers: Headers;
+};
+
+export type getMeLicencesIdMembersResponse = (getMeLicencesIdMembersResponseSuccess | getMeLicencesIdMembersResponseError)
+
+export const getGetMeLicencesIdMembersUrl = (id: string,) => {
+
+
+
+
+  return `/me/licences/${id}/members`
+}
+
+export const getMeLicencesIdMembers = async (id: string, options?: RequestInit): Promise<getMeLicencesIdMembersResponse> => {
+
+  return apiClient<getMeLicencesIdMembersResponse>(getGetMeLicencesIdMembersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type postMeLicencesIdMembersResponse201 = {
+  data: LicenceMemberResponse
+  status: 201
+}
+
+export type postMeLicencesIdMembersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postMeLicencesIdMembersResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postMeLicencesIdMembersResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type postMeLicencesIdMembersResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postMeLicencesIdMembersResponseSuccess = (postMeLicencesIdMembersResponse201) & {
+  headers: Headers;
+};
+export type postMeLicencesIdMembersResponseError = (postMeLicencesIdMembersResponse401 | postMeLicencesIdMembersResponse404 | postMeLicencesIdMembersResponse409 | postMeLicencesIdMembersResponse429) & {
+  headers: Headers;
+};
+
+export type postMeLicencesIdMembersResponse = (postMeLicencesIdMembersResponseSuccess | postMeLicencesIdMembersResponseError)
+
+export const getPostMeLicencesIdMembersUrl = (id: string,) => {
+
+
+
+
+  return `/me/licences/${id}/members`
+}
+
+export const postMeLicencesIdMembers = async (id: string,
+    addLicenceMemberRequest: AddLicenceMemberRequest, options?: RequestInit): Promise<postMeLicencesIdMembersResponse> => {
+
+  return apiClient<postMeLicencesIdMembersResponse>(getPostMeLicencesIdMembersUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addLicenceMemberRequest,)
+  }
+);}
+
+
+
+export type deleteMeLicencesIdMembersMemberIdResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteMeLicencesIdMembersMemberIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type deleteMeLicencesIdMembersMemberIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type deleteMeLicencesIdMembersMemberIdResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type deleteMeLicencesIdMembersMemberIdResponseSuccess = (deleteMeLicencesIdMembersMemberIdResponse204) & {
+  headers: Headers;
+};
+export type deleteMeLicencesIdMembersMemberIdResponseError = (deleteMeLicencesIdMembersMemberIdResponse401 | deleteMeLicencesIdMembersMemberIdResponse404 | deleteMeLicencesIdMembersMemberIdResponse429) & {
+  headers: Headers;
+};
+
+export type deleteMeLicencesIdMembersMemberIdResponse = (deleteMeLicencesIdMembersMemberIdResponseSuccess | deleteMeLicencesIdMembersMemberIdResponseError)
+
+export const getDeleteMeLicencesIdMembersMemberIdUrl = (id: string,
+    memberId: string,) => {
+
+
+
+
+  return `/me/licences/${id}/members/${memberId}`
+}
+
+export const deleteMeLicencesIdMembersMemberId = async (id: string,
+    memberId: string, options?: RequestInit): Promise<deleteMeLicencesIdMembersMemberIdResponse> => {
+
+  return apiClient<deleteMeLicencesIdMembersMemberIdResponse>(getDeleteMeLicencesIdMembersMemberIdUrl(id,memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type postMeLicencesIdRegenerateKeyResponse200 = {
+  data: LicenceKeyRegeneratedResponse
+  status: 200
+}
+
+export type postMeLicencesIdRegenerateKeyResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postMeLicencesIdRegenerateKeyResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postMeLicencesIdRegenerateKeyResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postMeLicencesIdRegenerateKeyResponseSuccess = (postMeLicencesIdRegenerateKeyResponse200) & {
+  headers: Headers;
+};
+export type postMeLicencesIdRegenerateKeyResponseError = (postMeLicencesIdRegenerateKeyResponse401 | postMeLicencesIdRegenerateKeyResponse404 | postMeLicencesIdRegenerateKeyResponse429) & {
+  headers: Headers;
+};
+
+export type postMeLicencesIdRegenerateKeyResponse = (postMeLicencesIdRegenerateKeyResponseSuccess | postMeLicencesIdRegenerateKeyResponseError)
+
+export const getPostMeLicencesIdRegenerateKeyUrl = (id: string,) => {
+
+
+
+
+  return `/me/licences/${id}/regenerate-key`
+}
+
+export const postMeLicencesIdRegenerateKey = async (id: string,
+    regenerateLicenceKeyRequest: RegenerateLicenceKeyRequest, options?: RequestInit): Promise<postMeLicencesIdRegenerateKeyResponse> => {
+
+  return apiClient<postMeLicencesIdRegenerateKeyResponse>(getPostMeLicencesIdRegenerateKeyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      regenerateLicenceKeyRequest,)
   }
 );}
 

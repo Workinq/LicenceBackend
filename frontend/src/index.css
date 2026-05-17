@@ -98,3 +98,37 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+@layer utilities {
+  @keyframes shimmer-wave {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--surface-sunken) 0%,
+      var(--surface-sunken) 30%,
+      var(--accent-soft) 50%,
+      var(--surface-sunken) 70%,
+      var(--surface-sunken) 100%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    background-color: var(--surface-sunken);
+    animation: shimmer-wave 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-shimmer {
+      animation: none;
+      background-image: none;
+      background-color: var(--surface-sunken);
+    }
+  }
+}

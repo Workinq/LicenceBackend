@@ -1,5 +1,6 @@
 using System.Net;
 using System.Threading.RateLimiting;
+using LicenceBackend.Api.OpenApi;
 using LicenceBackend.Api.RateLimiting;
 using LicenceBackend.Infrastructure;
 using LicenceBackend.Infrastructure.Crypto;
@@ -39,6 +40,7 @@ try
                return Task.CompletedTask;
            }
         );
+        options.AddSchemaTransformer<StringLengthSchemaTransformer>();
     });
     builder.Services.AddProblemDetails();
     builder.Services.AddLicenceBackendInfrastructure(builder.Configuration);

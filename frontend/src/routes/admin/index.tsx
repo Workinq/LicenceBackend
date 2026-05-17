@@ -1,8 +1,8 @@
-// frontend/src/routes/_authed/index.tsx
+// frontend/src/routes/admin/index.tsx
 import { createFileRoute } from '@tanstack/react-router';
 import { useAccessTokenStore } from '../../auth/access-token-store';
 
-export const Route = createFileRoute('/_authed/')({
+export const Route = createFileRoute('/admin/')({
   component: OverviewPage,
 });
 
