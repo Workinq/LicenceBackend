@@ -197,7 +197,10 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
 
         var first = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
         {
-            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId
         });
         first.EnsureSuccessStatusCode();
         var firstPayload = await first.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
@@ -206,7 +209,10 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
 
         var second = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
         {
-            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId
         });
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
         var secondPayload = await second.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
@@ -222,7 +228,10 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         var (licenceKey, _, productId, _) = await CreateLicenceAsync();
         var openResponse = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
         {
-            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId = GenerateInstanceId()
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
         });
         openResponse.EnsureSuccessStatusCode();
         var openPayload = await openResponse.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
@@ -254,7 +263,10 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
 
         var first = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
         {
-            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId
         });
         first.EnsureSuccessStatusCode();
         var firstPayload = await first.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
@@ -266,7 +278,10 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
 
         var second = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
         {
-            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId
         });
         second.EnsureSuccessStatusCode();
         var secondPayload = await second.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
