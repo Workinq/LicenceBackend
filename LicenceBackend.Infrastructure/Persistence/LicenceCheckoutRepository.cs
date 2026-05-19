@@ -191,11 +191,124 @@ public sealed class LicenceCheckoutRepository(
         return row?.ToDomain();
     }
 
-    public Task<bool> CloseAsync(Guid checkoutId, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<bool> CloseAsync(Guid checkoutId, CancellationToken cancellationToken)
+    {
+        return await ArchiveAndDeleteAsync(
+            checkoutId,
+            LicenceCheckoutCloseReason.Checkin,
+            actor: null,
+            actorReason: null,
+            cancellationToken);
+    }
 
-    public Task<bool> ForceRevokeAsync(Guid checkoutId, LicenceCheckoutCloseReason reason, Guid actorUserId, string? actorReason, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<bool> ForceRevokeAsync(
+        Guid checkoutId,
+        LicenceCheckoutCloseReason reason,
+        Guid actorUserId,
+        string? actorReason,
+        CancellationToken cancellationToken)
+    {
+        if (reason != LicenceCheckoutCloseReason.AdminRevoked && reason != LicenceCheckoutCloseReason.OwnerRevoked)
+            throw new ArgumentException($"ForceRevoke requires AdminRevoked or OwnerRevoked, got {reason}.", nameof(reason));
+
+        return await ArchiveAndDeleteAsync(
+            checkoutId,
+            reason,
+            actor: actorUserId,
+            actorReason,
+            cancellationToken);
+    }
+
+    private async Task<bool> ArchiveAndDeleteAsync(
+        Guid checkoutId,
+        LicenceCheckoutCloseReason reason,
+        Guid? actor,
+        string? actorReason,
+        CancellationToken cancellationToken)
+    {
+        const string deleteSql = $"""
+                                  DELETE FROM licence_checkouts WHERE id = @Id
+                                  RETURNING {CheckoutColumns};
+                                  """;
+        const string archiveSql = """
+                                   INSERT INTO licence_checkout_history
+                                       (id, licence_id, checkout_id, instance_id_hash, member_user_id, hwid_hmac, source_ip, issued_at, closed_at, close_reason)
+                                   VALUES (@Id, @LicenceId, @CheckoutId, @InstanceIdHash, @MemberUserId, @HwidHmac, @SourceIp::inet, @IssuedAt, @ClosedAt, @CloseReason);
+                                   """;
+        const string countSql = "SELECT COUNT(*) FROM licence_checkouts WHERE licence_id = @LicenceId;";
+        const string maxSeatsSql = "SELECT max_seats FROM licences WHERE id = @LicenceId;";
+
+        var now = time.GetUtcNow();
+        var reasonText = LicenceCheckoutCloseReasonNames.ToString(reason);
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var row = await connection.QuerySingleOrDefaultAsync<CheckoutRow>(
+                          new CommandDefinition(deleteSql, new { Id = checkoutId }, transaction, cancellationToken: cancellationToken));
+            if (row is null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return false;
+            }
+
+            await connection.ExecuteAsync(new CommandDefinition(
+                archiveSql,
+                new
+                {
+                    Id = Guid.NewGuid(),
+                    row.LicenceId,
+                    CheckoutId = row.Id,
+                    row.InstanceIdHash,
+                    row.MemberUserId,
+                    row.HwidHmac,
+                    row.SourceIp,
+                    IssuedAt = TimestampConversion.ToUtcOffset(row.IssuedAt),
+                    ClosedAt = now,
+                    CloseReason = reasonText
+                },
+                transaction,
+                cancellationToken: cancellationToken));
+
+            if (reason == LicenceCheckoutCloseReason.AdminRevoked || reason == LicenceCheckoutCloseReason.OwnerRevoked)
+            {
+                var seatsAfter = await connection.QuerySingleAsync<int>(
+                                     new CommandDefinition(countSql, new { row.LicenceId }, transaction, cancellationToken: cancellationToken));
+                var maxSeats = await connection.QuerySingleAsync<int>(
+                                   new CommandDefinition(maxSeatsSql, new { row.LicenceId }, transaction, cancellationToken: cancellationToken));
+
+                var actorType = reason == LicenceCheckoutCloseReason.AdminRevoked
+                    ? AuditActorTypes.Admin
+                    : AuditActorTypes.User;
+                var evt = AuditEvent.Create(
+                    AuditEventTypes.LicenceCheckoutClosed,
+                    AuditSubjectTypes.Licence,
+                    row.LicenceId,
+                    actorType,
+                    actor,
+                    actorReason,
+                    new LicenceCheckoutClosedPayload(
+                        row.Id,
+                        InstanceHashPrefix(row.InstanceIdHash),
+                        reasonText,
+                        seatsAfter,
+                        maxSeats
+                    ),
+                    now
+                );
+                await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 
     public Task<ReclaimExpiredResult> ReclaimExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
         => throw new NotImplementedException();

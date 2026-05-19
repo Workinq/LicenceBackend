@@ -181,6 +181,81 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         Assert.Null(refreshed);
     }
 
+    [SkippableFact]
+    public async Task CloseAsync_archives_seat_with_checkin_reason_and_no_audit()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync();
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+
+        var closed = await repo.CloseAsync(opened.Result.Checkout.Id, CancellationToken.None);
+
+        Assert.True(closed);
+
+        await using var conn = await OpenDbAsync();
+        var liveCount = await conn.QuerySingleAsync<int>(
+            "SELECT COUNT(*) FROM licence_checkouts WHERE id = @Id;",
+            new { Id = opened.Result.Checkout.Id });
+        Assert.Equal(0, liveCount);
+
+        var historyReason = await conn.QuerySingleAsync<string>(
+            "SELECT close_reason FROM licence_checkout_history WHERE checkout_id = @Id;",
+            new { Id = opened.Result.Checkout.Id });
+        Assert.Equal("checkin", historyReason);
+
+        var auditCount = await conn.QuerySingleAsync<int>(
+            "SELECT COUNT(*) FROM audit_events WHERE subject_id = @LicenceId AND event_type = 'licence.checkout_closed';",
+            new { LicenceId = licenceId });
+        Assert.Equal(0, auditCount);
+    }
+
+    [SkippableFact]
+    public async Task CloseAsync_returns_false_for_missing_seat()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var result = await repo.CloseAsync(Guid.NewGuid(), CancellationToken.None);
+        Assert.False(result);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevokeAsync_archives_seat_and_writes_audit_event()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync();
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+
+        var revoked = await repo.ForceRevokeAsync(
+            opened.Result.Checkout.Id,
+            LicenceCheckoutCloseReason.AdminRevoked,
+            AdminUserId,
+            "abuse",
+            CancellationToken.None);
+
+        Assert.True(revoked);
+
+        await using var conn = await OpenDbAsync();
+        var historyReason = await conn.QuerySingleAsync<string>(
+            "SELECT close_reason FROM licence_checkout_history WHERE checkout_id = @Id;",
+            new { Id = opened.Result.Checkout.Id });
+        Assert.Equal("admin_revoked", historyReason);
+
+        var auditRow = await conn.QuerySingleAsync<(string EventType, string Reason)>(
+            "SELECT event_type, reason FROM audit_events WHERE subject_id = @LicenceId AND event_type = 'licence.checkout_closed';",
+            new { LicenceId = licenceId });
+        Assert.Equal("licence.checkout_closed", auditRow.EventType);
+        Assert.Equal("abuse", auditRow.Reason);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevokeAsync_returns_false_for_missing_seat()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var result = await repo.ForceRevokeAsync(Guid.NewGuid(), LicenceCheckoutCloseReason.AdminRevoked, AdminUserId, null, CancellationToken.None);
+        Assert.False(result);
+    }
+
     internal async Task<(Guid LicenceId, Guid ProductId, Guid OwnerUserId)> SeedLicenceAsync(int maxSeats = 1)
     {
         var productId = Guid.NewGuid();
