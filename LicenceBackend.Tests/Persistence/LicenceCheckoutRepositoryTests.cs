@@ -1,0 +1,164 @@
+using System.Security.Cryptography;
+using Dapper;
+using LicenceBackend.Core.Licences;
+using LicenceBackend.Tests.Api;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace LicenceBackend.Tests.Persistence;
+
+public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
+{
+    private static readonly TimeSpan Lease = TimeSpan.FromMinutes(10);
+
+    [SkippableFact]
+    public async Task OpenAsync_inserts_a_seat_when_capacity_available()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 2);
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        var outcome = await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+
+        var opened = Assert.IsType<OpenCheckoutOutcome.Opened>(outcome);
+        Assert.Equal(licenceId, opened.Result.Checkout.LicenceId);
+        Assert.Equal(1, opened.Result.SeatsAfter);
+        Assert.Equal(2, opened.Result.MaxSeats);
+        Assert.False(opened.Result.IsIdempotentReplay);
+        Assert.True(opened.Result.Checkout.ExpiresAt > DateTimeOffset.UtcNow);
+    }
+
+    [SkippableFact]
+    public async Task OpenAsync_returns_existing_seat_on_idempotent_replay()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 1);
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        var first = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+        var second = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+
+        Assert.Equal(first.Result.Checkout.Id, second.Result.Checkout.Id);
+        Assert.True(second.Result.IsIdempotentReplay);
+        Assert.Equal(1, second.Result.SeatsAfter);
+    }
+
+    [SkippableFact]
+    public async Task OpenAsync_returns_DeniedNoSeats_when_at_capacity()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 1);
+        var hashA = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var hashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        await repo.OpenAsync(licenceId, hashA, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+        var outcome = await repo.OpenAsync(licenceId, hashB, null, null, null, "10.0.0.2", Lease, CancellationToken.None);
+
+        var denied = Assert.IsType<OpenCheckoutOutcome.DeniedNoSeats>(outcome);
+        Assert.Equal(1, denied.Detail.ActiveSeats);
+        Assert.Equal(1, denied.Detail.MaxSeats);
+    }
+
+    [SkippableFact]
+    public async Task OpenAsync_reclaims_expired_seats_before_checking_capacity()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 1);
+        var hashOld = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var hashNew = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        await using (var conn = await OpenDbAsync())
+        {
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO licence_checkouts (id, licence_id, instance_id_hash, source_ip, issued_at, last_heartbeat_at, expires_at)
+                VALUES (@Id, @LicenceId, @Hash, '10.0.0.1'::inet, NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '1 minute');
+                """,
+                new { Id = Guid.NewGuid(), LicenceId = licenceId, Hash = hashOld });
+        }
+
+        var outcome = await repo.OpenAsync(licenceId, hashNew, null, null, null, "10.0.0.2", Lease, CancellationToken.None);
+
+        var opened = Assert.IsType<OpenCheckoutOutcome.Opened>(outcome);
+        Assert.Equal(1, opened.Result.SeatsAfter);
+
+        await using var conn2 = await OpenDbAsync();
+        var historyReason = await conn2.QuerySingleAsync<string>(
+            "SELECT close_reason FROM licence_checkout_history WHERE licence_id = @LicenceId AND instance_id_hash = @Hash;",
+            new { LicenceId = licenceId, Hash = hashOld });
+        Assert.Equal("expired", historyReason);
+    }
+
+    [SkippableFact]
+    public async Task OpenAsync_returns_LicenceNotFound_when_licence_missing()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        var outcome = await repo.OpenAsync(Guid.NewGuid(), hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+
+        Assert.IsType<OpenCheckoutOutcome.LicenceNotFound>(outcome);
+    }
+
+    [SkippableFact]
+    public async Task OpenAsync_writes_an_audit_event_on_success()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 2);
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+
+        await using var conn = await OpenDbAsync();
+        var eventType = await conn.QuerySingleAsync<string>(
+            "SELECT event_type FROM audit_events WHERE subject_id = @LicenceId AND event_type = 'licence.checkout_opened';",
+            new { LicenceId = licenceId });
+        Assert.Equal("licence.checkout_opened", eventType);
+    }
+
+    [SkippableFact]
+    public async Task OpenAsync_writes_denied_audit_event_when_capacity_full()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 1);
+        var hashA = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var hashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        await repo.OpenAsync(licenceId, hashA, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+        await repo.OpenAsync(licenceId, hashB, null, null, null, "10.0.0.2", Lease, CancellationToken.None);
+
+        await using var conn = await OpenDbAsync();
+        var count = await conn.QuerySingleAsync<int>(
+            "SELECT COUNT(*) FROM audit_events WHERE subject_id = @LicenceId AND event_type = 'licence.checkout_denied_no_seats';",
+            new { LicenceId = licenceId });
+        Assert.Equal(1, count);
+    }
+
+    internal async Task<(Guid LicenceId, Guid ProductId, Guid OwnerUserId)> SeedLicenceAsync(int maxSeats = 1)
+    {
+        var productId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        var licenceId = Guid.NewGuid();
+        await using var conn = await OpenDbAsync();
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO products (id, slug, display_name) VALUES (@ProductId, @Slug, 'Test');
+            INSERT INTO users (id, email, email_lower, password_hash, role, status, created_at, updated_at)
+              VALUES (@OwnerId, @Email, @EmailLower, 'placeholder', 'user', 'active', NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, key_hmac, status, max_seats, created_at, updated_at)
+              VALUES (@LicenceId, @ProductId, @OwnerId, @KeyHmac, 'active', @MaxSeats, NOW(), NOW());
+            """,
+            new
+            {
+                ProductId = productId,
+                Slug = $"prod-{productId:N}",
+                OwnerId = ownerId,
+                Email = $"u-{ownerId:N}@test.local",
+                EmailLower = $"u-{ownerId:N}@test.local",
+                LicenceId = licenceId,
+                KeyHmac = RandomNumberGenerator.GetBytes(32),
+                MaxSeats = maxSeats
+            });
+        return (licenceId, productId, ownerId);
+    }
+}

@@ -108,6 +108,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPasswordHasher, Argon2IdPasswordHasher>();
         services.AddSingleton<ILicenceRepository, LicenceRepository>();
         services.AddSingleton<ILicenceMemberRepository, LicenceMemberRepository>();
+        services.AddSingleton<ILicenceCheckoutRepository, LicenceCheckoutRepository>();
         services.AddSingleton<IAuditEventRepository, AuditEventRepository>();
         services.AddSingleton<IProductRepository, ProductRepository>();
         services.AddSingleton<IProductImageStorage, FileSystemProductImageStorage>();
