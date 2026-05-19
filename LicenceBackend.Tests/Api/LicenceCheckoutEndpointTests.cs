@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using LicenceBackend.Api.Models.Response;
 using Microsoft.IdentityModel.Tokens;
 
 namespace LicenceBackend.Tests.Api;
@@ -154,6 +155,37 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
             instanceId = GenerateInstanceId()
         });
         await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_409_no_seats_available_when_capacity_full()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync(maxSeats: 1);
+
+        var firstResponse = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        firstResponse.EnsureSuccessStatusCode();
+
+        var secondResponse = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+        var body = await secondResponse.Content.ReadFromJsonAsync<NoSeatsAvailableResponse>();
+        Assert.NotNull(body);
+        Assert.Equal("no_seats_available", body!.Error);
+        Assert.Equal(1, body.MaxSeats);
+        Assert.Equal(1, body.ActiveSeats);
+        Assert.True(body.OldestExpiresAt > DateTimeOffset.UtcNow);
     }
 
     private static async Task AssertInvalidLicenceAsync(HttpResponseMessage response)
