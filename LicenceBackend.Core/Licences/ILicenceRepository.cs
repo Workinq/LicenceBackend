@@ -81,6 +81,14 @@ public interface ILicenceRepository
         CancellationToken cancellationToken
     );
 
+    Task<Licence?> UpdateMaxSeatsAsync(
+        Guid licenceId,
+        int newMaxSeats,
+        Guid changedBy,
+        string? reason,
+        CancellationToken cancellationToken
+    );
+
     Task<IpBindResult> BindFirstUseIpAsync(
         Guid licenceId,
         string hostRoute,

@@ -14,4 +14,5 @@ public static class AuditEventTypes
     public const string OrderPlaced = "order.placed";
     public const string ProductFileUploaded = "product.file_uploaded";
     public const string ProductFileDownloaded = "product.file_downloaded";
+    public const string LicenceMaxSeatsUpdated = "licence.max_seats_updated";
 }

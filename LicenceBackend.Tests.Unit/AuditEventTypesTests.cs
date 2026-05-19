@@ -15,6 +15,7 @@ public class AuditEventTypesTests
         Assert.Equal("licence.member_added", AuditEventTypes.LicenceMemberAdded);
         Assert.Equal("licence.member_removed", AuditEventTypes.LicenceMemberRemoved);
         Assert.Equal("licence.verified", AuditEventTypes.LicenceVerified);
+        Assert.Equal("licence.max_seats_updated", AuditEventTypes.LicenceMaxSeatsUpdated);
     }
 
     [Fact]
@@ -44,7 +45,8 @@ public class AuditEventTypesTests
             AuditEventTypes.LicenceKeyRegenerated,
             AuditEventTypes.LicenceMemberAdded,
             AuditEventTypes.LicenceMemberRemoved,
-            AuditEventTypes.LicenceVerified
+            AuditEventTypes.LicenceVerified,
+            AuditEventTypes.LicenceMaxSeatsUpdated
         };
         Assert.Equal(values.Length, values.Distinct().Count());
     }

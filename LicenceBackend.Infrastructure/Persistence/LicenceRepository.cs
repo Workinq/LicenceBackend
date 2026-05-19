@@ -206,6 +206,68 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         }
     }
 
+    public async Task<Licence?> UpdateMaxSeatsAsync(
+        Guid licenceId,
+        int newMaxSeats,
+        Guid changedBy,
+        string? reason,
+        CancellationToken cancellationToken)
+    {
+        const string selectSql = $"""
+                                  SELECT {LicenceColumns}
+                                  FROM licences
+                                  WHERE id = @Id
+                                  LIMIT 1;
+                                  """;
+
+        const string updateSql = $"""
+                                  UPDATE licences
+                                  SET max_seats = @MaxSeats, updated_at = NOW()
+                                  WHERE id = @Id
+                                  RETURNING {LicenceColumns};
+                                  """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
+                             new CommandDefinition(selectSql, new { Id = licenceId }, cancellationToken: cancellationToken));
+        if (currentRow is null) return null;
+
+        var previousMaxSeats = currentRow.MaxSeats;
+        if (previousMaxSeats == newMaxSeats) return currentRow.ToDomain();
+
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var updatedRow = await connection.QuerySingleAsync<LicenceRow>(
+                                 new CommandDefinition(
+                                     updateSql,
+                                     new { Id = licenceId, MaxSeats = newMaxSeats },
+                                     transaction,
+                                     cancellationToken: cancellationToken));
+
+            var evt = AuditEvent.Create(
+                AuditEventTypes.LicenceMaxSeatsUpdated,
+                AuditSubjectTypes.Licence,
+                licenceId,
+                AuditActorTypes.Admin,
+                changedBy,
+                reason,
+                new LicenceMaxSeatsUpdatedPayload(previousMaxSeats, newMaxSeats),
+                time.GetUtcNow()
+            );
+            await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return updatedRow.ToDomain();
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public async Task<PagedResult<UserLicence>> ListForUserAsync(
         Guid userId,
         LicenceStatus? status,
