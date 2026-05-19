@@ -188,6 +188,33 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         Assert.True(body.OldestExpiresAt > DateTimeOffset.UtcNow);
     }
 
+    [SkippableFact]
+    public async Task Checkout_returns_same_seat_on_idempotent_replay()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync(maxSeats: 1);
+        var instanceId = GenerateInstanceId();
+
+        var first = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+        });
+        first.EnsureSuccessStatusCode();
+        var firstPayload = await first.Content.ReadFromJsonAsync<SignedCheckoutPayload>();
+        var firstJwt = await VerifySignedLicencePayloadAsync(firstPayload!.SignedPayload);
+        var firstSeatId = firstJwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        var second = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+        });
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        var secondPayload = await second.Content.ReadFromJsonAsync<SignedCheckoutPayload>();
+        var secondJwt = await VerifySignedLicencePayloadAsync(secondPayload!.SignedPayload);
+        var secondSeatId = secondJwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        Assert.Equal(firstSeatId, secondSeatId);
+    }
+
     private static async Task AssertInvalidLicenceAsync(HttpResponseMessage response)
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
