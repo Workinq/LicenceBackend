@@ -18,4 +18,5 @@ public static class AuditEventTypes
     public const string LicenceCheckoutOpened = "licence.checkout_opened";
     public const string LicenceCheckoutClosed = "licence.checkout_closed";
     public const string LicenceCheckoutDeniedNoSeats = "licence.checkout_denied_no_seats";
+    public const string LicenceCheckoutSweeperRan = "licence.checkout_sweeper_ran";
 }

@@ -151,7 +151,7 @@ CREATE TABLE audit_events (
     id            UUID PRIMARY KEY,
     occurred_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     event_type    TEXT NOT NULL,
-    subject_type  TEXT NOT NULL CHECK (subject_type IN ('user', 'licence', 'order', 'product')),
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('user', 'licence', 'order', 'product', 'system')),
     subject_id    UUID NOT NULL,
     actor_type    TEXT NOT NULL CHECK (actor_type IN ('admin', 'user', 'system', 'anonymous')),
     actor_user_id UUID NULL REFERENCES users(id) ON DELETE RESTRICT,
