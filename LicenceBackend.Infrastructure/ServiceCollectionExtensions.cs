@@ -6,6 +6,7 @@ using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Sessions;
 using LicenceBackend.Core.Users;
 using LicenceBackend.Infrastructure.Crypto;
+using LicenceBackend.Infrastructure.Hosting;
 using LicenceBackend.Infrastructure.Options;
 using LicenceBackend.Infrastructure.Persistence;
 using LicenceBackend.Infrastructure.RateLimiting;
@@ -114,6 +115,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILicenceRepository, LicenceRepository>();
         services.AddSingleton<ILicenceMemberRepository, LicenceMemberRepository>();
         services.AddSingleton<ILicenceCheckoutRepository, LicenceCheckoutRepository>();
+        services.AddSingleton<LicenceCheckoutSweeper>();
+        services.AddHostedService(sp => sp.GetRequiredService<LicenceCheckoutSweeper>());
         services.AddSingleton<IAuditEventRepository, AuditEventRepository>();
         services.AddSingleton<IProductRepository, ProductRepository>();
         services.AddSingleton<IProductImageStorage, FileSystemProductImageStorage>();
