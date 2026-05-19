@@ -134,6 +134,53 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         Assert.Equal(1, count);
     }
 
+    [SkippableFact]
+    public async Task HeartbeatAsync_extends_lease_and_returns_refreshed_checkout()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync();
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", TimeSpan.FromMinutes(1), CancellationToken.None);
+        var initialExpiry = opened.Result.Checkout.ExpiresAt;
+
+        await Task.Delay(50);
+        var refreshed = await repo.HeartbeatAsync(opened.Result.Checkout.Id, TimeSpan.FromMinutes(10), CancellationToken.None);
+
+        Assert.NotNull(refreshed);
+        Assert.Equal(opened.Result.Checkout.Id, refreshed!.Id);
+        Assert.True(refreshed.ExpiresAt > initialExpiry);
+    }
+
+    [SkippableFact]
+    public async Task HeartbeatAsync_returns_null_for_missing_seat()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var refreshed = await repo.HeartbeatAsync(Guid.NewGuid(), TimeSpan.FromMinutes(10), CancellationToken.None);
+        Assert.Null(refreshed);
+    }
+
+    [SkippableFact]
+    public async Task HeartbeatAsync_returns_null_for_expired_seat()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync();
+        var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var checkoutId = Guid.NewGuid();
+        await using (var conn = await OpenDbAsync())
+        {
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO licence_checkouts (id, licence_id, instance_id_hash, source_ip, issued_at, last_heartbeat_at, expires_at)
+                VALUES (@Id, @LicenceId, @Hash, '10.0.0.1'::inet, NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '1 minute');
+                """,
+                new { Id = checkoutId, LicenceId = licenceId, Hash = hash });
+        }
+
+        var refreshed = await repo.HeartbeatAsync(checkoutId, TimeSpan.FromMinutes(10), CancellationToken.None);
+
+        Assert.Null(refreshed);
+    }
+
     internal async Task<(Guid LicenceId, Guid ProductId, Guid OwnerUserId)> SeedLicenceAsync(int maxSeats = 1)
     {
         var productId = Guid.NewGuid();

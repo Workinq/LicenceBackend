@@ -169,8 +169,27 @@ public sealed class LicenceCheckoutRepository(
         }
     }
 
-    public Task<LicenceCheckout?> HeartbeatAsync(Guid checkoutId, TimeSpan leaseDuration, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<LicenceCheckout?> HeartbeatAsync(
+        Guid checkoutId,
+        TimeSpan leaseDuration,
+        CancellationToken cancellationToken)
+    {
+        const string sql = $"""
+                            UPDATE licence_checkouts
+                            SET last_heartbeat_at = @Now,
+                                expires_at = @NewExpiry
+                            WHERE id = @Id AND expires_at > @Now
+                            RETURNING {CheckoutColumns};
+                            """;
+
+        var now = time.GetUtcNow();
+        var newExpiry = now.Add(leaseDuration);
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var row = await connection.QuerySingleOrDefaultAsync<CheckoutRow>(
+                      new CommandDefinition(sql, new { Id = checkoutId, Now = now, NewExpiry = newExpiry }, cancellationToken: cancellationToken));
+        return row?.ToDomain();
+    }
 
     public Task<bool> CloseAsync(Guid checkoutId, CancellationToken cancellationToken)
         => throw new NotImplementedException();
