@@ -36,13 +36,141 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         Assert.NotNull(jwt.Claims.SingleOrDefault(c => c.Type == "seatHeartbeatAfter"));
     }
 
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_for_unknown_key()
+    {
+        var (_, _, productId, _) = await CreateLicenceAsync();
+        var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey = "LIC-00000-00000-00000-00000-00000",
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_for_product_mismatch()
+    {
+        var (licenceKey, _, _, _) = await CreateLicenceAsync();
+        var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId = Guid.NewGuid(),
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_for_too_short_nonce()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync();
+        var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = "short",
+            instanceId = GenerateInstanceId()
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_for_too_short_instance_id()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync();
+        var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = "x"
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_for_suspended_licence()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync();
+        var statusResponse = await AuthedClient.PatchAsJsonAsync($"/licences/{licenceId}/status", new
+        {
+            status = "suspended",
+            reason = "test"
+        });
+        statusResponse.EnsureSuccessStatusCode();
+
+        var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_for_suspended_owner()
+    {
+        var (licenceKey, _, productId, ownerId) = await CreateLicenceAsync(freshOwner: true);
+        var statusResponse = await AuthedClient.PatchAsJsonAsync($"/users/{ownerId}/status", new
+        {
+            status = "suspended",
+            reason = "test"
+        });
+        statusResponse.EnsureSuccessStatusCode();
+
+        var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_returns_invalid_licence_when_ip_not_allowlisted()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync();
+        var ipResponse = await AuthedClient.PutAsJsonAsync($"/licences/{licenceId}/ip-allowlist", new
+        {
+            cidrs = new[] { "192.168.0.0/24" },
+            reason = "test"
+        });
+        ipResponse.EnsureSuccessStatusCode();
+
+        var client = ClientFromIp("10.0.0.1");
+        var response = await client.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        await AssertInvalidLicenceAsync(response);
+    }
+
+    private static async Task AssertInvalidLicenceAsync(HttpResponseMessage response)
+    {
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal("invalid_licence", problem!.Title);
+    }
+
     private static string GenerateInstanceId()
     {
         var bytes = RandomNumberGenerator.GetBytes(24);
         return Base64UrlEncoder.Encode(bytes);
     }
 
-    private async Task<(string LicenceKey, Guid LicenceId, Guid ProductId, Guid OwnerId)> CreateLicenceAsync(int maxSeats = 1)
+    private async Task<(string LicenceKey, Guid LicenceId, Guid ProductId, Guid OwnerId)> CreateLicenceAsync(int maxSeats = 1, bool freshOwner = false)
     {
         var slug = $"checkout-{Guid.NewGuid():N}".Substring(0, 24);
         var productResponse = await AuthedClient.PostAsJsonAsync("/products", new { slug, displayName = slug });
@@ -50,14 +178,25 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         var product = await productResponse.Content.ReadFromJsonAsync<ProductPayload>();
         Assert.NotNull(product);
 
+        var ownerId = AdminUserId;
+        if (freshOwner)
+        {
+            var email = $"checkout-owner-{Guid.NewGuid():N}@test.local";
+            var userResponse = await AuthedClient.PostAsJsonAsync("/users", new { email, password = "checkout-owner-pw-12345", role = "user" });
+            Assert.Equal(HttpStatusCode.Created, userResponse.StatusCode);
+            var user = await userResponse.Content.ReadFromJsonAsync<UserPayload>();
+            Assert.NotNull(user);
+            ownerId = user!.Id;
+        }
+
         var licenceResponse = await AuthedClient.PostAsJsonAsync(
             "/licences",
-            new { productId = product!.Id, userId = AdminUserId, maxSeats });
+            new { productId = product!.Id, userId = ownerId, maxSeats });
         Assert.Equal(HttpStatusCode.Created, licenceResponse.StatusCode);
         var licence = await licenceResponse.Content.ReadFromJsonAsync<LicencePayload>();
         Assert.NotNull(licence);
 
-        return (licence!.LicenceKey, licence.Id, product.Id, AdminUserId);
+        return (licence!.LicenceKey, licence.Id, product.Id, ownerId);
     }
 
     private sealed record ProductPayload(Guid Id, string Slug, string DisplayName, DateTimeOffset CreatedAt);
@@ -65,4 +204,6 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
     private sealed record LicencePayload(Guid Id, Guid ProductId, string LicenceKey);
 
     private sealed record SignedCheckoutPayload(string SignedPayload);
+
+    private sealed record UserPayload(Guid Id, string Email);
 }
