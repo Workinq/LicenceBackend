@@ -10,4 +10,5 @@ public sealed class LicenceCheckoutOptions
     [Range(15, 86_400)] public int HeartbeatHintSeconds { get; init; } = 300;
     [Range(16, 256)] public int MinInstanceIdLength { get; init; } = 16;
     [Range(16, 512)] public int MaxInstanceIdLength { get; init; } = 128;
+    [Range(10, 3_600)] public int SweepIntervalSeconds { get; init; } = 60;
 }
