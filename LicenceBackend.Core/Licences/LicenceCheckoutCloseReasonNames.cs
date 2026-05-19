@@ -7,21 +7,27 @@ public static class LicenceCheckoutCloseReasonNames
     public const string AdminRevoked = "admin_revoked";
     public const string OwnerRevoked = "owner_revoked";
 
-    public static string ToString(LicenceCheckoutCloseReason value) => value switch
+    public static string ToString(LicenceCheckoutCloseReason reason)
     {
-        LicenceCheckoutCloseReason.Checkin => Checkin,
-        LicenceCheckoutCloseReason.Expired => Expired,
-        LicenceCheckoutCloseReason.AdminRevoked => AdminRevoked,
-        LicenceCheckoutCloseReason.OwnerRevoked => OwnerRevoked,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
-    };
+        return reason switch
+        {
+            LicenceCheckoutCloseReason.Checkin => Checkin,
+            LicenceCheckoutCloseReason.Expired => Expired,
+            LicenceCheckoutCloseReason.AdminRevoked => AdminRevoked,
+            LicenceCheckoutCloseReason.OwnerRevoked => OwnerRevoked,
+            _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null)
+        };
+    }
 
-    public static LicenceCheckoutCloseReason Parse(string value) => value switch
+    public static LicenceCheckoutCloseReason Parse(string reason)
     {
-        Checkin => LicenceCheckoutCloseReason.Checkin,
-        Expired => LicenceCheckoutCloseReason.Expired,
-        AdminRevoked => LicenceCheckoutCloseReason.AdminRevoked,
-        OwnerRevoked => LicenceCheckoutCloseReason.OwnerRevoked,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
-    };
+        return reason switch
+        {
+            Checkin => LicenceCheckoutCloseReason.Checkin,
+            Expired => LicenceCheckoutCloseReason.Expired,
+            AdminRevoked => LicenceCheckoutCloseReason.AdminRevoked,
+            OwnerRevoked => LicenceCheckoutCloseReason.OwnerRevoked,
+            _ => throw new ArgumentException($"Unknown licence checkout close reason '{reason}'.", nameof(reason))
+        };
+    }
 }
