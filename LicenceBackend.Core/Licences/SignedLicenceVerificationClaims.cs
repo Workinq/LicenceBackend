@@ -7,5 +7,8 @@ public sealed record SignedLicenceVerificationClaims(
     string Status,
     DateTimeOffset? LicenceExpiresAt,
     string? Notes,
-    string ClientNonce
+    string ClientNonce,
+    Guid? SeatId = null,
+    DateTimeOffset? SeatExpiresAt = null,
+    DateTimeOffset? SeatHeartbeatAfter = null
 );

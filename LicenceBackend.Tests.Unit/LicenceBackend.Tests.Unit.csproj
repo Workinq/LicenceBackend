@@ -8,19 +8,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="coverlet.collector" Version="6.0.2"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
-        <PackageReference Include="xunit" Version="2.9.2"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5"/>
+        <PackageReference Include="coverlet.collector" Version="6.0.2" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.6.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+        <PackageReference Include="xunit" Version="2.9.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="Xunit"/>
+        <Using Include="Xunit" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\LicenceBackend.Core\LicenceBackend.Core.csproj"/>
-        <ProjectReference Include="..\LicenceBackend.Infrastructure\LicenceBackend.Infrastructure.csproj"/>
+        <ProjectReference Include="..\LicenceBackend.Core\LicenceBackend.Core.csproj" />
+        <ProjectReference Include="..\LicenceBackend.Infrastructure\LicenceBackend.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

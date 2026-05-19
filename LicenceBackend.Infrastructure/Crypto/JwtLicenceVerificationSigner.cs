@@ -43,6 +43,13 @@ public sealed class JwtLicenceVerificationSigner : ILicenceVerificationSigner
 
         if (!string.IsNullOrEmpty(claims.Notes)) jwtClaims.Add(new Claim("notes", claims.Notes));
 
+        if (claims.SeatId is { } seatId)
+            jwtClaims.Add(new Claim("seatId", seatId.ToString()));
+        if (claims.SeatExpiresAt is { } seatExp)
+            jwtClaims.Add(new Claim("seatExpiresAt", seatExp.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64));
+        if (claims.SeatHeartbeatAfter is { } seatHb)
+            jwtClaims.Add(new Claim("seatHeartbeatAfter", seatHb.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64));
+
         var jwt = new JwtSecurityToken(
             null,
             null,
