@@ -118,6 +118,13 @@ public sealed class LicenceCheckoutController(
         };
     }
 
+    [HttpDelete("checkouts/{seatId:guid}")]
+    public async Task<IActionResult> Checkin(Guid seatId, CancellationToken cancellationToken)
+    {
+        await checkouts.CloseAsync(seatId, cancellationToken);
+        return NoContent();
+    }
+
     private SignedLicenceCheckoutResponse BuildSignedResponse(
         Licence licence,
         string productSlug,

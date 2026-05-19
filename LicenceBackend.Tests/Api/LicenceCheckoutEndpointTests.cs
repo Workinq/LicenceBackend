@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using Dapper;
 using LicenceBackend.Api.Models.Response;
 using Microsoft.IdentityModel.Tokens;
 
@@ -25,7 +26,7 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         var response = await UnauthedClient.PostAsJsonAsync("/licences/checkout", body);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var payload = await response.Content.ReadFromJsonAsync<SignedCheckoutPayload>();
+        var payload = await response.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
         Assert.NotNull(payload);
         Assert.False(string.IsNullOrEmpty(payload!.SignedPayload));
 
@@ -199,7 +200,7 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
             licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
         });
         first.EnsureSuccessStatusCode();
-        var firstPayload = await first.Content.ReadFromJsonAsync<SignedCheckoutPayload>();
+        var firstPayload = await first.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
         var firstJwt = await VerifySignedLicencePayloadAsync(firstPayload!.SignedPayload);
         var firstSeatId = firstJwt.Claims.Single(c => c.Type == "seatId").Value;
 
@@ -208,11 +209,71 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
             licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
         });
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
-        var secondPayload = await second.Content.ReadFromJsonAsync<SignedCheckoutPayload>();
+        var secondPayload = await second.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
         var secondJwt = await VerifySignedLicencePayloadAsync(secondPayload!.SignedPayload);
         var secondSeatId = secondJwt.Claims.Single(c => c.Type == "seatId").Value;
 
         Assert.Equal(firstSeatId, secondSeatId);
+    }
+
+    [SkippableFact]
+    public async Task Checkin_returns_204_for_existing_seat_and_archives_history()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync();
+        var openResponse = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId = GenerateInstanceId()
+        });
+        openResponse.EnsureSuccessStatusCode();
+        var openPayload = await openResponse.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var openJwt = await VerifySignedLicencePayloadAsync(openPayload!.SignedPayload);
+        var seatId = openJwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        var checkin = await UnauthedClient.DeleteAsync($"/licences/checkouts/{seatId}");
+        Assert.Equal(HttpStatusCode.NoContent, checkin.StatusCode);
+
+        await using var conn = await OpenDbAsync();
+        var historyReason = await conn.QuerySingleAsync<string>(
+            "SELECT close_reason FROM licence_checkout_history WHERE checkout_id = @Id::uuid;",
+            new { Id = seatId });
+        Assert.Equal("checkin", historyReason);
+    }
+
+    [SkippableFact]
+    public async Task Checkin_returns_204_for_missing_seat()
+    {
+        var checkin = await UnauthedClient.DeleteAsync($"/licences/checkouts/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NoContent, checkin.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Checkin_then_recheckout_yields_new_seat_id()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync(maxSeats: 1);
+        var instanceId = GenerateInstanceId();
+
+        var first = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+        });
+        first.EnsureSuccessStatusCode();
+        var firstPayload = await first.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var firstJwt = await VerifySignedLicencePayloadAsync(firstPayload!.SignedPayload);
+        var firstSeatId = firstJwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        var checkin = await UnauthedClient.DeleteAsync($"/licences/checkouts/{firstSeatId}");
+        Assert.Equal(HttpStatusCode.NoContent, checkin.StatusCode);
+
+        var second = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey, productId, clientNonce = GenerateClientNonce(), instanceId
+        });
+        second.EnsureSuccessStatusCode();
+        var secondPayload = await second.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var secondJwt = await VerifySignedLicencePayloadAsync(secondPayload!.SignedPayload);
+        var secondSeatId = secondJwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        Assert.NotEqual(firstSeatId, secondSeatId);
     }
 
     private static async Task AssertInvalidLicenceAsync(HttpResponseMessage response)
@@ -261,8 +322,6 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
     private sealed record ProductPayload(Guid Id, string Slug, string DisplayName, DateTimeOffset CreatedAt);
 
     private sealed record LicencePayload(Guid Id, Guid ProductId, string LicenceKey);
-
-    private sealed record SignedCheckoutPayload(string SignedPayload);
 
     private sealed record UserPayload(Guid Id, string Email);
 }
