@@ -65,6 +65,11 @@ public static class ServiceCollectionExtensions
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+        services.AddOptions<LicenceCheckoutOptions>()
+                .Bind(configuration.GetSection(LicenceCheckoutOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
         services.AddOptions<ProductImageStorageOptions>()
                 .Bind(configuration.GetSection(ProductImageStorageOptions.SectionName));
 
