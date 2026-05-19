@@ -1,3 +1,4 @@
+using System.Data;
 using LicenceBackend.Core.Common;
 
 namespace LicenceBackend.Core.Licences;
@@ -9,6 +10,10 @@ public interface ILicenceRepository
     Task<Licence?> FindByIdAsync(Guid id, CancellationToken cancellationToken);
 
     Task CreateAsync(Licence licence, CancellationToken cancellationToken);
+
+    Task CreateInTxAsync(IDbConnection connection, IDbTransaction transaction, Licence licence, CancellationToken cancellationToken);
+
+    Task<Licence?> UpdateLabelAsync(Guid licenceId, Guid ownerId, string? label, CancellationToken cancellationToken);
 
     Task<PagedResult<Licence>> ListAsync(
         Guid? productId,

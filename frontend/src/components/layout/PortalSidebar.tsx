@@ -1,4 +1,4 @@
-import { LayoutDashboard, KeyRound, Package } from 'lucide-react';
+import { LayoutDashboard, KeyRound, Package, Receipt } from 'lucide-react';
 import { NavItem } from './NavItem';
 
 export function PortalSidebar() {
@@ -8,6 +8,7 @@ export function PortalSidebar() {
         <NavItem to="/portal" label="Overview" icon={LayoutDashboard} exact />
         <NavItem to="/portal/licences" label="Licences" icon={KeyRound} />
         <NavItem to="/portal/products" label="Products" icon={Package} />
+        <NavItem to="/portal/orders" label="Orders" icon={Receipt} />
       </nav>
     </aside>
   );

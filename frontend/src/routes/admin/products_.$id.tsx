@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { ImageOff } from 'lucide-react';
+import { Download, ImageOff, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyCombobox } from '@/components/CurrencyCombobox';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,8 +17,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ImagePickerButton } from '@/components/ImagePickerButton';
 import { fetchProduct, updateProduct, uploadProductImage, deleteProductImage } from '@/api/products';
+import { downloadProductFileRevision, fetchProductFiles, triggerBlobDownload, uploadProductFile } from '@/api/product-files';
 import { ApiError } from '@/auth/api-client';
-import type { ProductResponse } from '@/api/generated/api.schemas';
+import { cn } from '@/lib/utils';
+import { LicenceKey } from '@/components/LicenceKey';
+import type { ProductFileResponse, ProductResponse } from '@/api/generated/api.schemas';
 
 export const Route = createFileRoute('/admin/products_/$id')({
   component: ProductDetailPage,
@@ -129,6 +132,7 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
     <div className="max-w-2xl space-y-6">
       <h1 className="font-display text-2xl font-semibold text-ink">{product.displayName}</h1>
 
+
       <Card>
         <CardHeader>
           <CardTitle>Image</CardTitle>
@@ -166,11 +170,18 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
         </CardContent>
       </Card>
 
+      <ProductDownloadsCard productId={id} />
+
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 space-y-1">
+            <Label>ID</Label>
+            <div><LicenceKey value={product.id} /></div>
+          </div>
+
           <div className="mb-4 space-y-1">
             <Label htmlFor="slug">Slug</Label>
             <Input id="slug" value={product.slug} disabled readOnly className="font-mono" />
@@ -249,5 +260,113 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function ProductDownloadsCard({ productId }: { productId: string }) {
+  const queryClient = useQueryClient();
+  const filesQuery = useQuery({
+    queryKey: ['products', 'files', productId],
+    queryFn: () => fetchProductFiles(productId),
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadProductFile(productId, file),
+    onSuccess: (uploaded) => {
+      void queryClient.invalidateQueries({ queryKey: ['products', 'files', productId] });
+      toast.success(`Uploaded version ${uploaded.versionNumber}.`);
+    },
+    onError: (error) => {
+      toast.error(errorDetail(error, 'Could not upload the file.'));
+    },
+  });
+
+  const inputId = useId();
+
+  const downloadRevision = async (file: ProductFileResponse) => {
+    try {
+      const blob = await downloadProductFileRevision(productId, file.id);
+      triggerBlobDownload(blob, file.fileName);
+    } catch (error) {
+      toast.error(errorDetail(error, 'Could not download this revision.'));
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Downloads</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-ink-muted">
+          Users see only the most recent revision. Older revisions remain here for your reference.
+        </p>
+        <div>
+          <label
+            htmlFor={inputId}
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'sm' }),
+              'cursor-pointer',
+              uploadMutation.isPending && 'pointer-events-none opacity-50',
+            )}
+          >
+            <Upload className="size-4" aria-hidden="true" />
+            <span className="ml-1.5">{filesQuery.data && filesQuery.data.length > 0 ? 'Upload new revision' : 'Upload first revision'}</span>
+          </label>
+          <input
+            id={inputId}
+            type="file"
+            className="sr-only"
+            disabled={uploadMutation.isPending}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) uploadMutation.mutate(f);
+              e.target.value = '';
+            }}
+          />
+        </div>
+
+        {filesQuery.isPending && <Skeleton className="h-16 w-full" />}
+        {filesQuery.isError && (
+          <p className="text-sm text-status-revoked-fg">Failed to load revisions.</p>
+        )}
+        {filesQuery.data && filesQuery.data.length === 0 && (
+          <p className="text-sm text-ink-muted">No revisions uploaded yet.</p>
+        )}
+        {filesQuery.data && filesQuery.data.length > 0 && (
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {filesQuery.data.map((f, idx) => (
+              <li key={f.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-ink">
+                    v{f.versionNumber}
+                    {idx === 0 && <span className="ml-2 rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-normal text-ink-muted">latest</span>}
+                  </p>
+                  <p className="truncate text-xs text-ink-muted">
+                    {f.fileName} | {formatFileSize(f.fileSizeBytes)} | {new Date(f.uploadedAt).toLocaleString()}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { void downloadRevision(f); }}
+                  aria-label={`Download v${f.versionNumber}`}
+                >
+                  <Download className="size-4" aria-hidden="true" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

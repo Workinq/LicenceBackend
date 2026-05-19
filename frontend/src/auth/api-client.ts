@@ -10,6 +10,18 @@ let refreshPromise: Promise<boolean> | null = null;
 // Fetch mutator used by orval-generated api.ts.
 // The fetch client codegen expects: (url, init?) => Promise<{ data: unknown, status: number, headers: Headers }>
 export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> => {
+  const response = await authedFetch(url, init);
+
+  if (!response.ok) {
+    throw new ApiError(response.status, await safeJson(response));
+  }
+
+  const data: unknown = response.status === 204 ? undefined : (await response.json() as unknown);
+  return { data, status: response.status, headers: response.headers } as T;
+};
+
+// Shared bearer + refresh flow. Returns the raw Response so callers can read it as JSON, blob, stream, etc.
+export const authedFetch = async (url: string, init?: RequestInit): Promise<Response> => {
   const send = async (): Promise<Response> => {
     const accessToken = useAccessTokenStore.getState().accessToken;
     return fetch(`${API_BASE}${url}`, {
@@ -35,12 +47,7 @@ export const apiClient = async <T>(url: string, init?: RequestInit): Promise<T> 
     }
   }
 
-  if (!response.ok) {
-    throw new ApiError(response.status, await safeJson(response));
-  }
-
-  const data: unknown = response.status === 204 ? undefined : (await response.json() as unknown);
-  return { data, status: response.status, headers: response.headers } as T;
+  return response;
 };
 
 interface RefreshBody {

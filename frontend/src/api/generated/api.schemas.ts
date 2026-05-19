@@ -26,7 +26,7 @@ export interface AuditEventResponse {
   payload: JsonElement;
 }
 
-export type NullableOfJsonElement = unknown | null;
+export type NullableOfJsonElement = unknown;
 
 export interface BindingHistoryEntryResponse {
   id: string;
@@ -68,6 +68,19 @@ export interface CreateLicenceRequest {
   ipAllowlist: string[] | null;
 }
 
+export interface CreateOrderItemRequest {
+  productId: string;
+  quantity: number;
+  /** @nullable */
+  labels: string[] | null;
+}
+
+export interface CreateOrderRequest {
+  /** @nullable */
+  contactEmail: string | null;
+  items: CreateOrderItemRequest[];
+}
+
 export interface CreateProductRequest {
   slug: string;
   displayName: string;
@@ -102,6 +115,11 @@ export interface CreateUserRequest {
      * @nullable
      */
   displayName?: string | null;
+}
+
+export interface CurrencyTotalResponse {
+  currency: string;
+  amount: number;
 }
 
 export interface HealthResponse {
@@ -140,6 +158,8 @@ export interface LicenceCreatedResponse {
   hwidBound: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
+  /** @nullable */
+  label: string | null;
   createdAt: string;
   /** @nullable */
   relationship?: string | null;
@@ -160,6 +180,8 @@ export interface LicenceKeyRegeneratedResponse {
   hwidBound: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
+  /** @nullable */
+  label: string | null;
   createdAt: string;
   /** @nullable */
   relationship?: string | null;
@@ -190,6 +212,8 @@ export interface LicenceResponse {
   hwidBound: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
+  /** @nullable */
+  label: string | null;
   createdAt: string;
   /** @nullable */
   relationship?: string | null;
@@ -210,6 +234,53 @@ export interface LicenceStatusHistoryResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface OrderItemCreatedResponse {
+  id: string;
+  productId: string;
+  productSlug: string;
+  productDisplayName: string;
+  licenceId: string;
+  /** @nullable */
+  label: string | null;
+  /** @nullable */
+  unitPrice: number | null;
+  currency: string;
+  licenceKey: string;
+}
+
+export interface OrderCreatedResponse {
+  id: string;
+  userId: string;
+  contactEmail: string;
+  status: string;
+  createdAt: string;
+  totals: CurrencyTotalResponse[];
+  items: OrderItemCreatedResponse[];
+}
+
+export interface OrderItemResponse {
+  id: string;
+  productId: string;
+  productSlug: string;
+  productDisplayName: string;
+  licenceId: string;
+  /** @nullable */
+  label: string | null;
+  /** @nullable */
+  unitPrice: number | null;
+  currency: string;
+}
+
+export interface OrderResponse {
+  id: string;
+  userId: string;
+  contactEmail: string;
+  status: string;
+  createdAt: string;
+  totals: CurrencyTotalResponse[];
+  items: OrderItemResponse[];
 }
 
 export interface PagedResponseOfAuditEventResponse {
@@ -235,6 +306,13 @@ export interface PagedResponseOfLicenceResponse {
 
 export interface PagedResponseOfLicenceStatusHistoryResponse {
   items: LicenceStatusHistoryResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PagedResponseOfOrderResponse {
+  items: OrderResponse[];
   total: number;
   limit: number;
   offset: number;
@@ -335,6 +413,17 @@ export interface ProblemDetails {
   instance?: string | null;
 }
 
+export interface ProductFileResponse {
+  id: string;
+  productId: string;
+  versionNumber: number;
+  fileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  uploadedByAdminId: string;
+  uploadedAt: string;
+}
+
 export interface RegenerateLicenceKeyRequest {
   /** @nullable */
   reason: string | null;
@@ -362,6 +451,11 @@ export interface UpdateLicenceIpAllowlistRequest {
   cidrs: string[] | null;
   /** @nullable */
   reason: string | null;
+}
+
+export interface UpdateLicenceLabelRequest {
+  /** @nullable */
+  label: string | null;
 }
 
 export interface UpdateLicenceStatusRequest {
@@ -441,6 +535,17 @@ limit?: number;
 offset?: number;
 };
 
+export type GetMeOrdersParams = {
+limit?: number;
+offset?: number;
+};
+
+export type GetAdminOrdersParams = {
+userId?: string;
+limit?: number;
+offset?: number;
+};
+
 export type GetProductsParams = {
 limit?: number;
 offset?: number;
@@ -448,6 +553,10 @@ q?: string;
 };
 
 export type PostProductsIdImageBody = {
+  file?: IFormFile;
+};
+
+export type PostProductsIdFilesBody = {
   file?: IFormFile;
 };
 

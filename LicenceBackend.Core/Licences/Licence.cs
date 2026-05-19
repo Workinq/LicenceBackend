@@ -15,6 +15,7 @@ public sealed record Licence(
     byte[]? HwidHmac,
     short? HwidHmacPepperVersion,
     IReadOnlyList<string>? IpAllowlist,
+    string? Label,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt
 )

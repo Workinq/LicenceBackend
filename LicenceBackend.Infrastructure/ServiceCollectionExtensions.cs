@@ -1,6 +1,7 @@
 using Dapper;
 using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Licences;
+using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Sessions;
 using LicenceBackend.Core.Users;
@@ -67,6 +68,9 @@ public static class ServiceCollectionExtensions
         services.AddOptions<ProductImageStorageOptions>()
                 .Bind(configuration.GetSection(ProductImageStorageOptions.SectionName));
 
+        services.AddOptions<ProductFileStorageOptions>()
+                .Bind(configuration.GetSection(ProductFileStorageOptions.SectionName));
+
         var connectionString = configuration.GetConnectionString("Postgres") ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required.");
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 
@@ -107,6 +111,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAuditEventRepository, AuditEventRepository>();
         services.AddSingleton<IProductRepository, ProductRepository>();
         services.AddSingleton<IProductImageStorage, FileSystemProductImageStorage>();
+        services.AddSingleton<IProductFileRepository, ProductFileRepository>();
+        services.AddSingleton<IProductFileStorage, FileSystemProductFileStorage>();
+        services.AddSingleton<IOrderRepository, OrderRepository>();
+        services.AddSingleton<IOrderItemRepository, OrderItemRepository>();
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();

@@ -113,6 +113,7 @@ public sealed class LicencesController(
             null,
             null,
             ipAllowlist,
+            null,
             now,
             now
         );
@@ -130,6 +131,7 @@ public sealed class LicencesController(
             licence.Notes,
             false,
             licence.IpAllowlist,
+            licence.Label,
             licence.CreatedAt,
             rawKey
         );
@@ -424,6 +426,7 @@ public sealed class LicencesController(
             updated.Notes,
             updated.HwidHmac is not null,
             updated.IpAllowlist,
+            updated.Label,
             updated.CreatedAt,
             rawKey
         ));
@@ -698,6 +701,7 @@ public sealed class LicencesController(
             licence.Notes,
             licence.HwidHmac is not null,
             licence.IpAllowlist,
+            licence.Label,
             licence.CreatedAt,
             relationship
         );

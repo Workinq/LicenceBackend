@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,7 +48,15 @@ function LicenceDetailPage() {
             <dt className="text-ink-muted">Licence key</dt>
             <dd className="text-ink-subtle">Shown only when the licence is created or regenerated.</dd>
             <dt className="text-ink-muted">Product</dt>
-            <dd className="text-ink">{lic.productSlug}</dd>
+            <dd>
+              <Link
+                to="/admin/products/$id"
+                params={{ id: lic.productId }}
+                className="text-ink underline-offset-2 hover:underline"
+              >
+                {lic.productSlug}
+              </Link>
+            </dd>
             <dt className="text-ink-muted">User</dt>
             <dd className="text-ink">{lic.userEmail}</dd>
             <dt className="text-ink-muted">HWID</dt>

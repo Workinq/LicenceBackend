@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +13,15 @@ import { StatusPill } from '@/components/StatusPill';
 import { ConfirmDestructive } from '@/components/ConfirmDestructive';
 import {
   addMyLicenceMember,
+  downloadMyLicenceFile,
   fetchMyLicence,
   fetchMyLicenceMembers,
   regenerateMyLicenceKey,
   removeMyLicenceMember,
 } from '@/api/me-licences';
+import { triggerBlobDownload } from '@/api/product-files';
 import { RegenerateKeyDialog } from '@/components/licences/RegenerateKeyDialog';
+import { LicenceLabelEditor } from '@/components/licences/LicenceLabelEditor';
 import { ApiError } from '@/auth/api-client';
 
 export const Route = createFileRoute('/portal/licences_/$id')({
@@ -37,6 +41,37 @@ function errorDetail(error: unknown, fallback: string): string {
     return String((error.body as Record<string, unknown>).detail);
   }
   return fallback;
+}
+
+function DownloadLatestButton({ licenceId, productSlug }: { licenceId: string; productSlug: string }) {
+  const [pending, setPending] = useState(false);
+
+  const onClick = async () => {
+    setPending(true);
+    try {
+      const file = await downloadMyLicenceFile(licenceId);
+      triggerBlobDownload(file, `${productSlug}-latest`);
+    } catch (error) {
+      const detail =
+        error instanceof ApiError && error.body && typeof error.body === 'object' && 'detail' in error.body
+          ? String((error.body as Record<string, unknown>).detail)
+          : null;
+      if (error instanceof ApiError && error.status === 404) {
+        toast.info('No download is available for this product yet.');
+      } else {
+        toast.error(detail ?? 'Could not download the latest file.');
+      }
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <Button type="button" onClick={() => { void onClick(); }} disabled={pending}>
+      <Download className="size-4" aria-hidden="true" />
+      <span className="ml-1.5">{pending ? 'Downloading...' : 'Download latest'}</span>
+    </Button>
+  );
 }
 
 function PortalLicenceDetail() {
@@ -105,7 +140,16 @@ function PortalLicenceDetail() {
         <CardContent>
           <dl className="grid grid-cols-[10rem_1fr] items-baseline gap-y-3 text-sm">
             <dt className="text-ink-muted">Product</dt>
-            <dd className="text-ink">{lic.productSlug}</dd>
+            <dd>
+              <Link
+                to="/portal/products"
+                className="text-ink underline-offset-2 hover:underline"
+              >
+                {lic.productSlug}
+              </Link>
+            </dd>
+            <dt className="text-ink-muted">Label</dt>
+            <dd><LicenceLabelEditor licenceId={lic.id} label={lic.label} editable={isOwner} /></dd>
             <dt className="text-ink-muted">Relationship</dt>
             <dd className="capitalize text-ink">{lic.relationship ?? 'owner'}</dd>
             <dt className="text-ink-muted">Owner</dt>
@@ -127,6 +171,20 @@ function PortalLicenceDetail() {
           </dl>
         </CardContent>
       </Card>
+
+      {lic.status === 'active' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Download</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-ink-muted">
+              Download the latest release of {lic.productSlug}. Updates are pushed by the publisher.
+            </p>
+            <DownloadLatestButton licenceId={lic.id} productSlug={lic.productSlug} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -25,6 +25,8 @@ public sealed class UsersController(
     ILicenceRepository licences,
     ILicenceMemberRepository licenceMembers,
     IProductRepository products,
+    IProductFileRepository productFiles,
+    IProductFileStorage productFileStorage,
     IPasswordHasher passwordHasher,
     ILicenceKeyGenerator keyGenerator,
     ILicenceKeyHasher keyHasher,
@@ -33,6 +35,7 @@ public sealed class UsersController(
 {
     private const int DefaultLimit = 50;
     private const int MaxLimit = 200;
+    private const int LicenceLabelMaxLength = 10;
 
     [HttpPost]
     [Authorize(Roles = "admin")]
@@ -437,6 +440,78 @@ public sealed class UsersController(
         return Ok(LicencesController.ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty, relationship));
     }
 
+    [HttpGet("/me/licences/{id:guid}/download")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadMyLicenceFile(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null) return LicenceNotFound(id);
+
+        var isOwner = licence.UserId == userId;
+        var isMember = !isOwner && await licenceMembers.IsMemberAsync(id, userId, cancellationToken);
+        if (!isOwner && !isMember) return LicenceNotFound(id);
+
+        var now = time.GetUtcNow();
+        if (!licence.IsUsableAt(now)) return LicenceNotFound(id);
+
+        var file = await productFiles.GetLatestForProductAsync(licence.ProductId, cancellationToken);
+        if (file is null) return LicenceNotFound(id);
+
+        var stream = await productFileStorage.OpenReadAsync(file.StoragePath, cancellationToken);
+        if (stream is null) return LicenceNotFound(id);
+
+        var evt = AuditEvent.Create(
+            AuditEventTypes.ProductFileDownloaded,
+            AuditSubjectTypes.Product,
+            licence.ProductId,
+            AuditActorTypes.User,
+            userId,
+            reason: null,
+            new ProductFileDownloadedPayload(file.Id, file.VersionNumber, licence.Id),
+            now);
+        await auditEvents.RecordAsync(evt, cancellationToken);
+
+        return File(stream, file.ContentType, file.FileName);
+    }
+
+    [HttpPatch("/me/licences/{id:guid}/label")]
+    [Authorize]
+    [ProducesResponseType(typeof(LicenceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateMyLicenceLabel(
+        Guid id,
+        [FromBody] UpdateLicenceLabelRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var trimmed = string.IsNullOrWhiteSpace(request.Label) ? null : request.Label.Trim();
+        if (trimmed is not null && trimmed.Length > LicenceLabelMaxLength)
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: ProblemTitles.LabelTooLong,
+                detail: $"Label must be {LicenceLabelMaxLength} characters or fewer."
+            );
+
+        var updated = await licences.UpdateLabelAsync(id, userId, trimmed, cancellationToken);
+        if (updated is null)
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: ProblemTitles.LicenceNotOwned,
+                detail: "You do not own this licence."
+            );
+
+        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+        return Ok(LicencesController.ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty, UserLicenceRelationships.Owner));
+    }
+
     [HttpGet("/me/licences/{id:guid}/members")]
     [Authorize]
     [ProducesResponseType(typeof(IReadOnlyList<LicenceMemberResponse>), StatusCodes.Status200OK)]
@@ -598,6 +673,7 @@ public sealed class UsersController(
             updated.Notes,
             updated.HwidHmac is not null,
             updated.IpAllowlist,
+            updated.Label,
             updated.CreatedAt,
             rawKey
         ));

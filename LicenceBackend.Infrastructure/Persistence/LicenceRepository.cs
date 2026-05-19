@@ -12,7 +12,7 @@ namespace LicenceBackend.Infrastructure.Persistence;
 public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRepository auditEvents, TimeProvider time) : ILicenceRepository
 {
     private const string LicenceColumns =
-        "id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, created_at, updated_at";
+        "id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, label, created_at, updated_at";
 
     public async Task<Licence?> FindByKeyHmacAsync(IReadOnlyList<byte[]> keyHmacCandidates, CancellationToken cancellationToken)
     {
@@ -49,32 +49,55 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
 
     public async Task CreateAsync(Licence licence, CancellationToken cancellationToken)
     {
-        const string sql = """
-                           INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, created_at, updated_at)
-                           VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @CreatedAt, @UpdatedAt);
-                           """;
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var command = new CommandDefinition(InsertLicenceSql, BuildInsertParameters(licence), cancellationToken: cancellationToken);
+        await connection.ExecuteAsync(command);
+    }
+
+    public async Task CreateInTxAsync(IDbConnection connection, IDbTransaction transaction, Licence licence, CancellationToken cancellationToken)
+    {
+        var command = new CommandDefinition(InsertLicenceSql, BuildInsertParameters(licence), transaction, cancellationToken: cancellationToken);
+        await connection.ExecuteAsync(command);
+    }
+
+    public async Task<Licence?> UpdateLabelAsync(Guid licenceId, Guid ownerId, string? label, CancellationToken cancellationToken)
+    {
+        const string sql = $"""
+                            UPDATE licences
+                            SET label = @Label, updated_at = NOW()
+                            WHERE id = @Id AND user_id = @OwnerId
+                            RETURNING {LicenceColumns};
+                            """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var command = new CommandDefinition(
             sql,
-            new
-            {
-                licence.Id,
-                licence.ProductId,
-                licence.UserId,
-                licence.KeyHmac,
-                licence.KeyHmacPepperVersion,
-                Status = licence.Status.ToString().ToLowerInvariant(),
-                licence.ExpiresAt,
-                licence.Notes,
-                IpAllowlist = licence.IpAllowlist is null ? null : JsonSerializer.Serialize(licence.IpAllowlist),
-                licence.CreatedAt,
-                licence.UpdatedAt
-            },
+            new { Id = licenceId, OwnerId = ownerId, Label = label },
             cancellationToken: cancellationToken);
-
-        await connection.ExecuteAsync(command);
+        var row = await connection.QuerySingleOrDefaultAsync<LicenceRow>(command);
+        return row?.ToDomain();
     }
+
+    private const string InsertLicenceSql = """
+                                             INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, label, created_at, updated_at)
+                                             VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @Label, @CreatedAt, @UpdatedAt);
+                                             """;
+
+    private static object BuildInsertParameters(Licence licence) => new
+    {
+        licence.Id,
+        licence.ProductId,
+        licence.UserId,
+        licence.KeyHmac,
+        licence.KeyHmacPepperVersion,
+        Status = licence.Status.ToString().ToLowerInvariant(),
+        licence.ExpiresAt,
+        licence.Notes,
+        IpAllowlist = licence.IpAllowlist is null ? null : JsonSerializer.Serialize(licence.IpAllowlist),
+        licence.Label,
+        licence.CreatedAt,
+        licence.UpdatedAt
+    };
 
     public async Task<PagedResult<Licence>> ListAsync(
         Guid? productId,
@@ -640,6 +663,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         byte[]? HwidHmac,
         short? HwidHmacPepperVersion,
         string? IpAllowlist,
+        string? Label,
         DateTime CreatedAt,
         DateTime UpdatedAt,
         string Relationship
@@ -648,7 +672,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         public LicenceRow ToLicenceRow() => new(
             Id, ProductId, UserId, KeyHmac, KeyHmacPepperVersion, Status,
             ExpiresAt, Notes, HwidHmac, HwidHmacPepperVersion, IpAllowlist,
-            CreatedAt, UpdatedAt
+            Label, CreatedAt, UpdatedAt
         );
     }
 
@@ -664,6 +688,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         byte[]? HwidHmac,
         short? HwidHmacPepperVersion,
         string? IpAllowlist,
+        string? Label,
         DateTime CreatedAt,
         DateTime UpdatedAt
     )
@@ -685,6 +710,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                 HwidHmac,
                 HwidHmacPepperVersion,
                 allowlist,
+                Label,
                 TimestampConversion.ToUtcOffset(CreatedAt),
                 TimestampConversion.ToUtcOffset(UpdatedAt));
         }

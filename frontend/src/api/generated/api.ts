@@ -8,8 +8,10 @@ import type {
   AddLicenceMemberRequest,
   ChangePasswordRequest,
   CreateLicenceRequest,
+  CreateOrderRequest,
   CreateProductRequest,
   CreateUserRequest,
+  GetAdminOrdersParams,
   GetAuditEventsParams,
   GetLicencesIdBindingHistoryParams,
   GetLicencesIdStatusHistoryParams,
@@ -17,6 +19,7 @@ import type {
   GetLicencesParams,
   GetMeLicencesIdVerificationAttemptsParams,
   GetMeLicencesParams,
+  GetMeOrdersParams,
   GetProductsParams,
   GetUsersIdLicencesParams,
   GetUsersIdStatusHistoryParams,
@@ -29,22 +32,28 @@ import type {
   LicenceMemberResponse,
   LicenceResponse,
   LoginRequest,
+  OrderCreatedResponse,
+  OrderResponse,
   PagedResponseOfAuditEventResponse,
   PagedResponseOfBindingHistoryEntryResponse,
   PagedResponseOfLicenceResponse,
   PagedResponseOfLicenceStatusHistoryResponse,
+  PagedResponseOfOrderResponse,
   PagedResponseOfProductResponse,
   PagedResponseOfUserResponse,
   PagedResponseOfUserStatusHistoryResponse,
   PagedResponseOfVerificationAttemptResponse,
+  PostProductsIdFilesBody,
   PostProductsIdImageBody,
   ProblemDetails,
+  ProductFileResponse,
   ProductResponse,
   RegenerateLicenceKeyRequest,
   SessionResponse,
   SignedLicenceVerificationResponse,
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
+  UpdateLicenceLabelRequest,
   UpdateLicenceStatusRequest,
   UpdateProductRequest,
   UpdateProfileRequest,
@@ -1065,6 +1074,276 @@ export const getLicencesVerifyPublicKey = async ( options?: RequestInit): Promis
 
 
 
+export type postOrdersResponse201 = {
+  data: OrderCreatedResponse
+  status: 201
+}
+
+export type postOrdersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postOrdersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postOrdersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type postOrdersResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postOrdersResponseSuccess = (postOrdersResponse201) & {
+  headers: Headers;
+};
+export type postOrdersResponseError = (postOrdersResponse400 | postOrdersResponse401 | postOrdersResponse403 | postOrdersResponse404) & {
+  headers: Headers;
+};
+
+export type postOrdersResponse = (postOrdersResponseSuccess | postOrdersResponseError)
+
+export const getPostOrdersUrl = () => {
+
+
+
+
+  return `/orders`
+}
+
+export const postOrders = async (createOrderRequest: CreateOrderRequest, options?: RequestInit): Promise<postOrdersResponse> => {
+
+  return apiClient<postOrdersResponse>(getPostOrdersUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createOrderRequest,)
+  }
+);}
+
+
+
+export type getMeOrdersResponse200 = {
+  data: PagedResponseOfOrderResponse
+  status: 200
+}
+
+export type getMeOrdersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getMeOrdersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeOrdersResponseSuccess = (getMeOrdersResponse200) & {
+  headers: Headers;
+};
+export type getMeOrdersResponseError = (getMeOrdersResponse400 | getMeOrdersResponse401) & {
+  headers: Headers;
+};
+
+export type getMeOrdersResponse = (getMeOrdersResponseSuccess | getMeOrdersResponseError)
+
+export const getGetMeOrdersUrl = (params?: GetMeOrdersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/me/orders?${stringifiedParams}` : `/me/orders`
+}
+
+export const getMeOrders = async (params?: GetMeOrdersParams, options?: RequestInit): Promise<getMeOrdersResponse> => {
+
+  return apiClient<getMeOrdersResponse>(getGetMeOrdersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getMeOrdersIdResponse200 = {
+  data: OrderResponse
+  status: 200
+}
+
+export type getMeOrdersIdResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getMeOrdersIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeOrdersIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getMeOrdersIdResponseSuccess = (getMeOrdersIdResponse200) & {
+  headers: Headers;
+};
+export type getMeOrdersIdResponseError = (getMeOrdersIdResponse400 | getMeOrdersIdResponse401 | getMeOrdersIdResponse404) & {
+  headers: Headers;
+};
+
+export type getMeOrdersIdResponse = (getMeOrdersIdResponseSuccess | getMeOrdersIdResponseError)
+
+export const getGetMeOrdersIdUrl = (id: string,) => {
+
+
+
+
+  return `/me/orders/${id}`
+}
+
+export const getMeOrdersId = async (id: string, options?: RequestInit): Promise<getMeOrdersIdResponse> => {
+
+  return apiClient<getMeOrdersIdResponse>(getGetMeOrdersIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getAdminOrdersResponse200 = {
+  data: PagedResponseOfOrderResponse
+  status: 200
+}
+
+export type getAdminOrdersResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getAdminOrdersResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getAdminOrdersResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAdminOrdersResponseSuccess = (getAdminOrdersResponse200) & {
+  headers: Headers;
+};
+export type getAdminOrdersResponseError = (getAdminOrdersResponse400 | getAdminOrdersResponse401 | getAdminOrdersResponse403) & {
+  headers: Headers;
+};
+
+export type getAdminOrdersResponse = (getAdminOrdersResponseSuccess | getAdminOrdersResponseError)
+
+export const getGetAdminOrdersUrl = (params?: GetAdminOrdersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/admin/orders?${stringifiedParams}` : `/admin/orders`
+}
+
+export const getAdminOrders = async (params?: GetAdminOrdersParams, options?: RequestInit): Promise<getAdminOrdersResponse> => {
+
+  return apiClient<getAdminOrdersResponse>(getGetAdminOrdersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getAdminOrdersIdResponse200 = {
+  data: OrderResponse
+  status: 200
+}
+
+export type getAdminOrdersIdResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getAdminOrdersIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getAdminOrdersIdResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAdminOrdersIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getAdminOrdersIdResponseSuccess = (getAdminOrdersIdResponse200) & {
+  headers: Headers;
+};
+export type getAdminOrdersIdResponseError = (getAdminOrdersIdResponse400 | getAdminOrdersIdResponse401 | getAdminOrdersIdResponse403 | getAdminOrdersIdResponse404) & {
+  headers: Headers;
+};
+
+export type getAdminOrdersIdResponse = (getAdminOrdersIdResponseSuccess | getAdminOrdersIdResponseError)
+
+export const getGetAdminOrdersIdUrl = (id: string,) => {
+
+
+
+
+  return `/admin/orders/${id}`
+}
+
+export const getAdminOrdersId = async (id: string, options?: RequestInit): Promise<getAdminOrdersIdResponse> => {
+
+  return apiClient<getAdminOrdersIdResponse>(getGetAdminOrdersIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
 export type postProductsResponse201 = {
   data: ProductResponse
   status: 201
@@ -1444,6 +1723,221 @@ export const deleteProductsIdImage = async (id: string, options?: RequestInit): 
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type postProductsIdFilesResponse201 = {
+  data: ProductFileResponse
+  status: 201
+}
+
+export type postProductsIdFilesResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postProductsIdFilesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postProductsIdFilesResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postProductsIdFilesResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postProductsIdFilesResponseSuccess = (postProductsIdFilesResponse201) & {
+  headers: Headers;
+};
+export type postProductsIdFilesResponseError = (postProductsIdFilesResponse400 | postProductsIdFilesResponse401 | postProductsIdFilesResponse404 | postProductsIdFilesResponse429) & {
+  headers: Headers;
+};
+
+export type postProductsIdFilesResponse = (postProductsIdFilesResponseSuccess | postProductsIdFilesResponseError)
+
+export const getPostProductsIdFilesUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}/files`
+}
+
+export const postProductsIdFiles = async (id: string,
+    postProductsIdFilesBody: PostProductsIdFilesBody, options?: RequestInit): Promise<postProductsIdFilesResponse> => {
+    const formData = new FormData();
+if(postProductsIdFilesBody.file !== undefined) {
+ formData.append(`file`, postProductsIdFilesBody.file);
+ }
+
+  return apiClient<postProductsIdFilesResponse>(getPostProductsIdFilesUrl(id),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+export type getProductsIdFilesResponse200 = {
+  data: ProductFileResponse[]
+  status: 200
+}
+
+export type getProductsIdFilesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getProductsIdFilesResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getProductsIdFilesResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getProductsIdFilesResponseSuccess = (getProductsIdFilesResponse200) & {
+  headers: Headers;
+};
+export type getProductsIdFilesResponseError = (getProductsIdFilesResponse401 | getProductsIdFilesResponse404 | getProductsIdFilesResponse429) & {
+  headers: Headers;
+};
+
+export type getProductsIdFilesResponse = (getProductsIdFilesResponseSuccess | getProductsIdFilesResponseError)
+
+export const getGetProductsIdFilesUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}/files`
+}
+
+export const getProductsIdFiles = async (id: string, options?: RequestInit): Promise<getProductsIdFilesResponse> => {
+
+  return apiClient<getProductsIdFilesResponse>(getGetProductsIdFilesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getProductsIdFilesFileIdResponse200 = {
+  data: ProductFileResponse
+  status: 200
+}
+
+export type getProductsIdFilesFileIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getProductsIdFilesFileIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getProductsIdFilesFileIdResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getProductsIdFilesFileIdResponseSuccess = (getProductsIdFilesFileIdResponse200) & {
+  headers: Headers;
+};
+export type getProductsIdFilesFileIdResponseError = (getProductsIdFilesFileIdResponse401 | getProductsIdFilesFileIdResponse404 | getProductsIdFilesFileIdResponse429) & {
+  headers: Headers;
+};
+
+export type getProductsIdFilesFileIdResponse = (getProductsIdFilesFileIdResponseSuccess | getProductsIdFilesFileIdResponseError)
+
+export const getGetProductsIdFilesFileIdUrl = (id: string,
+    fileId: string,) => {
+
+
+
+
+  return `/products/${id}/files/${fileId}`
+}
+
+export const getProductsIdFilesFileId = async (id: string,
+    fileId: string, options?: RequestInit): Promise<getProductsIdFilesFileIdResponse> => {
+
+  return apiClient<getProductsIdFilesFileIdResponse>(getGetProductsIdFilesFileIdUrl(id,fileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getProductsIdFilesFileIdDownloadResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getProductsIdFilesFileIdDownloadResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getProductsIdFilesFileIdDownloadResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getProductsIdFilesFileIdDownloadResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getProductsIdFilesFileIdDownloadResponseSuccess = (getProductsIdFilesFileIdDownloadResponse200) & {
+  headers: Headers;
+};
+export type getProductsIdFilesFileIdDownloadResponseError = (getProductsIdFilesFileIdDownloadResponse401 | getProductsIdFilesFileIdDownloadResponse404 | getProductsIdFilesFileIdDownloadResponse429) & {
+  headers: Headers;
+};
+
+export type getProductsIdFilesFileIdDownloadResponse = (getProductsIdFilesFileIdDownloadResponseSuccess | getProductsIdFilesFileIdDownloadResponseError)
+
+export const getGetProductsIdFilesFileIdDownloadUrl = (id: string,
+    fileId: string,) => {
+
+
+
+
+  return `/products/${id}/files/${fileId}/download`
+}
+
+export const getProductsIdFilesFileIdDownload = async (id: string,
+    fileId: string, options?: RequestInit): Promise<getProductsIdFilesFileIdDownloadResponse> => {
+
+  return apiClient<getProductsIdFilesFileIdDownloadResponse>(getGetProductsIdFilesFileIdDownloadUrl(id,fileId),
+  {
+    ...options,
+    method: 'GET'
 
 
   }
@@ -2254,6 +2748,113 @@ export const getMeLicencesId = async (id: string, options?: RequestInit): Promis
 
 
 
+export type getMeLicencesIdDownloadResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getMeLicencesIdDownloadResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeLicencesIdDownloadResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getMeLicencesIdDownloadResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getMeLicencesIdDownloadResponseSuccess = (getMeLicencesIdDownloadResponse200) & {
+  headers: Headers;
+};
+export type getMeLicencesIdDownloadResponseError = (getMeLicencesIdDownloadResponse401 | getMeLicencesIdDownloadResponse404 | getMeLicencesIdDownloadResponse429) & {
+  headers: Headers;
+};
+
+export type getMeLicencesIdDownloadResponse = (getMeLicencesIdDownloadResponseSuccess | getMeLicencesIdDownloadResponseError)
+
+export const getGetMeLicencesIdDownloadUrl = (id: string,) => {
+
+
+
+
+  return `/me/licences/${id}/download`
+}
+
+export const getMeLicencesIdDownload = async (id: string, options?: RequestInit): Promise<getMeLicencesIdDownloadResponse> => {
+
+  return apiClient<getMeLicencesIdDownloadResponse>(getGetMeLicencesIdDownloadUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type patchMeLicencesIdLabelResponse200 = {
+  data: LicenceResponse
+  status: 200
+}
+
+export type patchMeLicencesIdLabelResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchMeLicencesIdLabelResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type patchMeLicencesIdLabelResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type patchMeLicencesIdLabelResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type patchMeLicencesIdLabelResponseSuccess = (patchMeLicencesIdLabelResponse200) & {
+  headers: Headers;
+};
+export type patchMeLicencesIdLabelResponseError = (patchMeLicencesIdLabelResponse400 | patchMeLicencesIdLabelResponse401 | patchMeLicencesIdLabelResponse403 | patchMeLicencesIdLabelResponse429) & {
+  headers: Headers;
+};
+
+export type patchMeLicencesIdLabelResponse = (patchMeLicencesIdLabelResponseSuccess | patchMeLicencesIdLabelResponseError)
+
+export const getPatchMeLicencesIdLabelUrl = (id: string,) => {
+
+
+
+
+  return `/me/licences/${id}/label`
+}
+
+export const patchMeLicencesIdLabel = async (id: string,
+    updateLicenceLabelRequest: UpdateLicenceLabelRequest, options?: RequestInit): Promise<patchMeLicencesIdLabelResponse> => {
+
+  return apiClient<patchMeLicencesIdLabelResponse>(getPatchMeLicencesIdLabelUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLicenceLabelRequest,)
+  }
+);}
+
+
+
 export type getMeLicencesIdMembersResponse200 = {
   data: LicenceMemberResponse[]
   status: 200
@@ -2418,6 +3019,11 @@ export type postMeLicencesIdRegenerateKeyResponse200 = {
   status: 200
 }
 
+export type postMeLicencesIdRegenerateKeyResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
 export type postMeLicencesIdRegenerateKeyResponse401 = {
   data: ProblemDetails
   status: 401
@@ -2436,7 +3042,7 @@ export type postMeLicencesIdRegenerateKeyResponse429 = {
 export type postMeLicencesIdRegenerateKeyResponseSuccess = (postMeLicencesIdRegenerateKeyResponse200) & {
   headers: Headers;
 };
-export type postMeLicencesIdRegenerateKeyResponseError = (postMeLicencesIdRegenerateKeyResponse401 | postMeLicencesIdRegenerateKeyResponse404 | postMeLicencesIdRegenerateKeyResponse429) & {
+export type postMeLicencesIdRegenerateKeyResponseError = (postMeLicencesIdRegenerateKeyResponse400 | postMeLicencesIdRegenerateKeyResponse401 | postMeLicencesIdRegenerateKeyResponse404 | postMeLicencesIdRegenerateKeyResponse429) & {
   headers: Headers;
 };
 

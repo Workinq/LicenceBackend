@@ -3,9 +3,11 @@ import {
   getMeLicences,
   getMeLicencesId,
   getMeLicencesIdMembers,
+  patchMeLicencesIdLabel,
   postMeLicencesIdMembers,
   postMeLicencesIdRegenerateKey,
 } from './generated/api';
+import { downloadBlob, type DownloadedBlob } from './product-files';
 import type {
   AddLicenceMemberRequest,
   GetMeLicencesParams,
@@ -14,6 +16,7 @@ import type {
   LicenceResponse,
   PagedResponseOfLicenceResponse,
   RegenerateLicenceKeyRequest,
+  UpdateLicenceLabelRequest,
 } from './generated/api.schemas';
 
 export async function fetchMyLicences(params: GetMeLicencesParams = {}): Promise<PagedResponseOfLicenceResponse> {
@@ -41,4 +44,15 @@ export async function regenerateMyLicenceKey(
   body: RegenerateLicenceKeyRequest,
 ): Promise<LicenceKeyRegeneratedResponse> {
   return (await postMeLicencesIdRegenerateKey(id, body)).data as LicenceKeyRegeneratedResponse;
+}
+
+export async function updateMyLicenceLabel(
+  id: string,
+  body: UpdateLicenceLabelRequest,
+): Promise<LicenceResponse> {
+  return (await patchMeLicencesIdLabel(id, body)).data as LicenceResponse;
+}
+
+export async function downloadMyLicenceFile(id: string): Promise<DownloadedBlob> {
+  return downloadBlob(`/me/licences/${id}/download`);
 }

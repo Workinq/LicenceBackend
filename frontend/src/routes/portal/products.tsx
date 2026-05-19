@@ -15,7 +15,10 @@ import {
 } from '@/components/ui/table';
 import { ImageOff, LayoutGrid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate, formatPrice } from '@/lib/format';
 import { fetchProducts } from '@/api/products';
+import { AddToBasketButton } from '@/components/basket/AddToBasketButton';
+import type { ProductResponse } from '@/api/generated/api.schemas';
 
 const searchSchema = z.object({
   view: z.enum(['cards', 'table']).optional(),
@@ -28,18 +31,6 @@ export const Route = createFileRoute('/portal/products')({
 
 const CARD_PAGE_SIZE = 6;
 const TABLE_PAGE_SIZE = 25;
-
-function formatPrice(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
-}
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString();
-}
 
 function PortalProductsPage() {
   const navigate = Route.useNavigate();
@@ -140,20 +131,9 @@ function PortalProductsPage() {
   );
 }
 
-type ProductRow = {
-  id: string;
-  slug: string;
-  displayName: string;
-  price: number | null;
-  currency: string;
-  imageUrl: string | null;
-  tagline: string | null;
-  createdAt: string;
-};
-
 interface ViewProps {
   isPending: boolean;
-  items: ProductRow[];
+  items: ProductResponse[];
   total: number;
 }
 
@@ -193,8 +173,11 @@ function CardsView({ isPending, items, total }: ViewProps) {
             <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
             {p.tagline && <p className="text-xs text-ink-muted">{p.tagline}</p>}
           </CardHeader>
-          <CardContent className="px-3 pb-3 text-xs">
-            {p.price != null ? formatPrice(p.price, p.currency) : <span className="text-ink-subtle">No price</span>}
+          <CardContent className="px-3 pb-3 flex items-center justify-between gap-2 text-xs">
+            <span>
+              {p.price != null ? formatPrice(p.price, p.currency) : <span className="text-ink-subtle">Free</span>}
+            </span>
+            <AddToBasketButton product={p} variant="compact" />
           </CardContent>
         </Card>
       ))}
@@ -213,19 +196,20 @@ function TableView({ isPending, items, total }: ViewProps) {
             <TableHead>Slug</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Available since</TableHead>
+            <TableHead className="w-40 text-right">Buy</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isPending && (
             <TableRow>
-              <TableCell colSpan={5}>
+              <TableCell colSpan={6}>
                 <Skeleton className="h-6 w-full" />
               </TableCell>
             </TableRow>
           )}
           {!isPending && total === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-sm text-ink-muted">
+              <TableCell colSpan={6} className="text-sm text-ink-muted">
                 No products are available yet.
               </TableCell>
             </TableRow>
@@ -244,9 +228,12 @@ function TableView({ isPending, items, total }: ViewProps) {
               <TableCell className="font-medium text-ink">{p.displayName}</TableCell>
               <TableCell className="font-mono text-xs text-ink-muted">{p.slug}</TableCell>
               <TableCell className="text-ink-muted">
-                {p.price != null ? formatPrice(p.price, p.currency) : '-'}
+                {p.price != null ? formatPrice(p.price, p.currency) : 'Free'}
               </TableCell>
               <TableCell className="text-ink-muted">{formatDate(p.createdAt)}</TableCell>
+              <TableCell className="text-right">
+                <AddToBasketButton product={p} variant="compact" />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

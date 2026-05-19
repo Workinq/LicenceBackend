@@ -17,7 +17,14 @@ vi.mock('../api/products', () => ({
   fetchProducts: vi.fn(),
   createProduct: vi.fn(),
 }));
+vi.mock('../api/product-files', () => ({
+  fetchProductFiles: vi.fn(),
+  uploadProductFile: vi.fn(),
+  downloadProductFileRevision: vi.fn(),
+  triggerBlobDownload: vi.fn(),
+}));
 import { fetchProduct } from '../api/products';
+import { fetchProductFiles, uploadProductFile } from '../api/product-files';
 import { Route as ProductDetailRoute } from '../routes/admin/products_.$id';
 
 function makeProduct(over: Record<string, unknown> = {}) {
@@ -55,6 +62,9 @@ function renderDetail() {
 
 beforeEach(() => {
   vi.mocked(fetchProduct).mockReset();
+  vi.mocked(fetchProductFiles).mockReset();
+  vi.mocked(uploadProductFile).mockReset();
+  vi.mocked(fetchProductFiles).mockResolvedValue([]);
 });
 
 describe('ProductDetailPage', () => {
@@ -91,5 +101,38 @@ describe('ProductDetailPage', () => {
     expect(screen.getByRole('button', { name: /remove image/i })).toBeInTheDocument();
     const img = document.querySelector('img');
     expect(img?.getAttribute('src')).toContain('/api/products/p1/image');
+  });
+
+  it('shows an empty state in Downloads when no revisions exist', async () => {
+    vi.mocked(fetchProduct).mockResolvedValue(makeProduct());
+    vi.mocked(fetchProductFiles).mockResolvedValue([]);
+    renderDetail();
+    await screen.findByText('Acme Pro');
+    expect(await screen.findByText(/no revisions uploaded yet/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/upload first revision/i)).toBeInTheDocument();
+  });
+
+  it('lists revisions newest-first with version and filename', async () => {
+    vi.mocked(fetchProduct).mockResolvedValue(makeProduct());
+    vi.mocked(fetchProductFiles).mockResolvedValue([
+      {
+        id: 'f2', productId: 'p1', versionNumber: 2, fileName: 'new.zip',
+        contentType: 'application/zip', fileSizeBytes: 2048,
+        uploadedByAdminId: 'a1', uploadedAt: '2026-05-01T00:00:00Z',
+      },
+      {
+        id: 'f1', productId: 'p1', versionNumber: 1, fileName: 'old.zip',
+        contentType: 'application/zip', fileSizeBytes: 1024,
+        uploadedByAdminId: 'a1', uploadedAt: '2026-04-01T00:00:00Z',
+      },
+    ]);
+    renderDetail();
+    await screen.findByText('Acme Pro');
+    expect(await screen.findByText(/v2/)).toBeInTheDocument();
+    expect(screen.getByText(/v1/)).toBeInTheDocument();
+    expect(screen.getByText(/latest/i)).toBeInTheDocument();
+    expect(screen.getByText(/new\.zip/)).toBeInTheDocument();
+    expect(screen.getByText(/old\.zip/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/upload new revision/i)).toBeInTheDocument();
   });
 });

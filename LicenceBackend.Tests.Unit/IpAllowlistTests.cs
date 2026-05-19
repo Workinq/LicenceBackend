@@ -71,6 +71,7 @@ public sealed class IpAllowlistTests
             null,
             null,
             allowlist,
+            null,
             DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow);
     }

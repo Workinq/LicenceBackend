@@ -1,4 +1,4 @@
-import { LayoutDashboard, KeyRound, Package, Users } from 'lucide-react';
+import { LayoutDashboard, KeyRound, Package, Receipt, Users } from 'lucide-react';
 import { NavItem } from './NavItem';
 
 export function Sidebar() {
@@ -8,6 +8,7 @@ export function Sidebar() {
         <NavItem to="/admin" label="Overview" icon={LayoutDashboard} exact />
         <NavItem to="/admin/licences" label="Licences" icon={KeyRound} />
         <NavItem to="/admin/products" label="Products" icon={Package} />
+        <NavItem to="/admin/orders" label="Orders" icon={Receipt} />
         <NavItem to="/admin/users" label="Users" icon={Users} />
       </nav>
     </aside>

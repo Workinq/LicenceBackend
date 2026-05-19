@@ -48,6 +48,7 @@ function PortalLicencesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
+              <TableHead>Label</TableHead>
               <TableHead>Relationship</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>HWID</TableHead>
@@ -57,14 +58,14 @@ function PortalLicencesPage() {
           <TableBody>
             {query.isPending && (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {query.isError && (
               <TableRow>
-                <TableCell colSpan={5} className="text-sm text-status-revoked-fg">
+                <TableCell colSpan={6} className="text-sm text-status-revoked-fg">
                   Failed to load your licences.
                 </TableCell>
               </TableRow>
@@ -80,6 +81,7 @@ function PortalLicencesPage() {
                     {lic.productSlug}
                   </Link>
                 </TableCell>
+                <TableCell className="text-ink-muted">{lic.label ?? <span className="text-ink-subtle">-</span>}</TableCell>
                 <TableCell>
                   <Badge variant={lic.relationship === 'owner' ? 'default' : 'secondary'} className="capitalize">
                     {lic.relationship ?? 'owner'}
@@ -92,7 +94,7 @@ function PortalLicencesPage() {
             ))}
             {data && data.items.length === 0 && !query.isError && (
               <TableRow>
-                <TableCell colSpan={5} className="text-sm text-ink-muted">
+                <TableCell colSpan={6} className="text-sm text-ink-muted">
                   You do not have any licences yet.
                 </TableCell>
               </TableRow>

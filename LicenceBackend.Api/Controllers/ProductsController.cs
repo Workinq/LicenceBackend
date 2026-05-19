@@ -1,6 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
+using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +21,10 @@ namespace LicenceBackend.Api.Controllers;
 public sealed class ProductsController(
     IProductRepository products,
     IProductImageStorage images,
+    IProductFileRepository productFiles,
+    IProductFileStorage productFileStorage,
+    IAuditEventRepository auditEvents,
+    Microsoft.Extensions.Options.IOptions<LicenceBackend.Infrastructure.Options.ProductFileStorageOptions> productFileOptions,
     TimeProvider time
 ) : ControllerBase
 {
@@ -191,6 +199,125 @@ public sealed class ProductsController(
         var updated = product with { ImagePath = null, ImageContentType = null };
         await products.UpdateAsync(updated, cancellationToken);
         return Ok(ToResponse(updated));
+    }
+
+    [HttpPost("{id:guid}/files")]
+    [Authorize(Roles = "admin")]
+    [DisableRequestSizeLimit]
+    [ProducesResponseType(typeof(ProductFileResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadFile(Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductNotFound, detail: $"No product with id '{id}'.");
+
+        if (file is null || file.Length == 0)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.ProductFileEmpty, detail: "No file was provided.");
+
+        var maxBytes = productFileOptions.Value.MaxFileBytes;
+        if (file.Length > maxBytes)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.ProductFileTooLarge, detail: $"The file is larger than {maxBytes} bytes.");
+
+        if (!TryGetCurrentUserId(out var adminId)) return Unauthorized();
+
+        var fileId = Guid.NewGuid();
+        await using (var stream = file.OpenReadStream())
+        {
+            await productFileStorage.SaveAsync(fileId, stream, cancellationToken);
+        }
+        var storagePath = fileId.ToString();
+
+        var versionNumber = await productFiles.GetNextVersionNumberAsync(product.Id, cancellationToken);
+        var now = time.GetUtcNow();
+        var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType;
+        var fileName = string.IsNullOrWhiteSpace(file.FileName) ? "file" : file.FileName;
+
+        var productFile = new ProductFile(
+            fileId,
+            product.Id,
+            versionNumber,
+            fileName,
+            storagePath,
+            contentType,
+            file.Length,
+            adminId,
+            now);
+        await productFiles.CreateAsync(productFile, cancellationToken);
+
+        var evt = AuditEvent.Create(
+            AuditEventTypes.ProductFileUploaded,
+            AuditSubjectTypes.Product,
+            product.Id,
+            AuditActorTypes.Admin,
+            adminId,
+            reason: null,
+            new ProductFileUploadedPayload(productFile.Id, versionNumber, fileName, contentType, file.Length),
+            now);
+        await auditEvents.RecordAsync(evt, cancellationToken);
+
+        var response = ToFileResponse(productFile);
+        return CreatedAtAction(nameof(GetFile), new { id = product.Id, fileId = productFile.Id }, response);
+    }
+
+    [HttpGet("{id:guid}/files")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(typeof(IReadOnlyList<ProductFileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListFiles(Guid id, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductNotFound, detail: $"No product with id '{id}'.");
+        var files = await productFiles.ListByProductAsync(id, cancellationToken);
+        return Ok(files.Select(ToFileResponse).ToList());
+    }
+
+    [HttpGet("{id:guid}/files/{fileId:guid}")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(typeof(ProductFileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetFile(Guid id, Guid fileId, CancellationToken cancellationToken)
+    {
+        var file = await productFiles.FindByIdAsync(fileId, cancellationToken);
+        if (file is null || file.ProductId != id)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductFileNotFound, detail: $"No file with id '{fileId}' on product '{id}'.");
+        return Ok(ToFileResponse(file));
+    }
+
+    [HttpGet("{id:guid}/files/{fileId:guid}/download")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadFile(Guid id, Guid fileId, CancellationToken cancellationToken)
+    {
+        var file = await productFiles.FindByIdAsync(fileId, cancellationToken);
+        if (file is null || file.ProductId != id)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductFileNotFound, detail: $"No file with id '{fileId}' on product '{id}'.");
+        var stream = await productFileStorage.OpenReadAsync(file.StoragePath, cancellationToken);
+        if (stream is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductFileNotFound, detail: $"File blob for '{fileId}' is missing.");
+        return File(stream, file.ContentType, file.FileName);
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        var subClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Guid.TryParse(subClaim, out userId);
+    }
+
+    private static ProductFileResponse ToFileResponse(ProductFile file)
+    {
+        return new ProductFileResponse(
+            file.Id,
+            file.ProductId,
+            file.VersionNumber,
+            file.FileName,
+            file.ContentType,
+            file.FileSizeBytes,
+            file.UploadedByAdminId,
+            file.UploadedAt);
     }
 
     private static ProductResponse ToResponse(Product product)

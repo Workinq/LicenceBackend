@@ -70,7 +70,7 @@ describe('NewLicencePage', () => {
     vi.mocked(fetchUsers).mockResolvedValue({ items: [{ id: 'u1', email: 'alice@example.com', displayName: null, role: 'admin', status: 'active', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
     vi.mocked(createLicence).mockResolvedValue({
       id: 'lic-1', productId: 'p1', productSlug: 'acme-pro', userId: 'u1', userEmail: 'alice@example.com',
-      status: 'active', expiresAt: null, notes: null, hwidBound: false, ipAllowlist: [], createdAt: '2026-01-01T00:00:00Z', licenceKey: 'KEY-1',
+      status: 'active', expiresAt: null, notes: null, hwidBound: false, ipAllowlist: [], label: null, createdAt: '2026-01-01T00:00:00Z', licenceKey: 'KEY-1',
     });
     renderNew();
     await screen.findByRole('button', { name: /create licence/i });
@@ -90,7 +90,7 @@ describe('NewLicencePage', () => {
     vi.mocked(fetchUsers).mockResolvedValue({ items: [{ id: 'u1', email: 'alice@example.com', displayName: null, role: 'admin', status: 'active', createdAt: '2026-01-01T00:00:00Z' }], total: 1, limit: 200, offset: 0 });
     vi.mocked(createLicence).mockResolvedValue({
       id: 'lic-1', productId: 'p1', productSlug: 'acme-pro', userId: 'u1', userEmail: 'alice@example.com',
-      status: 'active', expiresAt: null, notes: null, hwidBound: false, ipAllowlist: ['10.0.0.0/24'], createdAt: '2026-01-01T00:00:00Z', licenceKey: 'KEY-1',
+      status: 'active', expiresAt: null, notes: null, hwidBound: false, ipAllowlist: ['10.0.0.0/24'], label: null, createdAt: '2026-01-01T00:00:00Z', licenceKey: 'KEY-1',
     });
     renderNew();
     await screen.findByRole('button', { name: /create licence/i });

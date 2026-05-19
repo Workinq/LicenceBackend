@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ThemeMenu } from '@/components/ThemeMenu';
+import { BasketIconButton } from '@/components/basket/BasketIconButton';
 import { useAccessTokenStore } from '@/auth/access-token-store';
 import { apiClient } from '@/auth/api-client';
 
@@ -30,6 +31,9 @@ export function PortalHeader() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface-elevated px-4 md:px-6">
       <span className="font-display text-lg font-semibold text-ink">My account</span>
+
+      <div className="flex items-center gap-2">
+        <BasketIconButton />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -65,6 +69,7 @@ export function PortalHeader() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

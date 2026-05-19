@@ -12,7 +12,7 @@ function renderActions(status: string) {
       <LicenceActions
         licence={{
           id: 'lic-1', productId: 'p', productSlug: 's', userId: 'u', userEmail: 'a@b.com',
-          status, expiresAt: null, notes: null, hwidBound: false, ipAllowlist: null, createdAt: '2026-01-01T00:00:00Z',
+          status, expiresAt: null, notes: null, hwidBound: false, ipAllowlist: null, label: null, createdAt: '2026-01-01T00:00:00Z',
         }}
       />
     </QueryClientProvider>,

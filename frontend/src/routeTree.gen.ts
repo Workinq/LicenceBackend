@@ -17,17 +17,23 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as PortalProductsRouteImport } from './routes/portal/products'
+import { Route as PortalOrdersRouteImport } from './routes/portal/orders'
 import { Route as PortalMeRouteImport } from './routes/portal/me'
 import { Route as PortalLicencesRouteImport } from './routes/portal/licences'
+import { Route as PortalCheckoutRouteImport } from './routes/portal/checkout'
+import { Route as PortalBasketRouteImport } from './routes/portal/basket'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminProductsRouteImport } from './routes/admin/products'
+import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
 import { Route as AdminMeRouteImport } from './routes/admin/me'
 import { Route as AdminLicencesRouteImport } from './routes/admin/licences'
+import { Route as PortalOrdersIdRouteImport } from './routes/portal/orders_.$id'
 import { Route as PortalLicencesIdRouteImport } from './routes/portal/licences_.$id'
 import { Route as AdminUsersNewRouteImport } from './routes/admin/users_.new'
 import { Route as AdminUsersIdRouteImport } from './routes/admin/users_.$id'
 import { Route as AdminProductsNewRouteImport } from './routes/admin/products_.new'
 import { Route as AdminProductsIdRouteImport } from './routes/admin/products_.$id'
+import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders_.$id'
 import { Route as AdminLicencesNewRouteImport } from './routes/admin/licences_.new'
 import { Route as AdminLicencesIdRouteImport } from './routes/admin/licences_.$id'
 
@@ -71,6 +77,11 @@ const PortalProductsRoute = PortalProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => PortalRouteRoute,
 } as any)
+const PortalOrdersRoute = PortalOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
 const PortalMeRoute = PortalMeRouteImport.update({
   id: '/me',
   path: '/me',
@@ -79,6 +90,16 @@ const PortalMeRoute = PortalMeRouteImport.update({
 const PortalLicencesRoute = PortalLicencesRouteImport.update({
   id: '/licences',
   path: '/licences',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalCheckoutRoute = PortalCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalBasketRoute = PortalBasketRouteImport.update({
+  id: '/basket',
+  path: '/basket',
   getParentRoute: () => PortalRouteRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -91,6 +112,11 @@ const AdminProductsRoute = AdminProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminMeRoute = AdminMeRouteImport.update({
   id: '/me',
   path: '/me',
@@ -100,6 +126,11 @@ const AdminLicencesRoute = AdminLicencesRouteImport.update({
   id: '/licences',
   path: '/licences',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const PortalOrdersIdRoute = PortalOrdersIdRouteImport.update({
+  id: '/orders_/$id',
+  path: '/orders/$id',
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const PortalLicencesIdRoute = PortalLicencesIdRouteImport.update({
   id: '/licences_/$id',
@@ -126,6 +157,11 @@ const AdminProductsIdRoute = AdminProductsIdRouteImport.update({
   path: '/products/$id',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminOrdersIdRoute = AdminOrdersIdRouteImport.update({
+  id: '/orders_/$id',
+  path: '/orders/$id',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminLicencesNewRoute = AdminLicencesNewRouteImport.update({
   id: '/licences_/new',
   path: '/licences/new',
@@ -145,20 +181,26 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/admin/licences': typeof AdminLicencesRoute
   '/admin/me': typeof AdminMeRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/portal/basket': typeof PortalBasketRoute
+  '/portal/checkout': typeof PortalCheckoutRoute
   '/portal/licences': typeof PortalLicencesRoute
   '/portal/me': typeof PortalMeRoute
+  '/portal/orders': typeof PortalOrdersRoute
   '/portal/products': typeof PortalProductsRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/admin/licences/$id': typeof AdminLicencesIdRoute
   '/admin/licences/new': typeof AdminLicencesNewRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/products/$id': typeof AdminProductsIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/users/new': typeof AdminUsersNewRoute
   '/portal/licences/$id': typeof PortalLicencesIdRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,20 +208,26 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin/licences': typeof AdminLicencesRoute
   '/admin/me': typeof AdminMeRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/portal/basket': typeof PortalBasketRoute
+  '/portal/checkout': typeof PortalCheckoutRoute
   '/portal/licences': typeof PortalLicencesRoute
   '/portal/me': typeof PortalMeRoute
+  '/portal/orders': typeof PortalOrdersRoute
   '/portal/products': typeof PortalProductsRoute
   '/admin': typeof AdminIndexRoute
   '/portal': typeof PortalIndexRoute
   '/admin/licences/$id': typeof AdminLicencesIdRoute
   '/admin/licences/new': typeof AdminLicencesNewRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRoute
   '/admin/products/$id': typeof AdminProductsIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/users/new': typeof AdminUsersNewRoute
   '/portal/licences/$id': typeof PortalLicencesIdRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -190,20 +238,26 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/admin/licences': typeof AdminLicencesRoute
   '/admin/me': typeof AdminMeRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/portal/basket': typeof PortalBasketRoute
+  '/portal/checkout': typeof PortalCheckoutRoute
   '/portal/licences': typeof PortalLicencesRoute
   '/portal/me': typeof PortalMeRoute
+  '/portal/orders': typeof PortalOrdersRoute
   '/portal/products': typeof PortalProductsRoute
   '/admin/': typeof AdminIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/admin/licences_/$id': typeof AdminLicencesIdRoute
   '/admin/licences_/new': typeof AdminLicencesNewRoute
+  '/admin/orders_/$id': typeof AdminOrdersIdRoute
   '/admin/products_/$id': typeof AdminProductsIdRoute
   '/admin/products_/new': typeof AdminProductsNewRoute
   '/admin/users_/$id': typeof AdminUsersIdRoute
   '/admin/users_/new': typeof AdminUsersNewRoute
   '/portal/licences_/$id': typeof PortalLicencesIdRoute
+  '/portal/orders_/$id': typeof PortalOrdersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -215,20 +269,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/licences'
     | '/admin/me'
+    | '/admin/orders'
     | '/admin/products'
     | '/admin/users'
+    | '/portal/basket'
+    | '/portal/checkout'
     | '/portal/licences'
     | '/portal/me'
+    | '/portal/orders'
     | '/portal/products'
     | '/admin/'
     | '/portal/'
     | '/admin/licences/$id'
     | '/admin/licences/new'
+    | '/admin/orders/$id'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/admin/users/$id'
     | '/admin/users/new'
     | '/portal/licences/$id'
+    | '/portal/orders/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -236,20 +296,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/licences'
     | '/admin/me'
+    | '/admin/orders'
     | '/admin/products'
     | '/admin/users'
+    | '/portal/basket'
+    | '/portal/checkout'
     | '/portal/licences'
     | '/portal/me'
+    | '/portal/orders'
     | '/portal/products'
     | '/admin'
     | '/portal'
     | '/admin/licences/$id'
     | '/admin/licences/new'
+    | '/admin/orders/$id'
     | '/admin/products/$id'
     | '/admin/products/new'
     | '/admin/users/$id'
     | '/admin/users/new'
     | '/portal/licences/$id'
+    | '/portal/orders/$id'
   id:
     | '__root__'
     | '/'
@@ -259,20 +325,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin/licences'
     | '/admin/me'
+    | '/admin/orders'
     | '/admin/products'
     | '/admin/users'
+    | '/portal/basket'
+    | '/portal/checkout'
     | '/portal/licences'
     | '/portal/me'
+    | '/portal/orders'
     | '/portal/products'
     | '/admin/'
     | '/portal/'
     | '/admin/licences_/$id'
     | '/admin/licences_/new'
+    | '/admin/orders_/$id'
     | '/admin/products_/$id'
     | '/admin/products_/new'
     | '/admin/users_/$id'
     | '/admin/users_/new'
     | '/portal/licences_/$id'
+    | '/portal/orders_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -341,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalProductsRouteImport
       parentRoute: typeof PortalRouteRoute
     }
+    '/portal/orders': {
+      id: '/portal/orders'
+      path: '/orders'
+      fullPath: '/portal/orders'
+      preLoaderRoute: typeof PortalOrdersRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
     '/portal/me': {
       id: '/portal/me'
       path: '/me'
@@ -353,6 +432,20 @@ declare module '@tanstack/react-router' {
       path: '/licences'
       fullPath: '/portal/licences'
       preLoaderRoute: typeof PortalLicencesRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/checkout': {
+      id: '/portal/checkout'
+      path: '/checkout'
+      fullPath: '/portal/checkout'
+      preLoaderRoute: typeof PortalCheckoutRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/basket': {
+      id: '/portal/basket'
+      path: '/basket'
+      fullPath: '/portal/basket'
+      preLoaderRoute: typeof PortalBasketRouteImport
       parentRoute: typeof PortalRouteRoute
     }
     '/admin/users': {
@@ -369,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/me': {
       id: '/admin/me'
       path: '/me'
@@ -382,6 +482,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/licences'
       preLoaderRoute: typeof AdminLicencesRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/portal/orders_/$id': {
+      id: '/portal/orders_/$id'
+      path: '/orders/$id'
+      fullPath: '/portal/orders/$id'
+      preLoaderRoute: typeof PortalOrdersIdRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/portal/licences_/$id': {
       id: '/portal/licences_/$id'
@@ -418,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/orders_/$id': {
+      id: '/admin/orders_/$id'
+      path: '/orders/$id'
+      fullPath: '/admin/orders/$id'
+      preLoaderRoute: typeof AdminOrdersIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/licences_/new': {
       id: '/admin/licences_/new'
       path: '/licences/new'
@@ -438,11 +552,13 @@ declare module '@tanstack/react-router' {
 interface AdminRouteRouteChildren {
   AdminLicencesRoute: typeof AdminLicencesRoute
   AdminMeRoute: typeof AdminMeRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminLicencesIdRoute: typeof AdminLicencesIdRoute
   AdminLicencesNewRoute: typeof AdminLicencesNewRoute
+  AdminOrdersIdRoute: typeof AdminOrdersIdRoute
   AdminProductsIdRoute: typeof AdminProductsIdRoute
   AdminProductsNewRoute: typeof AdminProductsNewRoute
   AdminUsersIdRoute: typeof AdminUsersIdRoute
@@ -452,11 +568,13 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminLicencesRoute: AdminLicencesRoute,
   AdminMeRoute: AdminMeRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminLicencesIdRoute: AdminLicencesIdRoute,
   AdminLicencesNewRoute: AdminLicencesNewRoute,
+  AdminOrdersIdRoute: AdminOrdersIdRoute,
   AdminProductsIdRoute: AdminProductsIdRoute,
   AdminProductsNewRoute: AdminProductsNewRoute,
   AdminUsersIdRoute: AdminUsersIdRoute,
@@ -468,19 +586,27 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
 )
 
 interface PortalRouteRouteChildren {
+  PortalBasketRoute: typeof PortalBasketRoute
+  PortalCheckoutRoute: typeof PortalCheckoutRoute
   PortalLicencesRoute: typeof PortalLicencesRoute
   PortalMeRoute: typeof PortalMeRoute
+  PortalOrdersRoute: typeof PortalOrdersRoute
   PortalProductsRoute: typeof PortalProductsRoute
   PortalIndexRoute: typeof PortalIndexRoute
   PortalLicencesIdRoute: typeof PortalLicencesIdRoute
+  PortalOrdersIdRoute: typeof PortalOrdersIdRoute
 }
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
+  PortalBasketRoute: PortalBasketRoute,
+  PortalCheckoutRoute: PortalCheckoutRoute,
   PortalLicencesRoute: PortalLicencesRoute,
   PortalMeRoute: PortalMeRoute,
+  PortalOrdersRoute: PortalOrdersRoute,
   PortalProductsRoute: PortalProductsRoute,
   PortalIndexRoute: PortalIndexRoute,
   PortalLicencesIdRoute: PortalLicencesIdRoute,
+  PortalOrdersIdRoute: PortalOrdersIdRoute,
 }
 
 const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(

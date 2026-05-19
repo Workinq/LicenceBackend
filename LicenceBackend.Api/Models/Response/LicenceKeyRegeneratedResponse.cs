@@ -11,6 +11,7 @@ public sealed record LicenceKeyRegeneratedResponse(
     string? Notes,
     bool HwidBound,
     IReadOnlyList<string>? IpAllowlist,
+    string? Label,
     DateTimeOffset CreatedAt,
     string LicenceKey
-) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, CreatedAt);
+) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, Label, CreatedAt);
