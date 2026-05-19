@@ -291,6 +291,9 @@ public sealed class LicenceCheckoutRepository(
                     new LicenceCheckoutClosedPayload(
                         row.Id,
                         InstanceHashPrefix(row.InstanceIdHash),
+                        row.MemberUserId,
+                        row.HwidHmac is null ? null : Convert.ToBase64String(row.HwidHmac),
+                        row.SourceIp,
                         reasonText,
                         seatsAfter,
                         maxSeats

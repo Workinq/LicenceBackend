@@ -246,6 +246,12 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
             new { LicenceId = licenceId });
         Assert.Equal("licence.checkout_closed", auditRow.EventType);
         Assert.Equal("abuse", auditRow.Reason);
+
+        var payload = await conn.QuerySingleAsync<string>(
+            "SELECT payload::text FROM audit_events WHERE subject_id = @LicenceId AND event_type = 'licence.checkout_closed';",
+            new { LicenceId = licenceId });
+        Assert.Contains("\"sourceIp\": \"10.0.0.1/32\"", payload);
+        Assert.Contains("\"closeReason\": \"admin_revoked\"", payload);
     }
 
     [SkippableFact]
