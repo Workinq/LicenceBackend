@@ -29,6 +29,7 @@ internal static class ProblemTitles
     public const string MemberAlreadyExists = "member_already_exists";
     public const string MemberIsOwner = "member_is_owner";
     public const string MissingOwner = "missing_owner";
+    public const string NoSeatsAvailable = "no_seats_available";
     public const string OwnerNotFound = "owner_not_found";
     public const string ProductFileNotFound = "product_file_not_found";
     public const string ProductFileEmpty = "product_file_empty";
