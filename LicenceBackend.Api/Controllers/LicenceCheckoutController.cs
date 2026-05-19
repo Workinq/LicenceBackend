@@ -113,7 +113,7 @@ public sealed class LicenceCheckoutController(
         {
             OpenCheckoutOutcome.LicenceNotFound => InvalidLicence(),
             OpenCheckoutOutcome.DeniedNoSeats denied => NoSeatsAvailable(denied.Detail),
-            OpenCheckoutOutcome.Opened opened => Ok(BuildSignedResponse(licence, product.Slug, opened.Result, request.ClientNonce!)),
+            OpenCheckoutOutcome.Opened opened => Ok(BuildSignedResponse(licence, product.Slug, opened.Result.Checkout, request.ClientNonce!)),
             _ => InvalidLicence()
         };
     }
@@ -125,13 +125,41 @@ public sealed class LicenceCheckoutController(
         return NoContent();
     }
 
+    [HttpPost("checkouts/{seatId:guid}/heartbeat")]
+    public async Task<IActionResult> Heartbeat(
+        Guid seatId,
+        [FromBody] CheckoutHeartbeatRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ClientNonce)
+            || request.ClientNonce.Length < MinClientNonceLength
+            || request.ClientNonce.Length > MaxClientNonceLength)
+        {
+            return InvalidLicence();
+        }
+
+        var refreshed = await checkouts.HeartbeatAsync(
+            seatId,
+            TimeSpan.FromSeconds(_options.LeaseSeconds),
+            cancellationToken);
+        if (refreshed is null) return SeatGone();
+
+        var licence = await licences.FindByIdAsync(refreshed.LicenceId, cancellationToken);
+        if (licence is null) return SeatGone();
+
+        var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
+        if (product is null) return SeatGone();
+
+        return Ok(BuildSignedResponse(licence, product.Slug, refreshed, request.ClientNonce));
+    }
+
     private SignedLicenceCheckoutResponse BuildSignedResponse(
         Licence licence,
         string productSlug,
-        OpenCheckoutResult result,
+        LicenceCheckout checkout,
         string clientNonce)
     {
-        var heartbeatHint = result.Checkout.IssuedAt.AddSeconds(_options.HeartbeatHintSeconds);
+        var heartbeatHint = checkout.IssuedAt.AddSeconds(_options.HeartbeatHintSeconds);
         var claims = new SignedLicenceVerificationClaims(
             licence.Id,
             licence.ProductId,
@@ -140,8 +168,8 @@ public sealed class LicenceCheckoutController(
             licence.ExpiresAt,
             licence.Notes,
             clientNonce,
-            result.Checkout.Id,
-            result.Checkout.ExpiresAt,
+            checkout.Id,
+            checkout.ExpiresAt,
             heartbeatHint);
         return new SignedLicenceCheckoutResponse(signer.Sign(claims));
     }
@@ -151,6 +179,12 @@ public sealed class LicenceCheckoutController(
             statusCode: StatusCodes.Status400BadRequest,
             title: ProblemTitles.InvalidLicence,
             detail: "The licence key is not valid for this request.");
+
+    private IActionResult SeatGone() =>
+        Problem(
+            statusCode: StatusCodes.Status410Gone,
+            title: ProblemTitles.SeatGone,
+            detail: "Seat does not exist or has expired. Re-checkout to obtain a new seat.");
 
     private IActionResult NoSeatsAvailable(DeniedNoSeatsResult detail) =>
         StatusCode(StatusCodes.Status409Conflict, new NoSeatsAvailableResponse(

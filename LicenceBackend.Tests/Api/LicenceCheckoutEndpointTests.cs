@@ -291,6 +291,95 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         Assert.NotEqual(firstSeatId, secondSeatId);
     }
 
+    [SkippableFact]
+    public async Task Heartbeat_returns_refreshed_signed_payload_with_same_seat_id()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync();
+        var openResponse = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        openResponse.EnsureSuccessStatusCode();
+        var openPayload = await openResponse.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var openJwt = await VerifySignedLicencePayloadAsync(openPayload!.SignedPayload);
+        var seatId = openJwt.Claims.Single(c => c.Type == "seatId").Value;
+        var openSeatExpiresAt = long.Parse(openJwt.Claims.Single(c => c.Type == "seatExpiresAt").Value);
+
+        await Task.Delay(1_100);
+
+        var heartbeatResponse = await UnauthedClient.PostAsJsonAsync(
+            $"/licences/checkouts/{seatId}/heartbeat",
+            new { clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, heartbeatResponse.StatusCode);
+
+        var refreshed = await heartbeatResponse.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        Assert.NotNull(refreshed);
+        var refreshedJwt = await VerifySignedLicencePayloadAsync(refreshed!.SignedPayload);
+
+        Assert.Equal(seatId, refreshedJwt.Claims.Single(c => c.Type == "seatId").Value);
+        var newSeatExpiresAt = long.Parse(refreshedJwt.Claims.Single(c => c.Type == "seatExpiresAt").Value);
+        Assert.True(newSeatExpiresAt > openSeatExpiresAt);
+    }
+
+    [SkippableFact]
+    public async Task Heartbeat_returns_410_for_missing_seat()
+    {
+        var response = await UnauthedClient.PostAsJsonAsync(
+            $"/licences/checkouts/{Guid.NewGuid()}/heartbeat",
+            new { clientNonce = GenerateClientNonce() });
+
+        Assert.Equal(HttpStatusCode.Gone, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal("seat_gone", problem!.Title);
+    }
+
+    [SkippableFact]
+    public async Task Heartbeat_returns_410_for_expired_seat()
+    {
+        var (licenceKey, _, productId, _) = await CreateLicenceAsync();
+        var openResponse = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        openResponse.EnsureSuccessStatusCode();
+        var openPayload = await openResponse.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var openJwt = await VerifySignedLicencePayloadAsync(openPayload!.SignedPayload);
+        var seatId = openJwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        await using (var conn = await OpenDbAsync())
+        {
+            await conn.ExecuteAsync(
+                "UPDATE licence_checkouts SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = @Id::uuid;",
+                new { Id = seatId });
+        }
+
+        var response = await UnauthedClient.PostAsJsonAsync(
+            $"/licences/checkouts/{seatId}/heartbeat",
+            new { clientNonce = GenerateClientNonce() });
+
+        Assert.Equal(HttpStatusCode.Gone, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Heartbeat_returns_invalid_licence_for_missing_nonce()
+    {
+        var response = await UnauthedClient.PostAsJsonAsync(
+            $"/licences/checkouts/{Guid.NewGuid()}/heartbeat",
+            new { });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal("invalid_licence", problem!.Title);
+    }
+
     private static async Task AssertInvalidLicenceAsync(HttpResponseMessage response)
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
