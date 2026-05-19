@@ -15,4 +15,7 @@ public static class AuditEventTypes
     public const string ProductFileUploaded = "product.file_uploaded";
     public const string ProductFileDownloaded = "product.file_downloaded";
     public const string LicenceMaxSeatsUpdated = "licence.max_seats_updated";
+    public const string LicenceCheckoutOpened = "licence.checkout_opened";
+    public const string LicenceCheckoutClosed = "licence.checkout_closed";
+    public const string LicenceCheckoutDeniedNoSeats = "licence.checkout_denied_no_seats";
 }

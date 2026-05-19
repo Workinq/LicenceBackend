@@ -16,6 +16,9 @@ public class AuditEventTypesTests
         Assert.Equal("licence.member_removed", AuditEventTypes.LicenceMemberRemoved);
         Assert.Equal("licence.verified", AuditEventTypes.LicenceVerified);
         Assert.Equal("licence.max_seats_updated", AuditEventTypes.LicenceMaxSeatsUpdated);
+        Assert.Equal("licence.checkout_opened", AuditEventTypes.LicenceCheckoutOpened);
+        Assert.Equal("licence.checkout_closed", AuditEventTypes.LicenceCheckoutClosed);
+        Assert.Equal("licence.checkout_denied_no_seats", AuditEventTypes.LicenceCheckoutDeniedNoSeats);
     }
 
     [Fact]
@@ -46,7 +49,10 @@ public class AuditEventTypesTests
             AuditEventTypes.LicenceMemberAdded,
             AuditEventTypes.LicenceMemberRemoved,
             AuditEventTypes.LicenceVerified,
-            AuditEventTypes.LicenceMaxSeatsUpdated
+            AuditEventTypes.LicenceMaxSeatsUpdated,
+            AuditEventTypes.LicenceCheckoutOpened,
+            AuditEventTypes.LicenceCheckoutClosed,
+            AuditEventTypes.LicenceCheckoutDeniedNoSeats
         };
         Assert.Equal(values.Length, values.Distinct().Count());
     }
