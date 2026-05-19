@@ -12,7 +12,7 @@ namespace LicenceBackend.Infrastructure.Persistence;
 public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRepository auditEvents, TimeProvider time) : ILicenceRepository
 {
     private const string LicenceColumns =
-        "id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, label, created_at, updated_at";
+        "id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, label, max_seats, created_at, updated_at";
 
     public async Task<Licence?> FindByKeyHmacAsync(IReadOnlyList<byte[]> keyHmacCandidates, CancellationToken cancellationToken)
     {
@@ -79,8 +79,8 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
     }
 
     private const string InsertLicenceSql = """
-                                             INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, label, created_at, updated_at)
-                                             VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @Label, @CreatedAt, @UpdatedAt);
+                                             INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, label, max_seats, created_at, updated_at)
+                                             VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @Label, @MaxSeats, @CreatedAt, @UpdatedAt);
                                              """;
 
     private static object BuildInsertParameters(Licence licence) => new
@@ -95,6 +95,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         licence.Notes,
         IpAllowlist = licence.IpAllowlist is null ? null : JsonSerializer.Serialize(licence.IpAllowlist),
         licence.Label,
+        licence.MaxSeats,
         licence.CreatedAt,
         licence.UpdatedAt
     };
@@ -664,6 +665,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         short? HwidHmacPepperVersion,
         string? IpAllowlist,
         string? Label,
+        int MaxSeats,
         DateTime CreatedAt,
         DateTime UpdatedAt,
         string Relationship
@@ -672,7 +674,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         public LicenceRow ToLicenceRow() => new(
             Id, ProductId, UserId, KeyHmac, KeyHmacPepperVersion, Status,
             ExpiresAt, Notes, HwidHmac, HwidHmacPepperVersion, IpAllowlist,
-            Label, CreatedAt, UpdatedAt
+            Label, MaxSeats, CreatedAt, UpdatedAt
         );
     }
 
@@ -689,6 +691,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         short? HwidHmacPepperVersion,
         string? IpAllowlist,
         string? Label,
+        int MaxSeats,
         DateTime CreatedAt,
         DateTime UpdatedAt
     )
@@ -711,6 +714,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                 HwidHmacPepperVersion,
                 allowlist,
                 Label,
+                MaxSeats,
                 TimestampConversion.ToUtcOffset(CreatedAt),
                 TimestampConversion.ToUtcOffset(UpdatedAt));
         }

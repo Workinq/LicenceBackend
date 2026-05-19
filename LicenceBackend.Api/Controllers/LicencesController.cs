@@ -114,6 +114,7 @@ public sealed class LicencesController(
             null,
             ipAllowlist,
             null,
+            1,
             now,
             now
         );

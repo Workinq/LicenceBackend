@@ -16,6 +16,7 @@ public sealed record Licence(
     short? HwidHmacPepperVersion,
     IReadOnlyList<string>? IpAllowlist,
     string? Label,
+    int MaxSeats,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt
 )

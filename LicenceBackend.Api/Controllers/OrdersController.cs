@@ -151,6 +151,7 @@ public sealed class OrdersController(
                         HwidHmacPepperVersion: null,
                         IpAllowlist: null,
                         Label: label,
+                        MaxSeats: 1,
                         CreatedAt: now,
                         UpdatedAt: now);
                     await licences.CreateInTxAsync(connection, transaction, licence, cancellationToken);
