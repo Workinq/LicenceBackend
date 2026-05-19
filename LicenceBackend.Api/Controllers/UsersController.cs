@@ -24,6 +24,7 @@ public sealed class UsersController(
     IAuditEventRepository auditEvents,
     ILicenceRepository licences,
     ILicenceMemberRepository licenceMembers,
+    ILicenceCheckoutRepository checkouts,
     IProductRepository products,
     IProductFileRepository productFiles,
     IProductFileStorage productFileStorage,
@@ -747,6 +748,64 @@ public sealed class UsersController(
         var items = page.Items.Select(LicencesController.ToVerificationAttemptResponse).ToList();
         return Ok(new PagedResponse<VerificationAttemptResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
+
+    [HttpGet("/me/licences/{id:guid}/seats")]
+    [Authorize]
+    [ProducesResponseType(typeof(LicenceSeatsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyLicenceSeats(
+        Guid id,
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null) return LicenceNotFound(id);
+
+        var isOwner = licence.UserId == userId;
+        var isMember = !isOwner && await licenceMembers.IsMemberAsync(id, userId, cancellationToken);
+        if (!isOwner && !isMember) return LicenceNotFound(id);
+
+        var effectiveLimit = Math.Clamp(limit ?? 20, 1, 100);
+        var effectiveOffset = Math.Max(0, offset ?? 0);
+
+        var live = await checkouts.ListLiveForLicenceAsync(id, cancellationToken);
+        var history = await checkouts.ListHistoryForLicenceAsync(id, effectiveLimit, effectiveOffset, cancellationToken);
+
+        var liveResponses = live.Select(MapLiveSeat).ToList();
+        var historyResponses = history.Items.Select(MapHistorySeat).ToList();
+
+        return Ok(new LicenceSeatsResponse(
+            licence.MaxSeats,
+            liveResponses,
+            new PagedResponse<LicenceSeatHistoryEntryResponse>(historyResponses, history.Total, effectiveLimit, effectiveOffset)));
+    }
+
+    private static LicenceSeatResponse MapLiveSeat(LicenceCheckout c) => new(
+        c.Id,
+        InstanceHashPrefix(c.InstanceIdHash),
+        c.MemberUserId,
+        c.HwidHmac is null ? null : Convert.ToBase64String(c.HwidHmac),
+        c.SourceIp,
+        c.IssuedAt,
+        c.LastHeartbeatAt,
+        c.ExpiresAt);
+
+    private static LicenceSeatHistoryEntryResponse MapHistorySeat(LicenceCheckoutHistoryEntry h) => new(
+        h.Id,
+        h.CheckoutId,
+        InstanceHashPrefix(h.InstanceIdHash),
+        h.MemberUserId,
+        h.HwidHmac is null ? null : Convert.ToBase64String(h.HwidHmac),
+        h.SourceIp,
+        h.IssuedAt,
+        h.ClosedAt,
+        LicenceCheckoutCloseReasonNames.ToString(h.CloseReason));
+
+    private static string InstanceHashPrefix(byte[] hash) =>
+        Convert.ToHexString(hash.AsSpan(0, Math.Min(8, hash.Length))).ToLowerInvariant();
 
     private bool TryGetCurrentUserId(out Guid userId)
     {

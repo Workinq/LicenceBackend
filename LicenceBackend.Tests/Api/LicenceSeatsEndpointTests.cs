@@ -88,6 +88,55 @@ public sealed class LicenceSeatsEndpointTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task GetMyLicenceSeats_owner_returns_live_and_history()
+    {
+        var (licenceKey, licenceId, productId, ownerId) = await CreateLicenceAsync(freshOwner: true);
+        var ownerClient = await CreateLoggedInClientAsync(_emailByUserId[ownerId], OwnerPassword);
+        var seatId = await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+        await CheckinAsync(seatId);
+
+        var response = await ownerClient.GetAsync($"/me/licences/{licenceId}/seats");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<LicenceSeatsResponse>();
+        Assert.NotNull(body);
+        Assert.Empty(body!.Live);
+        Assert.Equal(1, body.History.Total);
+        Assert.Equal("checkin", body.History.Items[0].CloseReason);
+    }
+
+    [SkippableFact]
+    public async Task GetMyLicenceSeats_member_returns_live_and_history()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync(freshOwner: true);
+        var memberEmail = $"member-{Guid.NewGuid():N}@test.local";
+        var memberId = await CreateUserAsync(memberEmail, OwnerPassword);
+        await AddLicenceMemberAsync(licenceId, memberEmail);
+        var memberClient = await CreateLoggedInClientAsync(memberEmail, OwnerPassword);
+        await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+
+        var response = await memberClient.GetAsync($"/me/licences/{licenceId}/seats");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<LicenceSeatsResponse>();
+        Assert.NotNull(body);
+        Assert.Single(body!.Live);
+    }
+
+    [SkippableFact]
+    public async Task GetMyLicenceSeats_unrelated_user_returns_404()
+    {
+        var (_, licenceId, _, _) = await CreateLicenceAsync(freshOwner: true);
+        var outsiderEmail = $"outsider-{Guid.NewGuid():N}@test.local";
+        await CreateUserAsync(outsiderEmail, OwnerPassword);
+        var outsiderClient = await CreateLoggedInClientAsync(outsiderEmail, OwnerPassword);
+
+        var response = await outsiderClient.GetAsync($"/me/licences/{licenceId}/seats");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [SkippableFact]
     public async Task ForceRevoke_admin_archives_seat_with_admin_revoked_reason()
     {
         var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync();
