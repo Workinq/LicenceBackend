@@ -11,6 +11,7 @@ internal static class ProblemTitles
     public const string InvalidHwid = "invalid_hwid";
     public const string InvalidIpAllowlist = "invalid_ip_allowlist";
     public const string InvalidLicence = "invalid_licence";
+    public const string InvalidMaxSeats = "invalid_max_seats";
     public const string InvalidOutcome = "invalid_outcome";
     public const string InvalidProductImage = "invalid_product_image";
     public const string InvalidRefresh = "invalid_refresh";

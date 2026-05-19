@@ -9,5 +9,6 @@ public sealed record CreateLicenceRequest(
     [EmailAddress][StringLength(256)] string? Email,
     DateTimeOffset? ExpiresAt,
     string? Notes,
-    IReadOnlyList<string>? IpAllowlist
+    IReadOnlyList<string>? IpAllowlist,
+    int? MaxSeats = null
 );

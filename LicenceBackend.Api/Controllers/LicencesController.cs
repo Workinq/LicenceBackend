@@ -98,6 +98,14 @@ public sealed class LicencesController(
                 detail: ipAllowlistError
             );
 
+        var maxSeats = request.MaxSeats ?? 1;
+        if (maxSeats < 1)
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: ProblemTitles.InvalidMaxSeats,
+                detail: "maxSeats must be at least 1."
+            );
+
         var rawKey = keyGenerator.Generate();
         var pepperedHmac = keyHasher.HashWithActive(rawKey);
         var now = time.GetUtcNow();
@@ -114,7 +122,7 @@ public sealed class LicencesController(
             null,
             ipAllowlist,
             null,
-            1,
+            maxSeats,
             now,
             now
         );
