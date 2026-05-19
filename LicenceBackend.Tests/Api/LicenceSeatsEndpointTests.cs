@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using Dapper;
 using LicenceBackend.Api.Models.Response;
 using Microsoft.IdentityModel.Tokens;
 
@@ -84,6 +85,94 @@ public sealed class LicenceSeatsEndpointTests : IntegrationTestBase
         var response = await UnauthedClient.GetAsync($"/licences/{licenceId}/seats");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevoke_admin_archives_seat_with_admin_revoked_reason()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync();
+        var seatId = await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+
+        var response = await AuthedClient.DeleteAsync($"/licences/{licenceId}/seats/{seatId}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await using var conn = await OpenDbAsync();
+        var historyReason = await conn.QuerySingleAsync<string>(
+            "SELECT close_reason FROM licence_checkout_history WHERE checkout_id = @Id;",
+            new { Id = seatId });
+        Assert.Equal("admin_revoked", historyReason);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevoke_owner_archives_seat_with_owner_revoked_reason()
+    {
+        var (licenceKey, licenceId, productId, ownerId) = await CreateLicenceAsync(freshOwner: true);
+        var seatId = await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+        var ownerClient = await CreateLoggedInClientAsync(_emailByUserId[ownerId], OwnerPassword);
+
+        var response = await ownerClient.DeleteAsync($"/licences/{licenceId}/seats/{seatId}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        await using var conn = await OpenDbAsync();
+        var historyReason = await conn.QuerySingleAsync<string>(
+            "SELECT close_reason FROM licence_checkout_history WHERE checkout_id = @Id;",
+            new { Id = seatId });
+        Assert.Equal("owner_revoked", historyReason);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevoke_member_returns_403()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync(freshOwner: true);
+        var memberEmail = $"member-{Guid.NewGuid():N}@test.local";
+        await CreateUserAsync(memberEmail, OwnerPassword);
+        await AddLicenceMemberAsync(licenceId, memberEmail);
+        var memberClient = await CreateLoggedInClientAsync(memberEmail, OwnerPassword);
+        var seatId = await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+
+        var response = await memberClient.DeleteAsync($"/licences/{licenceId}/seats/{seatId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevoke_unrelated_user_returns_404()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync(freshOwner: true);
+        var seatId = await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+        var outsiderEmail = $"outsider-{Guid.NewGuid():N}@test.local";
+        await CreateUserAsync(outsiderEmail, OwnerPassword);
+        var outsiderClient = await CreateLoggedInClientAsync(outsiderEmail, OwnerPassword);
+
+        var response = await outsiderClient.DeleteAsync($"/licences/{licenceId}/seats/{seatId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevoke_missing_seat_returns_404()
+    {
+        var (_, licenceId, _, _) = await CreateLicenceAsync();
+        var response = await AuthedClient.DeleteAsync($"/licences/{licenceId}/seats/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task ForceRevoke_writes_audit_event()
+    {
+        var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync();
+        var seatId = await OpenCheckoutAsync(licenceKey, productId, GenerateInstanceId());
+
+        var response = await AuthedClient.DeleteAsync($"/licences/{licenceId}/seats/{seatId}");
+        response.EnsureSuccessStatusCode();
+
+        await using var conn = await OpenDbAsync();
+        var auditCount = await conn.QuerySingleAsync<int>(
+            "SELECT COUNT(*) FROM audit_events WHERE subject_id = @LicenceId AND event_type = 'licence.checkout_closed';",
+            new { LicenceId = licenceId });
+        Assert.Equal(1, auditCount);
     }
 
     private async Task<Guid> OpenCheckoutAsync(string licenceKey, Guid productId, string instanceId)

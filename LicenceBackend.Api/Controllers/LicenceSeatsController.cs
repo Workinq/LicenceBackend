@@ -62,6 +62,38 @@ public sealed class LicenceSeatsController(
             new PagedResponse<LicenceSeatHistoryEntryResponse>(historyResponses, history.Total, effectiveLimit, effectiveOffset)));
     }
 
+    [HttpDelete("{id:guid}/seats/{seatId:guid}")]
+    public async Task<IActionResult> ForceRevoke(Guid id, Guid seatId, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null) return LicenceNotFound(id);
+
+        var caller = await users.FindByIdAsync(userId, cancellationToken);
+        if (caller is null) return LicenceNotFound(id);
+
+        var isAdmin = caller.Role == UserRole.Admin;
+        var isOwner = licence.UserId == userId;
+        if (!isAdmin && !isOwner)
+        {
+            var isMember = await licenceMembers.IsMemberAsync(id, userId, cancellationToken);
+            return isMember ? Forbid() : LicenceNotFound(id);
+        }
+
+        var reason = isAdmin ? LicenceCheckoutCloseReason.AdminRevoked : LicenceCheckoutCloseReason.OwnerRevoked;
+        var revoked = await checkouts.ForceRevokeAsync(seatId, reason, userId, actorReason: null, cancellationToken);
+        if (!revoked) return SeatNotFound(seatId);
+
+        return NoContent();
+    }
+
+    private IActionResult SeatNotFound(Guid seatId) =>
+        Problem(
+            statusCode: StatusCodes.Status404NotFound,
+            title: ProblemTitles.SeatNotFound,
+            detail: $"No live seat with id '{seatId}'.");
+
     private static LicenceSeatResponse MapLive(LicenceCheckout c) => new(
         c.Id,
         InstanceHashPrefix(c.InstanceIdHash),
