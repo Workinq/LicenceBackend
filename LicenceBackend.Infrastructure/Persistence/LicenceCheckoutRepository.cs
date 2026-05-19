@@ -310,8 +310,31 @@ public sealed class LicenceCheckoutRepository(
         }
     }
 
-    public Task<ReclaimExpiredResult> ReclaimExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<ReclaimExpiredResult> ReclaimExpiredAsync(
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+                            WITH expired AS (
+                                DELETE FROM licence_checkouts
+                                WHERE expires_at <= @Now
+                                RETURNING id, licence_id, instance_id_hash, member_user_id, hwid_hmac, source_ip::text AS source_ip, issued_at
+                            ),
+                            archived AS (
+                                INSERT INTO licence_checkout_history
+                                    (id, licence_id, checkout_id, instance_id_hash, member_user_id, hwid_hmac, source_ip, issued_at, closed_at, close_reason)
+                                SELECT gen_random_uuid(), licence_id, id, instance_id_hash, member_user_id, hwid_hmac, source_ip::inet, issued_at, @Now, 'expired'
+                                FROM expired
+                                RETURNING licence_id
+                            )
+                            SELECT COUNT(*) AS reclaimed_count, COUNT(DISTINCT licence_id) AS licences_affected FROM archived;
+                            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var (reclaimedCount, licencesAffected) = await connection.QuerySingleAsync<(int reclaimed_count, int licences_affected)>(
+            new CommandDefinition(sql, new { Now = now }, cancellationToken: cancellationToken));
+        return new ReclaimExpiredResult(reclaimedCount, licencesAffected);
+    }
 
     public Task<IReadOnlyList<LicenceCheckout>> ListLiveForLicenceAsync(Guid licenceId, CancellationToken cancellationToken)
         => throw new NotImplementedException();

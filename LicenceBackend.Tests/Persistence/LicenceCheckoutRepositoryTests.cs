@@ -256,6 +256,55 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         Assert.False(result);
     }
 
+    [SkippableFact]
+    public async Task ReclaimExpiredAsync_archives_only_expired_seats()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceA, _, _) = await SeedLicenceAsync();
+        var (licenceB, _, _) = await SeedLicenceAsync();
+
+        var expiredHashA = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var expiredHashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var liveHash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        await using (var conn = await OpenDbAsync())
+        {
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO licence_checkouts (id, licence_id, instance_id_hash, source_ip, issued_at, last_heartbeat_at, expires_at)
+                VALUES
+                    (gen_random_uuid(), @A, @ExpA, '10.0.0.1'::inet, NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '1 minute'),
+                    (gen_random_uuid(), @B, @ExpB, '10.0.0.1'::inet, NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '1 minute'),
+                    (gen_random_uuid(), @A, @Live, '10.0.0.1'::inet, NOW(), NOW(), NOW() + INTERVAL '10 minutes');
+                """,
+                new { A = licenceA, B = licenceB, ExpA = expiredHashA, ExpB = expiredHashB, Live = liveHash });
+        }
+
+        var result = await repo.ReclaimExpiredAsync(DateTimeOffset.UtcNow, CancellationToken.None);
+
+        Assert.Equal(2, result.ReclaimedCount);
+        Assert.Equal(2, result.LicencesAffected);
+
+        await using var conn2 = await OpenDbAsync();
+        var liveStillThere = await conn2.QuerySingleAsync<int>(
+            "SELECT COUNT(*) FROM licence_checkouts WHERE instance_id_hash = @Hash;",
+            new { Hash = liveHash });
+        Assert.Equal(1, liveStillThere);
+
+        var archivedCount = await conn2.QuerySingleAsync<int>(
+            "SELECT COUNT(*) FROM licence_checkout_history WHERE close_reason = 'expired' AND instance_id_hash IN (@ExpA, @ExpB);",
+            new { ExpA = expiredHashA, ExpB = expiredHashB });
+        Assert.Equal(2, archivedCount);
+    }
+
+    [SkippableFact]
+    public async Task ReclaimExpiredAsync_returns_zero_when_nothing_expired()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var result = await repo.ReclaimExpiredAsync(DateTimeOffset.UtcNow, CancellationToken.None);
+        Assert.Equal(0, result.ReclaimedCount);
+        Assert.Equal(0, result.LicencesAffected);
+    }
+
     internal async Task<(Guid LicenceId, Guid ProductId, Guid OwnerUserId)> SeedLicenceAsync(int maxSeats = 1)
     {
         var productId = Guid.NewGuid();
