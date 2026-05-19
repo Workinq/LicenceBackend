@@ -305,6 +305,66 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         Assert.Equal(0, result.LicencesAffected);
     }
 
+    [SkippableFact]
+    public async Task ListLiveForLicenceAsync_returns_only_unexpired_seats_for_that_licence()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceA, _, _) = await SeedLicenceAsync(maxSeats: 3);
+        var (licenceB, _, _) = await SeedLicenceAsync();
+        var hashA1 = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var hashA2 = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+        var hashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
+
+        await repo.OpenAsync(licenceA, hashA1, null, null, null, "10.0.0.1", Lease, CancellationToken.None);
+        await repo.OpenAsync(licenceA, hashA2, null, null, null, "10.0.0.2", Lease, CancellationToken.None);
+        await repo.OpenAsync(licenceB, hashB, null, null, null, "10.0.0.3", Lease, CancellationToken.None);
+
+        await using (var conn = await OpenDbAsync())
+        {
+            await conn.ExecuteAsync(
+                "INSERT INTO licence_checkouts (id, licence_id, instance_id_hash, source_ip, issued_at, last_heartbeat_at, expires_at) VALUES (gen_random_uuid(), @L, @H, '10.0.0.4'::inet, NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '1 minute');",
+                new { L = licenceA, H = SHA256.HashData(RandomNumberGenerator.GetBytes(32)) });
+        }
+
+        var live = await repo.ListLiveForLicenceAsync(licenceA, CancellationToken.None);
+
+        Assert.Equal(2, live.Count);
+        Assert.All(live, c => Assert.Equal(licenceA, c.LicenceId));
+        Assert.All(live, c => Assert.True(c.ExpiresAt > DateTimeOffset.UtcNow));
+    }
+
+    [SkippableFact]
+    public async Task ListHistoryForLicenceAsync_returns_archived_seats_newest_first()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
+        var (licenceId, _, _) = await SeedLicenceAsync();
+
+        await using (var conn = await OpenDbAsync())
+        {
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO licence_checkout_history (id, licence_id, checkout_id, instance_id_hash, source_ip, issued_at, closed_at, close_reason)
+                VALUES
+                    (gen_random_uuid(), @L, gen_random_uuid(), @H1, '10.0.0.1'::inet, NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour', 'checkin'),
+                    (gen_random_uuid(), @L, gen_random_uuid(), @H2, '10.0.0.1'::inet, NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '5 minutes', 'expired');
+                """,
+                new
+                {
+                    L = licenceId,
+                    H1 = SHA256.HashData(RandomNumberGenerator.GetBytes(32)),
+                    H2 = SHA256.HashData(RandomNumberGenerator.GetBytes(32))
+                });
+        }
+
+        var page = await repo.ListHistoryForLicenceAsync(licenceId, 20, 0, CancellationToken.None);
+
+        Assert.Equal(2, page.Total);
+        Assert.Equal(2, page.Items.Count);
+        Assert.True(page.Items[0].ClosedAt > page.Items[1].ClosedAt);
+        Assert.Equal(LicenceCheckoutCloseReason.Expired, page.Items[0].CloseReason);
+        Assert.Equal(LicenceCheckoutCloseReason.Checkin, page.Items[1].CloseReason);
+    }
+
     internal async Task<(Guid LicenceId, Guid ProductId, Guid OwnerUserId)> SeedLicenceAsync(int maxSeats = 1)
     {
         var productId = Guid.NewGuid();

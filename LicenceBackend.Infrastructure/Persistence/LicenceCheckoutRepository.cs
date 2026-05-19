@@ -336,11 +336,47 @@ public sealed class LicenceCheckoutRepository(
         return new ReclaimExpiredResult(reclaimedCount, licencesAffected);
     }
 
-    public Task<IReadOnlyList<LicenceCheckout>> ListLiveForLicenceAsync(Guid licenceId, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<IReadOnlyList<LicenceCheckout>> ListLiveForLicenceAsync(
+        Guid licenceId,
+        CancellationToken cancellationToken)
+    {
+        const string sql = $"""
+                            SELECT {CheckoutColumns}
+                            FROM licence_checkouts
+                            WHERE licence_id = @LicenceId AND expires_at > @Now
+                            ORDER BY issued_at DESC;
+                            """;
 
-    public Task<PagedResult<LicenceCheckoutHistoryEntry>> ListHistoryForLicenceAsync(Guid licenceId, int limit, int offset, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<CheckoutRow>(
+                       new CommandDefinition(sql, new { LicenceId = licenceId, Now = time.GetUtcNow() }, cancellationToken: cancellationToken));
+        return rows.Select(r => r.ToDomain()).ToList();
+    }
+
+    public async Task<PagedResult<LicenceCheckoutHistoryEntry>> ListHistoryForLicenceAsync(
+        Guid licenceId,
+        int limit,
+        int offset,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+                            SELECT id, licence_id, checkout_id, instance_id_hash, member_user_id, hwid_hmac, source_ip::text AS source_ip, issued_at, closed_at, close_reason
+                            FROM licence_checkout_history
+                            WHERE licence_id = @LicenceId
+                            ORDER BY closed_at DESC
+                            LIMIT @Limit OFFSET @Offset;
+
+                            SELECT COUNT(*) FROM licence_checkout_history WHERE licence_id = @LicenceId;
+                            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var command = new CommandDefinition(sql, new { LicenceId = licenceId, Limit = limit, Offset = offset }, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<HistoryRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
+
+        return new PagedResult<LicenceCheckoutHistoryEntry>(rows.Select(r => r.ToDomain()).ToList(), total);
+    }
 
     private static string InstanceHashPrefix(byte[] instanceIdHash) =>
         Convert.ToHexString(instanceIdHash.AsSpan(0, Math.Min(8, instanceIdHash.Length))).ToLowerInvariant();
