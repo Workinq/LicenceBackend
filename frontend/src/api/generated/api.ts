@@ -7,6 +7,8 @@
 import type {
   AddLicenceMemberRequest,
   ChangePasswordRequest,
+  CheckoutHeartbeatRequest,
+  CheckoutLicenceRequest,
   CreateLicenceRequest,
   CreateOrderRequest,
   CreateProductRequest,
@@ -14,9 +16,11 @@ import type {
   GetAdminOrdersParams,
   GetAuditEventsParams,
   GetLicencesIdBindingHistoryParams,
+  GetLicencesIdSeatsParams,
   GetLicencesIdStatusHistoryParams,
   GetLicencesIdVerificationAttemptsParams,
   GetLicencesParams,
+  GetMeLicencesIdSeatsParams,
   GetMeLicencesIdVerificationAttemptsParams,
   GetMeLicencesParams,
   GetMeOrdersParams,
@@ -31,7 +35,9 @@ import type {
   LicenceKeyRegeneratedResponse,
   LicenceMemberResponse,
   LicenceResponse,
+  LicenceSeatsResponse,
   LoginRequest,
+  NoSeatsAvailableResponse,
   OrderCreatedResponse,
   OrderResponse,
   PagedResponseOfAuditEventResponse,
@@ -50,10 +56,12 @@ import type {
   ProductResponse,
   RegenerateLicenceKeyRequest,
   SessionResponse,
+  SignedLicenceCheckoutResponse,
   SignedLicenceVerificationResponse,
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
   UpdateLicenceLabelRequest,
+  UpdateLicenceMaxSeatsRequest,
   UpdateLicenceStatusRequest,
   UpdateProductRequest,
   UpdateProfileRequest,
@@ -161,6 +169,120 @@ export const getHealth = async ( options?: RequestInit): Promise<getHealthRespon
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type postLicencesCheckoutResponse200 = {
+  data: SignedLicenceCheckoutResponse
+  status: 200
+}
+
+export type postLicencesCheckoutResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postLicencesCheckoutResponse409 = {
+  data: NoSeatsAvailableResponse
+  status: 409
+}
+
+export type postLicencesCheckoutResponseSuccess = (postLicencesCheckoutResponse200) & {
+  headers: Headers;
+};
+export type postLicencesCheckoutResponseError = (postLicencesCheckoutResponse400 | postLicencesCheckoutResponse409) & {
+  headers: Headers;
+};
+
+export type postLicencesCheckoutResponse = (postLicencesCheckoutResponseSuccess | postLicencesCheckoutResponseError)
+
+export const getPostLicencesCheckoutUrl = () => {
+
+
+
+
+  return `/licences/checkout`
+}
+
+export const postLicencesCheckout = async (checkoutLicenceRequest: CheckoutLicenceRequest, options?: RequestInit): Promise<postLicencesCheckoutResponse> => {
+
+  return apiClient<postLicencesCheckoutResponse>(getPostLicencesCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutLicenceRequest,)
+  }
+);}
+
+
+
+export type deleteLicencesCheckoutsSeatIdResponse200 = {
+  data: void
+  status: 200
+}
+
+export type deleteLicencesCheckoutsSeatIdResponseSuccess = (deleteLicencesCheckoutsSeatIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteLicencesCheckoutsSeatIdResponse = (deleteLicencesCheckoutsSeatIdResponseSuccess)
+
+export const getDeleteLicencesCheckoutsSeatIdUrl = (seatId: string,) => {
+
+
+
+
+  return `/licences/checkouts/${seatId}`
+}
+
+export const deleteLicencesCheckoutsSeatId = async (seatId: string, options?: RequestInit): Promise<deleteLicencesCheckoutsSeatIdResponse> => {
+
+  return apiClient<deleteLicencesCheckoutsSeatIdResponse>(getDeleteLicencesCheckoutsSeatIdUrl(seatId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type postLicencesCheckoutsSeatIdHeartbeatResponse200 = {
+  data: void
+  status: 200
+}
+
+export type postLicencesCheckoutsSeatIdHeartbeatResponseSuccess = (postLicencesCheckoutsSeatIdHeartbeatResponse200) & {
+  headers: Headers;
+};
+;
+
+export type postLicencesCheckoutsSeatIdHeartbeatResponse = (postLicencesCheckoutsSeatIdHeartbeatResponseSuccess)
+
+export const getPostLicencesCheckoutsSeatIdHeartbeatUrl = (seatId: string,) => {
+
+
+
+
+  return `/licences/checkouts/${seatId}/heartbeat`
+}
+
+export const postLicencesCheckoutsSeatIdHeartbeat = async (seatId: string,
+    checkoutHeartbeatRequest: CheckoutHeartbeatRequest, options?: RequestInit): Promise<postLicencesCheckoutsSeatIdHeartbeatResponse> => {
+
+  return apiClient<postLicencesCheckoutsSeatIdHeartbeatResponse>(getPostLicencesCheckoutsSeatIdHeartbeatUrl(seatId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      checkoutHeartbeatRequest,)
   }
 );}
 
@@ -401,6 +523,68 @@ export const patchLicencesIdStatus = async (id: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       updateLicenceStatusRequest,)
+  }
+);}
+
+
+
+export type patchLicencesIdMaxSeatsResponse200 = {
+  data: LicenceResponse
+  status: 200
+}
+
+export type patchLicencesIdMaxSeatsResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type patchLicencesIdMaxSeatsResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type patchLicencesIdMaxSeatsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type patchLicencesIdMaxSeatsResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type patchLicencesIdMaxSeatsResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type patchLicencesIdMaxSeatsResponseSuccess = (patchLicencesIdMaxSeatsResponse200) & {
+  headers: Headers;
+};
+export type patchLicencesIdMaxSeatsResponseError = (patchLicencesIdMaxSeatsResponse400 | patchLicencesIdMaxSeatsResponse401 | patchLicencesIdMaxSeatsResponse403 | patchLicencesIdMaxSeatsResponse404 | patchLicencesIdMaxSeatsResponse429) & {
+  headers: Headers;
+};
+
+export type patchLicencesIdMaxSeatsResponse = (patchLicencesIdMaxSeatsResponseSuccess | patchLicencesIdMaxSeatsResponseError)
+
+export const getPatchLicencesIdMaxSeatsUrl = (id: string,) => {
+
+
+
+
+  return `/licences/${id}/max-seats`
+}
+
+export const patchLicencesIdMaxSeats = async (id: string,
+    updateLicenceMaxSeatsRequest: UpdateLicenceMaxSeatsRequest, options?: RequestInit): Promise<patchLicencesIdMaxSeatsResponse> => {
+
+  return apiClient<patchLicencesIdMaxSeatsResponse>(getPatchLicencesIdMaxSeatsUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLicenceMaxSeatsRequest,)
   }
 );}
 
@@ -978,6 +1162,95 @@ export const deleteLicencesIdMembersMemberId = async (id: string,
     memberId: string, options?: RequestInit): Promise<deleteLicencesIdMembersMemberIdResponse> => {
 
   return apiClient<deleteLicencesIdMembersMemberIdResponse>(getDeleteLicencesIdMembersMemberIdUrl(id,memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type getLicencesIdSeatsResponse200 = {
+  data: LicenceSeatsResponse
+  status: 200
+}
+
+export type getLicencesIdSeatsResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getLicencesIdSeatsResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getLicencesIdSeatsResponseSuccess = (getLicencesIdSeatsResponse200) & {
+  headers: Headers;
+};
+export type getLicencesIdSeatsResponseError = (getLicencesIdSeatsResponse401 | getLicencesIdSeatsResponse404) & {
+  headers: Headers;
+};
+
+export type getLicencesIdSeatsResponse = (getLicencesIdSeatsResponseSuccess | getLicencesIdSeatsResponseError)
+
+export const getGetLicencesIdSeatsUrl = (id: string,
+    params?: GetLicencesIdSeatsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/licences/${id}/seats?${stringifiedParams}` : `/licences/${id}/seats`
+}
+
+export const getLicencesIdSeats = async (id: string,
+    params?: GetLicencesIdSeatsParams, options?: RequestInit): Promise<getLicencesIdSeatsResponse> => {
+
+  return apiClient<getLicencesIdSeatsResponse>(getGetLicencesIdSeatsUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type deleteLicencesIdSeatsSeatIdResponse200 = {
+  data: void
+  status: 200
+}
+
+export type deleteLicencesIdSeatsSeatIdResponseSuccess = (deleteLicencesIdSeatsSeatIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteLicencesIdSeatsSeatIdResponse = (deleteLicencesIdSeatsSeatIdResponseSuccess)
+
+export const getDeleteLicencesIdSeatsSeatIdUrl = (id: string,
+    seatId: string,) => {
+
+
+
+
+  return `/licences/${id}/seats/${seatId}`
+}
+
+export const deleteLicencesIdSeatsSeatId = async (id: string,
+    seatId: string, options?: RequestInit): Promise<deleteLicencesIdSeatsSeatIdResponse> => {
+
+  return apiClient<deleteLicencesIdSeatsSeatIdResponse>(getDeleteLicencesIdSeatsSeatIdUrl(id,seatId),
   {
     ...options,
     method: 'DELETE'
@@ -3120,6 +3393,65 @@ export const getMeLicencesIdVerificationAttempts = async (id: string,
     params?: GetMeLicencesIdVerificationAttemptsParams, options?: RequestInit): Promise<getMeLicencesIdVerificationAttemptsResponse> => {
 
   return apiClient<getMeLicencesIdVerificationAttemptsResponse>(getGetMeLicencesIdVerificationAttemptsUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getMeLicencesIdSeatsResponse200 = {
+  data: LicenceSeatsResponse
+  status: 200
+}
+
+export type getMeLicencesIdSeatsResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeLicencesIdSeatsResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getMeLicencesIdSeatsResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getMeLicencesIdSeatsResponseSuccess = (getMeLicencesIdSeatsResponse200) & {
+  headers: Headers;
+};
+export type getMeLicencesIdSeatsResponseError = (getMeLicencesIdSeatsResponse401 | getMeLicencesIdSeatsResponse404 | getMeLicencesIdSeatsResponse429) & {
+  headers: Headers;
+};
+
+export type getMeLicencesIdSeatsResponse = (getMeLicencesIdSeatsResponseSuccess | getMeLicencesIdSeatsResponseError)
+
+export const getGetMeLicencesIdSeatsUrl = (id: string,
+    params?: GetMeLicencesIdSeatsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/me/licences/${id}/seats?${stringifiedParams}` : `/me/licences/${id}/seats`
+}
+
+export const getMeLicencesIdSeats = async (id: string,
+    params?: GetMeLicencesIdSeatsParams, options?: RequestInit): Promise<getMeLicencesIdSeatsResponse> => {
+
+  return apiClient<getMeLicencesIdSeatsResponse>(getGetMeLicencesIdSeatsUrl(id,params),
   {
     ...options,
     method: 'GET'

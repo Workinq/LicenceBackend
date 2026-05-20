@@ -54,6 +54,24 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export interface CheckoutHeartbeatRequest {
+  /** @nullable */
+  clientNonce: string | null;
+}
+
+export interface CheckoutLicenceRequest {
+  /** @nullable */
+  licenceKey: string | null;
+  /** @nullable */
+  productId: string | null;
+  /** @nullable */
+  clientNonce: string | null;
+  /** @nullable */
+  instanceId: string | null;
+  /** @nullable */
+  hwid: string | null;
+}
+
 export interface CreateLicenceRequest {
   productId: string;
   /** @nullable */
@@ -66,6 +84,8 @@ export interface CreateLicenceRequest {
   notes: string | null;
   /** @nullable */
   ipAllowlist: string[] | null;
+  /** @nullable */
+  maxSeats?: number | null;
 }
 
 export interface CreateOrderItemRequest {
@@ -219,6 +239,46 @@ export interface LicenceResponse {
   relationship?: string | null;
 }
 
+export interface LicenceSeatHistoryEntryResponse {
+  id: string;
+  checkoutId: string;
+  instanceIdHashPrefix: string;
+  /** @nullable */
+  memberUserId: string | null;
+  /** @nullable */
+  hwidHmacBase64: string | null;
+  sourceIp: string;
+  issuedAt: string;
+  closedAt: string;
+  closeReason: string;
+}
+
+export interface LicenceSeatResponse {
+  id: string;
+  instanceIdHashPrefix: string;
+  /** @nullable */
+  memberUserId: string | null;
+  /** @nullable */
+  hwidHmacBase64: string | null;
+  sourceIp: string;
+  issuedAt: string;
+  lastHeartbeatAt: string;
+  expiresAt: string;
+}
+
+export interface PagedResponseOfLicenceSeatHistoryEntryResponse {
+  items: LicenceSeatHistoryEntryResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface LicenceSeatsResponse {
+  maxSeats: number;
+  live: LicenceSeatResponse[];
+  history: PagedResponseOfLicenceSeatHistoryEntryResponse;
+}
+
 export interface LicenceStatusHistoryResponse {
   id: string;
   previousStatus: string;
@@ -234,6 +294,13 @@ export interface LicenceStatusHistoryResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface NoSeatsAvailableResponse {
+  error: string;
+  maxSeats: number;
+  activeSeats: number;
+  oldestExpiresAt: string;
 }
 
 export interface OrderItemCreatedResponse {
@@ -435,6 +502,10 @@ export interface SessionResponse {
   user: UserResponse;
 }
 
+export interface SignedLicenceCheckoutResponse {
+  signedPayload: string;
+}
+
 export interface SignedLicenceVerificationResponse {
   signedPayload: string;
 }
@@ -456,6 +527,12 @@ export interface UpdateLicenceIpAllowlistRequest {
 export interface UpdateLicenceLabelRequest {
   /** @nullable */
   label: string | null;
+}
+
+export interface UpdateLicenceMaxSeatsRequest {
+  maxSeats: number;
+  /** @nullable */
+  reason: string | null;
 }
 
 export interface UpdateLicenceStatusRequest {
@@ -535,6 +612,11 @@ limit?: number;
 offset?: number;
 };
 
+export type GetLicencesIdSeatsParams = {
+limit?: number;
+offset?: number;
+};
+
 export type GetMeOrdersParams = {
 limit?: number;
 offset?: number;
@@ -586,6 +668,11 @@ offset?: number;
 };
 
 export type GetMeLicencesIdVerificationAttemptsParams = {
+limit?: number;
+offset?: number;
+};
+
+export type GetMeLicencesIdSeatsParams = {
 limit?: number;
 offset?: number;
 };
