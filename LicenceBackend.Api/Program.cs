@@ -134,6 +134,20 @@ try
                     return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.Admin));
                 }
             );
+
+            options.AddPolicy(RateLimiterPolicyNames.CheckoutHeartbeat, httpContext =>
+            {
+                var seatId = httpContext.Request.RouteValues["seatId"]?.ToString() ?? string.Empty;
+                var key = $"seat:{seatId}";
+                return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.Heartbeat));
+            });
+
+            options.AddPolicy(RateLimiterPolicyNames.CheckoutCheckin, httpContext =>
+            {
+                var seatId = httpContext.Request.RouteValues["seatId"]?.ToString() ?? string.Empty;
+                var key = $"seat:{seatId}";
+                return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.Checkin));
+            });
         });
 
     var app = builder.Build();

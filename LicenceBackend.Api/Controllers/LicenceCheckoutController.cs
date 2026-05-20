@@ -11,6 +11,7 @@ using LicenceBackend.Infrastructure.Options;
 using LicenceBackend.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 
 namespace LicenceBackend.Api.Controllers;
@@ -124,6 +125,7 @@ public sealed class LicenceCheckoutController(
         };
     }
 
+    [EnableRateLimiting(RateLimiterPolicyNames.CheckoutCheckin)]
     [HttpDelete("checkouts/{seatId:guid}")]
     public async Task<IActionResult> Checkin(Guid seatId, CancellationToken cancellationToken)
     {
@@ -131,6 +133,7 @@ public sealed class LicenceCheckoutController(
         return NoContent();
     }
 
+    [EnableRateLimiting(RateLimiterPolicyNames.CheckoutHeartbeat)]
     [HttpPost("checkouts/{seatId:guid}/heartbeat")]
     public async Task<IActionResult> Heartbeat(
         Guid seatId,
