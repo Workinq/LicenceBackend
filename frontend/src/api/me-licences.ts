@@ -3,6 +3,7 @@ import {
   getMeLicences,
   getMeLicencesId,
   getMeLicencesIdMembers,
+  getMeLicencesIdSeats,
   patchMeLicencesIdLabel,
   postMeLicencesIdMembers,
   postMeLicencesIdRegenerateKey,
@@ -14,6 +15,7 @@ import type {
   LicenceKeyRegeneratedResponse,
   LicenceMemberResponse,
   LicenceResponse,
+  LicenceSeatsResponse,
   PagedResponseOfLicenceResponse,
   RegenerateLicenceKeyRequest,
   UpdateLicenceLabelRequest,
@@ -55,4 +57,8 @@ export async function updateMyLicenceLabel(
 
 export async function downloadMyLicenceFile(id: string): Promise<DownloadedBlob> {
   return downloadBlob(`/me/licences/${id}/download`);
+}
+
+export async function fetchMyLicenceSeats(id: string): Promise<LicenceSeatsResponse> {
+  return (await getMeLicencesIdSeats(id)).data as LicenceSeatsResponse;
 }

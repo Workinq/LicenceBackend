@@ -22,6 +22,7 @@ import {
 import { triggerBlobDownload } from '@/api/product-files';
 import { RegenerateKeyDialog } from '@/components/licences/RegenerateKeyDialog';
 import { LicenceLabelEditor } from '@/components/licences/LicenceLabelEditor';
+import { PortalLicenceSessions } from '@/components/licences/PortalLicenceSessions';
 import { ApiError } from '@/auth/api-client';
 
 export const Route = createFileRoute('/portal/licences_/$id')({
@@ -289,6 +290,15 @@ function PortalLicenceDetail() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Active sessions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PortalLicenceSessions licenceId={lic.id} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
