@@ -252,6 +252,38 @@ public sealed class LicencesController(
         return Ok(ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
     }
 
+    [HttpPatch("{id:guid}/max-seats")]
+    [ProducesResponseType(typeof(LicenceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateMaxSeats(
+        Guid id,
+        [FromBody] UpdateLicenceMaxSeatsRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
+
+        var updated = await licences.UpdateMaxSeatsAsync(
+                          id,
+                          request.MaxSeats,
+                          currentUserId,
+                          string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                          cancellationToken
+                      );
+
+        if (updated is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.LicenceNotFound,
+                detail: $"No licence with id '{id}'."
+            );
+
+        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+
+        return Ok(ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
+    }
+
     [HttpGet("{id:guid}/status-history")]
     [ProducesResponseType(typeof(PagedResponse<LicenceStatusHistoryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
