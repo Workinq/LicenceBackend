@@ -13,6 +13,9 @@ public sealed class RateLimitingOptions
     public RateLimitPolicyOptions Verify { get; init; } = new() { PermitLimit = 60, WindowSeconds = 60 };
     public RateLimitPolicyOptions VerifyPublicKey { get; init; } = new() { PermitLimit = 20, WindowSeconds = 60 };
     public RateLimitPolicyOptions Admin { get; init; } = new() { PermitLimit = 300, WindowSeconds = 60 };
+    public RateLimitPolicyOptions Checkout { get; init; } = new() { PermitLimit = 60, WindowSeconds = 60 };
+    public RateLimitPolicyOptions Heartbeat { get; init; } = new() { PermitLimit = 12, WindowSeconds = 60 };
+    public RateLimitPolicyOptions Checkin { get; init; } = new() { PermitLimit = 30, WindowSeconds = 60 };
 }
 
 public sealed class RateLimitPolicyOptions
