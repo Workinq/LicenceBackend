@@ -128,6 +128,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
         services.AddSingleton<ILicenceVerifyRateLimiter, LicenceVerifyRateLimiter>();
+        services.AddSingleton<ILicenceCheckoutRateLimiter, LicenceCheckoutRateLimiter>();
     }
 
     private static byte[] LoadPepper(string pepperPath)

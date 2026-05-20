@@ -3,10 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
+using LicenceBackend.Api.RateLimiting;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
 using LicenceBackend.Infrastructure.Options;
+using LicenceBackend.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -24,6 +26,7 @@ public sealed class LicenceCheckoutController(
     IHwidHasher hwidHasher,
     ILicenceCheckoutRepository checkouts,
     ILicenceVerificationSigner signer,
+    ILicenceCheckoutRateLimiter checkoutRateLimiter,
     IOptions<LicenceCheckoutOptions> options,
     TimeProvider time
 ) : ControllerBase
@@ -51,6 +54,9 @@ public sealed class LicenceCheckoutController(
         {
             return InvalidLicence();
         }
+
+        var rateLimitDecision = await checkoutRateLimiter.TryAcquireAsync(request.LicenceKey!, request.InstanceId!, cancellationToken);
+        if (!rateLimitDecision.Acquired) return RateLimitRejection.AsResult(HttpContext, rateLimitDecision.RetryAfter);
 
         IReadOnlyList<byte[]> keyHmacCandidates;
         try
