@@ -3,7 +3,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Dapper;
+using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Infrastructure.Crypto;
+using Microsoft.IdentityModel.Tokens;
 
 namespace LicenceBackend.Tests.Api;
 
@@ -50,6 +52,12 @@ public sealed class RateLimitingTests : IntegrationTestBase
         Environment.SetEnvironmentVariable("RateLimiting__VerifyPublicKey__WindowSeconds", "60");
         Environment.SetEnvironmentVariable("RateLimiting__Admin__PermitLimit", PermitLimit.ToString());
         Environment.SetEnvironmentVariable("RateLimiting__Admin__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("RateLimiting__Checkout__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Checkout__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("RateLimiting__Heartbeat__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Heartbeat__WindowSeconds", "60");
+        Environment.SetEnvironmentVariable("RateLimiting__Checkin__PermitLimit", PermitLimit.ToString());
+        Environment.SetEnvironmentVariable("RateLimiting__Checkin__WindowSeconds", "60");
         var sessionKid = "rl-session-" + Guid.NewGuid().ToString("N");
         var verifyKid = "rl-verify-" + Guid.NewGuid().ToString("N");
         Environment.SetEnvironmentVariable("SessionSigning__Keys__0__Kid", sessionKid);
@@ -156,6 +164,114 @@ public sealed class RateLimitingTests : IntegrationTestBase
         var (otherProductId, otherKey) = await SeedProductAndLicenceDirectAsync("rl-verify-other");
         var otherOk = await client.PostAsJsonAsync("/licences/verify", new { licenceKey = otherKey, productId = otherProductId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, otherOk.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Checkout_third_attempt_against_same_key_and_instance_returns_429()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var (productId, licenceKey) = await SeedProductAndLicenceDirectAsync("rl-checkout");
+        var instanceId = GenerateInstanceId();
+
+        for (var i = 0; i < PermitLimit; i++)
+        {
+            var ok = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+            {
+                licenceKey,
+                productId,
+                clientNonce = GenerateClientNonce(),
+                instanceId
+            });
+            Assert.True(ok.IsSuccessStatusCode, $"Iter {i} expected success, got {ok.StatusCode}");
+        }
+
+        var capped = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId
+        });
+        Assert.Equal(HttpStatusCode.TooManyRequests, capped.StatusCode);
+
+        var otherInstance = GenerateInstanceId();
+        var otherOk = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = otherInstance
+        });
+        Assert.True(otherOk.IsSuccessStatusCode, $"Different-instance bucket should be independent, got {otherOk.StatusCode}");
+    }
+
+    [SkippableFact]
+    public async Task Heartbeat_third_attempt_against_same_seat_returns_429()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var (productId, licenceKey) = await SeedProductAndLicenceDirectAsync("rl-heartbeat");
+        var open = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        open.EnsureSuccessStatusCode();
+        var openBody = await open.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var jwt = await VerifySignedLicencePayloadAsync(openBody!.SignedPayload);
+        var seatId = jwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        for (var i = 0; i < PermitLimit; i++)
+        {
+            var ok = await UnauthedClient.PostAsJsonAsync($"/licences/checkouts/{seatId}/heartbeat", new
+            {
+                clientNonce = GenerateClientNonce()
+            });
+            Assert.True(ok.IsSuccessStatusCode, $"Iter {i} expected success, got {ok.StatusCode}");
+        }
+
+        var capped = await UnauthedClient.PostAsJsonAsync($"/licences/checkouts/{seatId}/heartbeat", new
+        {
+            clientNonce = GenerateClientNonce()
+        });
+        Assert.Equal(HttpStatusCode.TooManyRequests, capped.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task Checkin_third_attempt_against_same_seat_returns_429()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var (productId, licenceKey) = await SeedProductAndLicenceDirectAsync("rl-checkin");
+        var open = await UnauthedClient.PostAsJsonAsync("/licences/checkout", new
+        {
+            licenceKey,
+            productId,
+            clientNonce = GenerateClientNonce(),
+            instanceId = GenerateInstanceId()
+        });
+        open.EnsureSuccessStatusCode();
+        var openBody = await open.Content.ReadFromJsonAsync<SignedLicenceCheckoutResponse>();
+        var jwt = await VerifySignedLicencePayloadAsync(openBody!.SignedPayload);
+        var seatId = jwt.Claims.Single(c => c.Type == "seatId").Value;
+
+        for (var i = 0; i < PermitLimit; i++)
+        {
+            var ok = await UnauthedClient.DeleteAsync($"/licences/checkouts/{seatId}");
+            Assert.Equal(HttpStatusCode.NoContent, ok.StatusCode);
+        }
+
+        var capped = await UnauthedClient.DeleteAsync($"/licences/checkouts/{seatId}");
+        Assert.Equal(HttpStatusCode.TooManyRequests, capped.StatusCode);
+    }
+
+    private static string GenerateInstanceId()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(24);
+        return Base64UrlEncoder.Encode(bytes);
     }
 
     [SkippableFact]
@@ -283,8 +399,8 @@ public sealed class RateLimitingTests : IntegrationTestBase
             new { ProductId = productId, Slug = slug });
         await conn.ExecuteAsync(
             """
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, created_at, updated_at)
-            VALUES (@LicenceId, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, 'active', NULL, NULL, NULL, NULL, NULL, NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, max_seats, created_at, updated_at)
+            VALUES (@LicenceId, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, 'active', NULL, NULL, NULL, NULL, NULL, 5, NOW(), NOW());
             """,
             new
             {
