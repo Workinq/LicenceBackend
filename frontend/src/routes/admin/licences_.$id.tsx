@@ -9,6 +9,7 @@ import { LicenceActions } from '@/components/licences/LicenceActions';
 import { LicenceBindings } from '@/components/licences/LicenceBindings';
 import { LicenceHistory } from '@/components/licences/LicenceHistory';
 import { LicenceMembers } from '@/components/licences/LicenceMembers';
+import { LicenceSeats } from '@/components/licences/LicenceSeats';
 
 export const Route = createFileRoute('/admin/licences_/$id')({
   component: LicenceDetailPage,
@@ -88,6 +89,15 @@ function LicenceDetailPage() {
         </CardHeader>
         <CardContent>
           <LicenceBindings licence={lic} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Seats</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LicenceSeats licenceId={lic.id} />
         </CardContent>
       </Card>
 

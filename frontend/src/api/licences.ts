@@ -1,11 +1,14 @@
 import {
   deleteLicencesIdMembersMemberId,
+  deleteLicencesIdSeatsSeatId,
   getLicences,
   getLicencesId,
   getLicencesIdBindingHistory,
   getLicencesIdMembers,
+  getLicencesIdSeats,
   getLicencesIdStatusHistory,
   getLicencesIdVerificationAttempts,
+  patchLicencesIdMaxSeats,
   patchLicencesIdStatus,
   postLicences,
   postLicencesIdMembers,
@@ -21,6 +24,7 @@ import type {
   LicenceKeyRegeneratedResponse,
   LicenceMemberResponse,
   LicenceResponse,
+  LicenceSeatsResponse,
   PagedResponseOfBindingHistoryEntryResponse,
   PagedResponseOfLicenceResponse,
   PagedResponseOfLicenceStatusHistoryResponse,
@@ -28,6 +32,7 @@ import type {
   RegenerateLicenceKeyRequest,
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
+  UpdateLicenceMaxSeatsRequest,
   UpdateLicenceStatusRequest,
 } from './generated/api.schemas';
 
@@ -104,4 +109,19 @@ export async function addLicenceMember(id: string, body: AddLicenceMemberRequest
 
 export async function removeLicenceMember(id: string, memberId: string): Promise<void> {
   await deleteLicencesIdMembersMemberId(id, memberId);
+}
+
+export async function fetchLicenceSeats(id: string): Promise<LicenceSeatsResponse> {
+  return (await getLicencesIdSeats(id)).data as LicenceSeatsResponse;
+}
+
+export async function forceRevokeSeat(licenceId: string, seatId: string): Promise<void> {
+  await deleteLicencesIdSeatsSeatId(licenceId, seatId);
+}
+
+export async function updateLicenceMaxSeats(
+  licenceId: string,
+  body: UpdateLicenceMaxSeatsRequest,
+): Promise<LicenceResponse> {
+  return (await patchLicencesIdMaxSeats(licenceId, body)).data as LicenceResponse;
 }
