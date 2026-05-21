@@ -94,7 +94,7 @@ function LoginPage() {
               autoComplete="email"
               {...register('email')}
               className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-              placeholder="admin@example.com"
+              placeholder="user@example.com"
             />
             {errors.email && (
               <p className="mt-1 text-xs text-status-revoked-fg">{errors.email.message}</p>

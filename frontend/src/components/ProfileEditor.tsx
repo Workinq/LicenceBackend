@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,6 +143,9 @@ function PasswordChangeCard() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (body: { currentPassword: string; newPassword: string }) => changePassword(body),
@@ -192,26 +196,26 @@ function PasswordChangeCard() {
           )}
           <div className="space-y-1">
             <Label htmlFor="currentPassword">Current password</Label>
-            <Input
+            <PasswordInput
               id="currentPassword"
-              type="password"
               autoComplete="current-password"
               value={currentPassword}
-              onChange={(e) => { setCurrentPassword(e.target.value); }}
+              onChange={(value) => { setCurrentPassword(value); }}
               disabled={mutation.isPending}
-              className="max-w-sm"
+              show={showCurrent}
+              onToggleShow={() => { setShowCurrent((v) => !v); }}
             />
           </div>
           <div className="space-y-1">
             <Label htmlFor="newPassword">New password</Label>
-            <Input
+            <PasswordInput
               id="newPassword"
-              type="password"
               autoComplete="new-password"
               value={newPassword}
-              onChange={(e) => { setNewPassword(e.target.value); }}
+              onChange={(value) => { setNewPassword(value); }}
               disabled={mutation.isPending}
-              className="max-w-sm"
+              show={showNew}
+              onToggleShow={() => { setShowNew((v) => !v); }}
             />
             <p className="text-xs text-ink-muted">
               At least {PASSWORD_MIN_LENGTH} characters.
@@ -222,14 +226,14 @@ function PasswordChangeCard() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="confirmPassword">Confirm new password</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               autoComplete="new-password"
               value={confirmPassword}
-              onChange={(e) => { setConfirmPassword(e.target.value); }}
+              onChange={(value) => { setConfirmPassword(value); }}
               disabled={mutation.isPending}
-              className="max-w-sm"
+              show={showConfirm}
+              onToggleShow={() => { setShowConfirm((v) => !v); }}
             />
             {mismatch && (
               <p className="text-xs text-status-revoked-fg">Passwords do not match.</p>
@@ -246,5 +250,47 @@ function PasswordChangeCard() {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function PasswordInput({
+  id,
+  autoComplete,
+  value,
+  onChange,
+  disabled,
+  show,
+  onToggleShow,
+}: {
+  id: string;
+  autoComplete: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  show: boolean;
+  onToggleShow: () => void;
+}) {
+  return (
+    <div className="relative max-w-sm">
+      <Input
+        id={id}
+        type={show ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(e) => { onChange(e.target.value); }}
+        disabled={disabled}
+        className="pr-10"
+      />
+      <button
+        type="button"
+        aria-label={show ? 'Hide password' : 'Show password'}
+        aria-pressed={show}
+        onClick={onToggleShow}
+        disabled={disabled}
+        className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
   );
 }
