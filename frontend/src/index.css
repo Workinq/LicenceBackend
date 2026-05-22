@@ -205,4 +205,105 @@
   .tiptap-content .ProseMirror:focus {
     outline: none;
   }
+  .tiptap-content h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    margin: 1rem 0 0.5rem;
+  }
+  .tiptap-content blockquote {
+    border-left: 3px solid var(--border-strong);
+    padding-left: 1rem;
+    margin: 0.75rem 0;
+    color: var(--ink-muted);
+  }
+  .tiptap-content hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+  .tiptap-content mark {
+    border-radius: 2px;
+    padding: 0 2px;
+    color: inherit;
+  }
+  .tiptap-content :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.3em;
+  }
+  .tiptap-content pre {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    overflow-x: auto;
+  }
+  .tiptap-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+  }
+  .tiptap-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.75rem 0;
+    table-layout: fixed;
+  }
+  .tiptap-content :is(th, td) {
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  .tiptap-content th {
+    background: var(--surface-sunken);
+    font-weight: 600;
+  }
+  .tiptap-content ul[data-type="taskList"] {
+    list-style: none;
+    padding-left: 0;
+  }
+  .tiptap-content ul[data-type="taskList"] li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .tiptap-content ul[data-type="taskList"] li > label {
+    margin-top: 0.25rem;
+  }
+  .tiptap-content .hljs-comment,
+  .tiptap-content .hljs-quote {
+    color: var(--ink-subtle);
+    font-style: italic;
+  }
+  .tiptap-content .hljs-keyword,
+  .tiptap-content .hljs-selector-tag,
+  .tiptap-content .hljs-meta {
+    color: #6a3da8;
+  }
+  .tiptap-content .hljs-string,
+  .tiptap-content .hljs-attr,
+  .tiptap-content .hljs-regexp {
+    color: #2d6a2d;
+  }
+  .tiptap-content .hljs-number,
+  .tiptap-content .hljs-literal {
+    color: #b3591e;
+  }
+  .tiptap-content :is(.hljs-title, .hljs-name, .hljs-built_in) {
+    color: #1e5fb3;
+  }
+  .tiptap-content .hljs-type,
+  .tiptap-content .hljs-symbol {
+    color: #b3261e;
+  }
 }
