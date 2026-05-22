@@ -13,6 +13,9 @@ riderModule.iml
 /secrets/
 /**/secrets/
 
+# Gitleaks
+.githooks/
+
 # Local env settings
 appsettings.Development.json
 appsettings.Local.json
