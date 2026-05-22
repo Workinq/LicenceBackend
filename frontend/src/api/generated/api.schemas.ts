@@ -72,6 +72,22 @@ export interface CheckoutLicenceRequest {
   hwid: string | null;
 }
 
+export interface CheckoutSessionResponse {
+  /** @nullable */
+  clientSecret: string | null;
+  /** @nullable */
+  checkoutAttemptId: string | null;
+  /** @nullable */
+  orderId: string | null;
+  free: boolean;
+}
+
+export interface CheckoutStatusResponse {
+  status: string;
+  /** @nullable */
+  orderId: string | null;
+}
+
 export interface CreateLicenceRequest {
   productId: string;
   /** @nullable */
@@ -227,6 +243,7 @@ export interface LicenceCreatedResponse {
   /** @nullable */
   notes: string | null;
   hwidBound: boolean;
+  hasKey?: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
   /** @nullable */
@@ -251,6 +268,7 @@ export interface LicenceKeyRegeneratedResponse {
   /** @nullable */
   notes: string | null;
   hwidBound: boolean;
+  hasKey?: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
   /** @nullable */
@@ -285,6 +303,7 @@ export interface LicenceResponse {
   /** @nullable */
   notes: string | null;
   hwidBound: boolean;
+  hasKey: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
   /** @nullable */
@@ -358,30 +377,6 @@ export interface NoSeatsAvailableResponse {
   maxSeats: number;
   activeSeats: number;
   oldestExpiresAt: string;
-}
-
-export interface OrderItemCreatedResponse {
-  id: string;
-  productId: string;
-  productSlug: string;
-  productDisplayName: string;
-  licenceId: string;
-  /** @nullable */
-  label: string | null;
-  /** @nullable */
-  unitPrice: number | null;
-  currency: string;
-  licenceKey: string;
-}
-
-export interface OrderCreatedResponse {
-  id: string;
-  userId: string;
-  contactEmail: string;
-  status: string;
-  createdAt: string;
-  totals: CurrencyTotalResponse[];
-  items: OrderItemCreatedResponse[];
 }
 
 export interface OrderItemResponse {
@@ -523,6 +518,10 @@ export interface PagedResponseOfVerificationAttemptResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface PaymentConfigResponse {
+  publishableKey: string;
 }
 
 export interface ProblemDetails {

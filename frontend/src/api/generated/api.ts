@@ -9,6 +9,8 @@ import type {
   ChangePasswordRequest,
   CheckoutHeartbeatRequest,
   CheckoutLicenceRequest,
+  CheckoutSessionResponse,
+  CheckoutStatusResponse,
   CreateLicenceRequest,
   CreateOrderRequest,
   CreateProductRequest,
@@ -39,7 +41,6 @@ import type {
   LicenceSeatsResponse,
   LoginRequest,
   NoSeatsAvailableResponse,
-  OrderCreatedResponse,
   OrderResponse,
   PagedResponseOfAuditEventResponse,
   PagedResponseOfBindingHistoryEntryResponse,
@@ -50,6 +51,7 @@ import type {
   PagedResponseOfUserResponse,
   PagedResponseOfUserStatusHistoryResponse,
   PagedResponseOfVerificationAttemptResponse,
+  PaymentConfigResponse,
   PostProductsIdContentImagesBody,
   PostProductsIdFilesBody,
   PostProductsIdImageBody,
@@ -1350,62 +1352,6 @@ export const getLicencesVerifyPublicKey = async ( options?: RequestInit): Promis
 
 
 
-export type postOrdersResponse201 = {
-  data: OrderCreatedResponse
-  status: 201
-}
-
-export type postOrdersResponse400 = {
-  data: ProblemDetails
-  status: 400
-}
-
-export type postOrdersResponse401 = {
-  data: ProblemDetails
-  status: 401
-}
-
-export type postOrdersResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type postOrdersResponse404 = {
-  data: ProblemDetails
-  status: 404
-}
-
-export type postOrdersResponseSuccess = (postOrdersResponse201) & {
-  headers: Headers;
-};
-export type postOrdersResponseError = (postOrdersResponse400 | postOrdersResponse401 | postOrdersResponse403 | postOrdersResponse404) & {
-  headers: Headers;
-};
-
-export type postOrdersResponse = (postOrdersResponseSuccess | postOrdersResponseError)
-
-export const getPostOrdersUrl = () => {
-
-
-
-
-  return `/orders`
-}
-
-export const postOrders = async (createOrderRequest: CreateOrderRequest, options?: RequestInit): Promise<postOrdersResponse> => {
-
-  return apiClient<postOrdersResponse>(getPostOrdersUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createOrderRequest,)
-  }
-);}
-
-
-
 export type getMeOrdersResponse200 = {
   data: PagedResponseOfOrderResponse
   status: 200
@@ -1715,6 +1661,157 @@ export const getGetAdminOrdersIdInvoiceUrl = (id: string,) => {
 export const getAdminOrdersIdInvoice = async (id: string, options?: RequestInit): Promise<getAdminOrdersIdInvoiceResponse> => {
 
   return apiClient<getAdminOrdersIdInvoiceResponse>(getGetAdminOrdersIdInvoiceUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type postPaymentsCheckoutResponse200 = {
+  data: CheckoutSessionResponse
+  status: 200
+}
+
+export type postPaymentsCheckoutResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postPaymentsCheckoutResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postPaymentsCheckoutResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type postPaymentsCheckoutResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postPaymentsCheckoutResponseSuccess = (postPaymentsCheckoutResponse200) & {
+  headers: Headers;
+};
+export type postPaymentsCheckoutResponseError = (postPaymentsCheckoutResponse400 | postPaymentsCheckoutResponse401 | postPaymentsCheckoutResponse403 | postPaymentsCheckoutResponse404) & {
+  headers: Headers;
+};
+
+export type postPaymentsCheckoutResponse = (postPaymentsCheckoutResponseSuccess | postPaymentsCheckoutResponseError)
+
+export const getPostPaymentsCheckoutUrl = () => {
+
+
+
+
+  return `/payments/checkout`
+}
+
+export const postPaymentsCheckout = async (createOrderRequest: CreateOrderRequest, options?: RequestInit): Promise<postPaymentsCheckoutResponse> => {
+
+  return apiClient<postPaymentsCheckoutResponse>(getPostPaymentsCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createOrderRequest,)
+  }
+);}
+
+
+
+export type getPaymentsCheckoutIdResponse200 = {
+  data: CheckoutStatusResponse
+  status: 200
+}
+
+export type getPaymentsCheckoutIdResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getPaymentsCheckoutIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getPaymentsCheckoutIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getPaymentsCheckoutIdResponseSuccess = (getPaymentsCheckoutIdResponse200) & {
+  headers: Headers;
+};
+export type getPaymentsCheckoutIdResponseError = (getPaymentsCheckoutIdResponse400 | getPaymentsCheckoutIdResponse401 | getPaymentsCheckoutIdResponse404) & {
+  headers: Headers;
+};
+
+export type getPaymentsCheckoutIdResponse = (getPaymentsCheckoutIdResponseSuccess | getPaymentsCheckoutIdResponseError)
+
+export const getGetPaymentsCheckoutIdUrl = (id: string,) => {
+
+
+
+
+  return `/payments/checkout/${id}`
+}
+
+export const getPaymentsCheckoutId = async (id: string, options?: RequestInit): Promise<getPaymentsCheckoutIdResponse> => {
+
+  return apiClient<getPaymentsCheckoutIdResponse>(getGetPaymentsCheckoutIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getPaymentsConfigResponse200 = {
+  data: PaymentConfigResponse
+  status: 200
+}
+
+export type getPaymentsConfigResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getPaymentsConfigResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getPaymentsConfigResponseSuccess = (getPaymentsConfigResponse200) & {
+  headers: Headers;
+};
+export type getPaymentsConfigResponseError = (getPaymentsConfigResponse400 | getPaymentsConfigResponse401) & {
+  headers: Headers;
+};
+
+export type getPaymentsConfigResponse = (getPaymentsConfigResponseSuccess | getPaymentsConfigResponseError)
+
+export const getGetPaymentsConfigUrl = () => {
+
+
+
+
+  return `/payments/config`
+}
+
+export const getPaymentsConfig = async ( options?: RequestInit): Promise<getPaymentsConfigResponse> => {
+
+  return apiClient<getPaymentsConfigResponse>(getGetPaymentsConfigUrl(),
   {
     ...options,
     method: 'GET'
@@ -2608,6 +2705,46 @@ export const deleteSessionsAll = async ( options?: RequestInit): Promise<deleteS
   {
     ...options,
     method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type postStripeWebhookResponse200 = {
+  data: void
+  status: 200
+}
+
+export type postStripeWebhookResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postStripeWebhookResponseSuccess = (postStripeWebhookResponse200) & {
+  headers: Headers;
+};
+export type postStripeWebhookResponseError = (postStripeWebhookResponse400) & {
+  headers: Headers;
+};
+
+export type postStripeWebhookResponse = (postStripeWebhookResponseSuccess | postStripeWebhookResponseError)
+
+export const getPostStripeWebhookUrl = () => {
+
+
+
+
+  return `/stripe/webhook`
+}
+
+export const postStripeWebhook = async ( options?: RequestInit): Promise<postStripeWebhookResponse> => {
+
+  return apiClient<postStripeWebhookResponse>(getPostStripeWebhookUrl(),
+  {
+    ...options,
+    method: 'POST'
 
 
   }
