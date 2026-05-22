@@ -132,13 +132,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
             Offset = offset
         };
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
-        await using var multi = await connection.QueryMultipleAsync(command);
-        var rows = (await multi.ReadAsync<LicenceRow>()).ToList();
-        var total = await multi.ReadFirstAsync<int>();
-
-        return new PagedResult<Licence>(rows.Select(r => r.ToDomain()).ToList(), total);
+        return await ExecuteListAsync<LicenceRow, Licence>(sql, parameters, r => r.ToDomain(), cancellationToken);
     }
 
     public async Task<Licence?> UpdateStatusAsync(
@@ -299,16 +293,11 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
             Offset = offset
         };
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
-        await using var multi = await connection.QueryMultipleAsync(command);
-        var rows = (await multi.ReadAsync<UserLicenceRow>()).ToList();
-        var total = await multi.ReadFirstAsync<int>();
-
-        return new PagedResult<UserLicence>(
-            rows.Select(r => new UserLicence(r.ToLicenceRow().ToDomain(), r.Relationship)).ToList(),
-            total
-        );
+        return await ExecuteListAsync<UserLicenceRow, UserLicence>(
+            sql,
+            parameters,
+            r => new UserLicence(r.ToLicenceRow().ToDomain(), r.Relationship),
+            cancellationToken);
     }
 
     public async Task<PagedResult<Licence>> ListForOwnerAsync(
@@ -339,13 +328,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
             Offset = offset
         };
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
-        await using var multi = await connection.QueryMultipleAsync(command);
-        var rows = (await multi.ReadAsync<LicenceRow>()).ToList();
-        var total = await multi.ReadFirstAsync<int>();
-
-        return new PagedResult<Licence>(rows.Select(r => r.ToDomain()).ToList(), total);
+        return await ExecuteListAsync<LicenceRow, Licence>(sql, parameters, r => r.ToDomain(), cancellationToken);
     }
 
     public async Task<PinHwidResult> PinHwidAndRecordAttemptAsync(
@@ -436,13 +419,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         string? reason,
         CancellationToken cancellationToken)
     {
-        const string selectSql = $"""
-                                  SELECT {LicenceColumns}
-                                  FROM licences
-                                  WHERE id = @Id
-                                  LIMIT 1;
-                                  """;
-
         const string updateSql = $"""
                                   UPDATE licences
                                   SET hwid_hmac = NULL, hwid_hmac_pepper_version = NULL, updated_at = NOW()
@@ -450,44 +426,31 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                                   RETURNING {LicenceColumns};
                                   """;
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await UpdateLicenceWithAuditAsync(
+            licenceId,
+            updateSql,
+            new { Id = licenceId },
+            async (conn, tx, currentRow) =>
+            {
+                JsonElement? previousValue = currentRow.HwidHmac is null
+                    ? null
+                    : JsonSerializer.SerializeToElement(
+                        new HwidHistoryValue(Convert.ToBase64String(currentRow.HwidHmac), null),
+                        AuditEventJson.Options);
 
-        var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
-                             new CommandDefinition(selectSql, new { Id = licenceId }, cancellationToken: cancellationToken));
-        if (currentRow is null) return null;
-
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            var updatedRow = await connection.QuerySingleAsync<LicenceRow>(
-                                 new CommandDefinition(updateSql, new { Id = licenceId }, transaction, cancellationToken: cancellationToken));
-
-            JsonElement? previousValue = currentRow.HwidHmac is null
-                                            ? null
-                                            : JsonSerializer.SerializeToElement(
-                                                new HwidHistoryValue(Convert.ToBase64String(currentRow.HwidHmac), null),
-                                                AuditEventJson.Options);
-
-            await InsertBindingChangedAsync(
-                connection,
-                transaction,
-                licenceId,
-                LicenceBindingType.Hwid,
-                previousValue,
-                newValue: null,
-                source: BindingChangeSource.Admin,
-                actorUserId: changedByUserId,
-                reason: reason,
-                cancellationToken);
-
-            await transaction.CommitAsync(cancellationToken);
-            return updatedRow.ToDomain();
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+                await InsertBindingChangedAsync(
+                    conn,
+                    tx,
+                    licenceId,
+                    LicenceBindingType.Hwid,
+                    previousValue,
+                    newValue: null,
+                    source: BindingChangeSource.Admin,
+                    actorUserId: changedByUserId,
+                    reason: reason,
+                    cancellationToken);
+            },
+            cancellationToken);
     }
 
     public async Task<Licence?> UpdateIpAllowlistAsync(
@@ -559,13 +522,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         string? reason,
         CancellationToken cancellationToken)
     {
-        const string selectSql = $"""
-                                  SELECT {LicenceColumns}
-                                  FROM licences
-                                  WHERE id = @Id
-                                  LIMIT 1;
-                                  """;
-
         const string updateSql = $"""
                                   UPDATE licences
                                   SET key_hmac = @KeyHmac, key_hmac_pepper_version = @KeyHmacPepperVersion, updated_at = NOW()
@@ -573,47 +529,30 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                                   RETURNING {LicenceColumns};
                                   """;
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-
-        var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
-                             new CommandDefinition(selectSql, new { Id = licenceId }, cancellationToken: cancellationToken));
-        if (currentRow is null) return null;
-
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            var updatedRow = await connection.QuerySingleAsync<LicenceRow>(
-                                 new CommandDefinition(
-                                     updateSql,
-                                     new { Id = licenceId, KeyHmac = newKey.Hmac, KeyHmacPepperVersion = newKey.PepperVersion },
-                                     transaction,
-                                     cancellationToken: cancellationToken));
-
-            var evt = AuditEvent.Create(
-                AuditEventTypes.LicenceKeyRegenerated,
-                AuditSubjectTypes.Licence,
-                licenceId,
-                AuditActorTypes.Admin,
-                changedBy,
-                reason,
-                new LicenceKeyRegeneratedPayload(
-                    currentRow.KeyHmac is null ? null : Convert.ToBase64String(currentRow.KeyHmac),
-                    currentRow.KeyHmacPepperVersion,
-                    Convert.ToBase64String(newKey.Hmac),
-                    newKey.PepperVersion
-                ),
-                time.GetUtcNow()
-            );
-            await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
-
-            await transaction.CommitAsync(cancellationToken);
-            return updatedRow.ToDomain();
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        return await UpdateLicenceWithAuditAsync(
+            licenceId,
+            updateSql,
+            new { Id = licenceId, KeyHmac = newKey.Hmac, KeyHmacPepperVersion = newKey.PepperVersion },
+            async (conn, tx, currentRow) =>
+            {
+                var evt = AuditEvent.Create(
+                    AuditEventTypes.LicenceKeyRegenerated,
+                    AuditSubjectTypes.Licence,
+                    licenceId,
+                    AuditActorTypes.Admin,
+                    changedBy,
+                    reason,
+                    new LicenceKeyRegeneratedPayload(
+                        currentRow.KeyHmac is null ? null : Convert.ToBase64String(currentRow.KeyHmac),
+                        currentRow.KeyHmacPepperVersion,
+                        Convert.ToBase64String(newKey.Hmac),
+                        newKey.PepperVersion
+                    ),
+                    time.GetUtcNow()
+                );
+                await auditEvents.RecordInTxAsync(conn, tx, evt, cancellationToken);
+            },
+            cancellationToken);
     }
 
     public async Task<IpBindResult> BindFirstUseIpAsync(
@@ -666,6 +605,55 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
 
             await transaction.CommitAsync(cancellationToken);
             return IpBindResult.Bound;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private async Task<PagedResult<T>> ExecuteListAsync<TRow, T>(
+        string sql,
+        object parameters,
+        Func<TRow, T> mapper,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
+        await using var multi = await connection.QueryMultipleAsync(command);
+        var rows = (await multi.ReadAsync<TRow>()).ToList();
+        var total = await multi.ReadFirstAsync<int>();
+        return new PagedResult<T>(rows.Select(mapper).ToList(), total);
+    }
+
+    private async Task<Licence?> UpdateLicenceWithAuditAsync(
+        Guid licenceId,
+        string updateSql,
+        object updateParams,
+        Func<IDbConnection, IDbTransaction, LicenceRow, Task> writeAuditAsync,
+        CancellationToken cancellationToken)
+    {
+        const string selectSql = $"""
+                                  SELECT {LicenceColumns}
+                                  FROM licences
+                                  WHERE id = @Id
+                                  LIMIT 1;
+                                  """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var currentRow = await connection.QuerySingleOrDefaultAsync<LicenceRow>(
+            new CommandDefinition(selectSql, new { Id = licenceId }, cancellationToken: cancellationToken));
+        if (currentRow is null) return null;
+
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var updatedRow = await connection.QuerySingleAsync<LicenceRow>(
+                new CommandDefinition(updateSql, updateParams, transaction, cancellationToken: cancellationToken));
+            await writeAuditAsync(connection, transaction, currentRow);
+            await transaction.CommitAsync(cancellationToken);
+            return updatedRow.ToDomain();
         }
         catch
         {

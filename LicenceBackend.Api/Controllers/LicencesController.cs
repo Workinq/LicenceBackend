@@ -238,21 +238,11 @@ public sealed class LicencesController(
                           id,
                           newStatus,
                           currentUserId,
-                          string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                          NormaliseReason(request.Reason),
                           cancellationToken
                       );
 
-        if (updated is null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: ProblemTitles.LicenceNotFound,
-                detail: $"No licence with id '{id}'."
-            );
-
-        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
-        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
-
-        return Ok(ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
+        return await BuildLicenceUpdateResponseAsync(id, updated, cancellationToken);
     }
 
     [HttpPatch("{id:guid}/max-seats")]
@@ -270,21 +260,11 @@ public sealed class LicencesController(
                           id,
                           request.MaxSeats,
                           currentUserId,
-                          string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                          NormaliseReason(request.Reason),
                           cancellationToken
                       );
 
-        if (updated is null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: ProblemTitles.LicenceNotFound,
-                detail: $"No licence with id '{id}'."
-            );
-
-        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
-        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
-
-        return Ok(ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
+        return await BuildLicenceUpdateResponseAsync(id, updated, cancellationToken);
     }
 
     [HttpGet("{id:guid}/status-history")]
@@ -297,16 +277,10 @@ public sealed class LicencesController(
         CancellationToken cancellationToken
     )
     {
-        var licence = await licences.FindByIdAsync(id, cancellationToken);
-        if (licence is null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: ProblemTitles.LicenceNotFound,
-                detail: $"No licence with id '{id}'."
-            );
+        var error = await EnsureLicenceExistsAsync(id, cancellationToken);
+        if (error is not null) return error;
 
-        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var (effectiveLimit, effectiveOffset) = ClampPaging(limit, offset);
         var page = await auditEvents.QueryAsync(
                        AuditSubjectTypes.Licence,
                        id,
@@ -486,16 +460,10 @@ public sealed class LicencesController(
         CancellationToken cancellationToken
     )
     {
-        var licence = await licences.FindByIdAsync(id, cancellationToken);
-        if (licence is null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: ProblemTitles.LicenceNotFound,
-                detail: $"No licence with id '{id}'."
-            );
+        var error = await EnsureLicenceExistsAsync(id, cancellationToken);
+        if (error is not null) return error;
 
-        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var (effectiveLimit, effectiveOffset) = ClampPaging(limit, offset);
         var page = await auditEvents.QueryAsync(
                        AuditSubjectTypes.Licence,
                        id,
@@ -519,13 +487,8 @@ public sealed class LicencesController(
         CancellationToken cancellationToken
     )
     {
-        var licence = await licences.FindByIdAsync(id, cancellationToken);
-        if (licence is null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: ProblemTitles.LicenceNotFound,
-                detail: $"No licence with id '{id}'."
-            );
+        var error = await EnsureLicenceExistsAsync(id, cancellationToken);
+        if (error is not null) return error;
 
         if (!TryParseOutcomeFilter(outcome, out var filter))
             return Problem(
@@ -534,8 +497,7 @@ public sealed class LicencesController(
                 detail: "outcome must be 'approved' or 'denied'."
             );
 
-        var effectiveLimit = Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit);
-        var effectiveOffset = Math.Max(offset ?? 0, 0);
+        var (effectiveLimit, effectiveOffset) = ClampPaging(limit, offset);
         var page = await auditEvents.QueryVerifiesAsync(id, OutcomeFilterToText(filter), effectiveLimit, effectiveOffset, cancellationToken);
 
         var items = page.Items.Select(ToVerificationAttemptResponse).ToList();
@@ -580,6 +542,39 @@ public sealed class LicencesController(
     {
         if (!TryGetCurrentUserId(out var currentUserId)) return Unauthorized();
         return await RemoveMemberCoreAsync(id, memberId, currentUserId, cancellationToken);
+    }
+
+    private async Task<IActionResult?> EnsureLicenceExistsAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var licence = await licences.FindByIdAsync(id, cancellationToken);
+        if (licence is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.LicenceNotFound,
+                detail: $"No licence with id '{id}'."
+            );
+        return null;
+    }
+
+    private static (int limit, int offset) ClampPaging(int? limit, int? offset)
+        => (Math.Clamp(limit ?? DefaultLimit, 1, MaxLimit), Math.Max(offset ?? 0, 0));
+
+    private static string? NormaliseReason(string? reason)
+        => string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+
+    private async Task<IActionResult> BuildLicenceUpdateResponseAsync(
+        Guid id, Licence? updated, CancellationToken cancellationToken)
+    {
+        if (updated is null)
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: ProblemTitles.LicenceNotFound,
+                detail: $"No licence with id '{id}'."
+            );
+
+        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+        return Ok(ToLicenceResponse(updated, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
     }
 
     private async Task<IActionResult> AddMemberCoreAsync(Guid licenceId, string rawEmail, Guid actingUserId, CancellationToken cancellationToken)

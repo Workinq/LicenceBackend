@@ -65,13 +65,7 @@ public sealed class AuditEventRepository(NpgsqlDataSource dataSource) : IAuditEv
             Offset = offset
         };
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
-        await using var multi = await connection.QueryMultipleAsync(command);
-        var rows = (await multi.ReadAsync<Row>()).ToList();
-        var total = await multi.ReadFirstAsync<int>();
-
-        return new PagedResult<AuditEvent>(rows.Select(r => r.ToDomain()).ToList(), total);
+        return await ExecuteQueryAsync(sql, parameters, cancellationToken);
     }
 
     public async Task<PagedResult<AuditEvent>> QueryVerifiesAsync(
@@ -105,12 +99,19 @@ public sealed class AuditEventRepository(NpgsqlDataSource dataSource) : IAuditEv
             Offset = offset
         };
 
+        return await ExecuteQueryAsync(sql, parameters, cancellationToken);
+    }
+
+    private async Task<PagedResult<AuditEvent>> ExecuteQueryAsync(
+        string sql,
+        object parameters,
+        CancellationToken cancellationToken)
+    {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var command = new CommandDefinition(sql, parameters, cancellationToken: cancellationToken);
         await using var multi = await connection.QueryMultipleAsync(command);
         var rows = (await multi.ReadAsync<Row>()).ToList();
         var total = await multi.ReadFirstAsync<int>();
-
         return new PagedResult<AuditEvent>(rows.Select(r => r.ToDomain()).ToList(), total);
     }
 
