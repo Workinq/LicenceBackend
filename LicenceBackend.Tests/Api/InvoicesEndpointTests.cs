@@ -115,6 +115,31 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [SkippableFact]
+    public async Task Licence_detail_includes_parent_order_id()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("inv-licence-link", "Inv Licence Link", 4.00m, "USD");
+
+        var orderResponse = await AuthedClient.PostAsJsonAsync("/orders", new
+        {
+            items = new object[]
+            {
+                new { productId = product.Id, quantity = 1, labels = new string?[] { null } }
+            }
+        });
+        Assert.Equal(HttpStatusCode.Created, orderResponse.StatusCode);
+        var orderBody = await orderResponse.Content.ReadFromJsonAsync<OrderWithItems>();
+        Assert.NotNull(orderBody);
+        var licenceId = orderBody.Items[0].LicenceId;
+
+        var detail = await AuthedClient.GetAsync($"/me/licences/{licenceId}");
+        Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
+        var licence = await detail.Content.ReadFromJsonAsync<LicenceWithOrder>();
+        Assert.NotNull(licence);
+        Assert.Equal(orderBody.Id, licence.OrderId);
+    }
+
     private async Task<ProductRef> CreateProductAsync(string slug, string name, decimal price, string currency)
     {
         var response = await AuthedClient.PostAsJsonAsync("/products", new
@@ -159,4 +184,10 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     public sealed record InvoiceLinePayload(string ProductName, decimal? UnitPrice, string Currency);
 
     public sealed record TotalPayload(string Currency, decimal Amount);
+
+    public sealed record OrderWithItems(Guid Id, IReadOnlyList<OrderItemRef> Items);
+
+    public sealed record OrderItemRef(Guid LicenceId);
+
+    public sealed record LicenceWithOrder(Guid Id, Guid? OrderId);
 }

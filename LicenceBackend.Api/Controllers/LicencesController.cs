@@ -8,6 +8,7 @@ using LicenceBackend.Api.RateLimiting;
 using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Licences;
+using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
 using Microsoft.AspNetCore.Authorization;
@@ -30,6 +31,7 @@ public sealed class LicencesController(
     IAuditEventRepository auditEvents,
     IProductRepository products,
     IUserRepository users,
+    IOrderItemRepository orderItems,
     ILicenceKeyGenerator keyGenerator,
     ILicenceKeyHasher keyHasher,
     TimeProvider time
@@ -215,8 +217,9 @@ public sealed class LicencesController(
 
         var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
         var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
+        var orderId = await orderItems.FindOrderIdByLicenceIdAsync(licence.Id, cancellationToken);
 
-        return Ok(ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty));
+        return Ok(ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty, orderId: orderId));
     }
 
     [HttpPatch("{id:guid}/status")]
@@ -729,7 +732,7 @@ public sealed class LicencesController(
         }
     }
 
-    internal static LicenceResponse ToLicenceResponse(Licence licence, string productSlug, string userEmail, string? relationship = null)
+    internal static LicenceResponse ToLicenceResponse(Licence licence, string productSlug, string userEmail, string? relationship = null, Guid? orderId = null)
     {
         return new LicenceResponse(
             licence.Id,
@@ -744,6 +747,7 @@ public sealed class LicencesController(
             licence.IpAllowlist,
             licence.Label,
             licence.CreatedAt,
+            orderId,
             relationship
         );
     }

@@ -13,6 +13,7 @@ public record LicenceResponse(
     IReadOnlyList<string>? IpAllowlist,
     string? Label,
     DateTimeOffset CreatedAt,
+    Guid? OrderId = null,
     string? Relationship = null
 );
 
@@ -30,4 +31,4 @@ public sealed record LicenceCreatedResponse(
     string? Label,
     DateTimeOffset CreatedAt,
     string LicenceKey
-) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, Label, CreatedAt, null);
+) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, Label, CreatedAt, null, null);

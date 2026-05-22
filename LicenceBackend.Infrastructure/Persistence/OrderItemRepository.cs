@@ -52,6 +52,19 @@ public sealed class OrderItemRepository(NpgsqlDataSource dataSource) : IOrderIte
         return rows.Select(r => r.ToDomain()).ToList();
     }
 
+    public async Task<Guid?> FindOrderIdByLicenceIdAsync(Guid licenceId, CancellationToken cancellationToken)
+    {
+        const string sql = """
+                           SELECT order_id
+                           FROM order_items
+                           WHERE licence_id = @LicenceId
+                           LIMIT 1;
+                           """;
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var command = new CommandDefinition(sql, new { LicenceId = licenceId }, cancellationToken: cancellationToken);
+        return await connection.QuerySingleOrDefaultAsync<Guid?>(command);
+    }
+
     private sealed record OrderItemRow(
         Guid Id,
         Guid OrderId,

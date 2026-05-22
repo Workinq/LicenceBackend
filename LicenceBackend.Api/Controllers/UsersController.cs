@@ -6,6 +6,7 @@ using LicenceBackend.Api.RateLimiting;
 using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Licences;
+using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
 using Microsoft.AspNetCore.Authorization;
@@ -28,6 +29,7 @@ public sealed class UsersController(
     IProductRepository products,
     IProductFileRepository productFiles,
     IProductFileStorage productFileStorage,
+    IOrderItemRepository orderItems,
     IPasswordHasher passwordHasher,
     ILicenceKeyGenerator keyGenerator,
     ILicenceKeyHasher keyHasher,
@@ -438,7 +440,8 @@ public sealed class UsersController(
         var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
         var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
         var relationship = isOwner ? UserLicenceRelationships.Owner : UserLicenceRelationships.Member;
-        return Ok(LicencesController.ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty, relationship));
+        var orderId = await orderItems.FindOrderIdByLicenceIdAsync(licence.Id, cancellationToken);
+        return Ok(LicencesController.ToLicenceResponse(licence, product?.Slug ?? string.Empty, owner?.Email ?? string.Empty, relationship, orderId));
     }
 
     [HttpGet("/me/licences/{id:guid}/download")]
