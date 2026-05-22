@@ -150,6 +150,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILicenceVerifyRateLimiter, LicenceVerifyRateLimiter>();
         services.AddSingleton<ILicenceCheckoutRateLimiter, LicenceCheckoutRateLimiter>();
         services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
+        services.AddSingleton<IOrderFulfillmentService, OrderFulfillmentService>();
     }
 
     private static byte[] LoadPepper(string pepperPath)
