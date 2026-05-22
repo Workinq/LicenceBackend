@@ -3,6 +3,7 @@ using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Invoices;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Orders;
+using LicenceBackend.Core.Payments;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Sessions;
 using LicenceBackend.Core.Users;
@@ -136,6 +137,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOrderRepository, OrderRepository>();
         services.AddSingleton<IOrderItemRepository, OrderItemRepository>();
         services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
+        services.AddSingleton<ICheckoutAttemptRepository, CheckoutAttemptRepository>();
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
