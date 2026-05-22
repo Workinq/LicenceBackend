@@ -1,5 +1,6 @@
 using Dapper;
 using LicenceBackend.Core.Auditing;
+using LicenceBackend.Core.Invoices;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
@@ -124,6 +125,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IProductFileStorage, FileSystemProductFileStorage>();
         services.AddSingleton<IOrderRepository, OrderRepository>();
         services.AddSingleton<IOrderItemRepository, OrderItemRepository>();
+        services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
