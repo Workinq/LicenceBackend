@@ -161,7 +161,7 @@ function CardsView({ isPending, items, total }: ViewProps) {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((p) => (
         <Card key={p.id} className="overflow-hidden py-0 gap-0">
-          <Link to="/portal/products/$id" params={{ id: p.id }} className="block">
+          <Link to="/portal/products/$id" params={{ id: p.id }} aria-label={p.displayName} className="block">
             {p.imageUrl ? (
               <img src={`/api${p.imageUrl}`} alt="" className="aspect-video w-full object-cover" />
             ) : (
@@ -172,7 +172,7 @@ function CardsView({ isPending, items, total }: ViewProps) {
             <CardHeader className="p-3 gap-1">
               <CardTitle className="truncate text-sm">{p.displayName}</CardTitle>
               <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
-              {p.tagline && <p className="text-xs text-ink-muted">{p.tagline}</p>}
+              {p.tagline && <span className="block text-xs text-ink-muted">{p.tagline}</span>}
             </CardHeader>
           </Link>
           <CardContent className="px-3 pb-3 flex items-center justify-between gap-2 text-xs">
