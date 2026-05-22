@@ -78,6 +78,11 @@ public static class ServiceCollectionExtensions
         services.AddOptions<ProductFileStorageOptions>()
                 .Bind(configuration.GetSection(ProductFileStorageOptions.SectionName));
 
+        services.AddOptions<InvoicingOptions>()
+                .Bind(configuration.GetSection(InvoicingOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
         var connectionString = configuration.GetConnectionString("Postgres") ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required.");
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 
