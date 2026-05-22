@@ -1,11 +1,11 @@
 import { useId, useState } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Download, ImageOff, Upload } from 'lucide-react';
+import { Download, FileText, ImageOff, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyCombobox } from '@/components/CurrencyCombobox';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -21,9 +21,7 @@ import { downloadProductFileRevision, fetchProductFiles, triggerBlobDownload, up
 import { ApiError } from '@/auth/api-client';
 import { cn } from '@/lib/utils';
 import { LicenceKey } from '@/components/LicenceKey';
-import { ProductPageEditor } from '@/components/products/ProductPageEditor';
 import type { ProductFileResponse, ProductResponse } from '@/api/generated/api.schemas';
-import type { JSONContent } from '@tiptap/react';
 
 export const Route = createFileRoute('/admin/products_/$id')({
   component: ProductDetailPage,
@@ -174,10 +172,26 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
 
       <ProductDownloadsCard productId={id} />
 
-      <ProductPageEditor
-        productId={id}
-        initialContent={(product.pageContent as JSONContent | null | undefined) ?? null}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Product page</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-3">
+          <p className="text-sm text-ink-muted">
+            {product.pageContent
+              ? 'This product has a rich page. Edit it on the full-page editor.'
+              : 'No rich page yet. Create one on the full-page editor.'}
+          </p>
+          <Link
+            to="/admin/products/$id/page"
+            params={{ id }}
+            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}
+          >
+            <FileText className="size-4" aria-hidden="true" />
+            <span className="ml-1.5">Edit product page</span>
+          </Link>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
