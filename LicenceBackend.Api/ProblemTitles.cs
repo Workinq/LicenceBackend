@@ -14,6 +14,8 @@ internal static class ProblemTitles
     public const string InvalidMaxSeats = "invalid_max_seats";
     public const string InvalidOutcome = "invalid_outcome";
     public const string InvalidProductImage = "invalid_product_image";
+    public const string InvalidProductContentImage = "invalid_product_content_image";
+    public const string ProductContentImageNotFound = "product_content_image_not_found";
     public const string InvalidRefresh = "invalid_refresh";
     public const string InvalidRole = "invalid_role";
     public const string InvalidStatus = "invalid_status";

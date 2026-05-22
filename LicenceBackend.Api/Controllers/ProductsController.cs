@@ -25,6 +25,8 @@ public sealed class ProductsController(
     IProductImageStorage images,
     IProductFileRepository productFiles,
     IProductFileStorage productFileStorage,
+    IProductContentImageStorage contentImages,
+    IProductContentImageRepository contentImageRepository,
     IAuditEventRepository auditEvents,
     Microsoft.Extensions.Options.IOptions<LicenceBackend.Infrastructure.Options.ProductFileStorageOptions> productFileOptions,
     TimeProvider time
@@ -313,6 +315,68 @@ public sealed class ProductsController(
         if (stream is null)
             return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductFileNotFound, detail: $"File blob for '{fileId}' is missing.");
         return File(stream, file.ContentType, file.FileName);
+    }
+
+    [HttpPost("{id:guid}/content-images")]
+    [Authorize(Roles = "admin")]
+    [RequestSizeLimit(MaxImageBytes)]
+    [ProducesResponseType(typeof(ProductContentImageResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadContentImage(Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductNotFound, detail: $"No product with id '{id}'.");
+
+        if (file is null || file.Length == 0)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductContentImage, detail: "No image file was provided.");
+        if (file.Length > MaxImageBytes)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductContentImage, detail: "The image is larger than 2 MB.");
+        if (!AllowedImageContentTypes.TryGetValue(file.ContentType, out var extension))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductContentImage, detail: "The image must be a PNG, JPEG, or WebP.");
+
+        if (!TryGetCurrentUserId(out var adminId)) return Unauthorized();
+
+        var imageId = Guid.NewGuid();
+        string storagePath;
+        await using (var stream = file.OpenReadStream())
+        {
+            storagePath = await contentImages.SaveAsync(imageId, extension, stream, cancellationToken);
+        }
+
+        var image = new ProductContentImage(
+            imageId,
+            product.Id,
+            storagePath,
+            file.ContentType,
+            file.Length,
+            adminId,
+            time.GetUtcNow());
+        await contentImageRepository.CreateAsync(image, cancellationToken);
+
+        var response = new ProductContentImageResponse(image.Id, $"/products/{product.Id}/content-images/{image.Id}");
+        return CreatedAtAction(nameof(GetContentImage), new { id = product.Id, imageId = image.Id }, response);
+    }
+
+    [HttpGet("{id:guid}/content-images/{imageId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetContentImage(Guid id, Guid imageId, CancellationToken cancellationToken)
+    {
+        var image = await contentImageRepository.FindByIdAsync(imageId, cancellationToken);
+        if (image is null || image.ProductId != id)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductContentImageNotFound, detail: $"No content image '{imageId}' on product '{id}'.");
+
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        var isAdmin = User.IsInRole("admin");
+        if (product is null || (!isAdmin && !product.IsPublic))
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductContentImageNotFound, detail: $"No content image '{imageId}' on product '{id}'.");
+
+        var stream = await contentImages.OpenReadAsync(image.StoragePath, cancellationToken);
+        if (stream is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductContentImageNotFound, detail: $"Image blob for '{imageId}' is missing.");
+        return File(stream, image.ContentType);
     }
 
     private bool TryGetCurrentUserId(out Guid userId)
