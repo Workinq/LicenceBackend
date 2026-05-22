@@ -33,14 +33,14 @@ public sealed class StripeWebhookController(
             switch (evt.Type)
             {
                 case "payment_intent.succeeded" when evt.PaymentIntentId is not null:
-                {
-                    var attemptId = await checkoutAttempts.FindIdByPaymentIntentIdAsync(evt.PaymentIntentId, cancellationToken);
-                    if (attemptId is not null)
-                        await fulfillment.FulfillAsync(attemptId.Value, cancellationToken);
-                    else
-                        logger.LogWarning("Stripe payment_intent.succeeded for unknown intent {PaymentIntentId}", evt.PaymentIntentId);
-                    break;
-                }
+                    {
+                        var attemptId = await checkoutAttempts.FindIdByPaymentIntentIdAsync(evt.PaymentIntentId, cancellationToken);
+                        if (attemptId is not null)
+                            await fulfillment.FulfillAsync(attemptId.Value, cancellationToken);
+                        else
+                            logger.LogWarning("Stripe payment_intent.succeeded for unknown intent {PaymentIntentId}", evt.PaymentIntentId);
+                        break;
+                    }
                 case "payment_intent.payment_failed" when evt.PaymentIntentId is not null:
                     await checkoutAttempts.MarkFailedByPaymentIntentIdAsync(evt.PaymentIntentId, cancellationToken);
                     break;
