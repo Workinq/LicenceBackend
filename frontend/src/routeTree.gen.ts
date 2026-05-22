@@ -36,6 +36,8 @@ import { Route as AdminProductsIdRouteImport } from './routes/admin/products_.$i
 import { Route as AdminOrdersIdRouteImport } from './routes/admin/orders_.$id'
 import { Route as AdminLicencesNewRouteImport } from './routes/admin/licences_.new'
 import { Route as AdminLicencesIdRouteImport } from './routes/admin/licences_.$id'
+import { Route as PortalOrdersIdInvoiceRouteImport } from './routes/portal/orders_.$id.invoice'
+import { Route as AdminOrdersIdInvoiceRouteImport } from './routes/admin/orders_.$id.invoice'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -172,6 +174,16 @@ const AdminLicencesIdRoute = AdminLicencesIdRouteImport.update({
   path: '/licences/$id',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const PortalOrdersIdInvoiceRoute = PortalOrdersIdInvoiceRouteImport.update({
+  id: '/invoice',
+  path: '/invoice',
+  getParentRoute: () => PortalOrdersIdRoute,
+} as any)
+const AdminOrdersIdInvoiceRoute = AdminOrdersIdInvoiceRouteImport.update({
+  id: '/invoice',
+  path: '/invoice',
+  getParentRoute: () => AdminOrdersIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -194,13 +206,15 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/admin/licences/$id': typeof AdminLicencesIdRoute
   '/admin/licences/new': typeof AdminLicencesNewRoute
-  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRouteWithChildren
   '/admin/products/$id': typeof AdminProductsIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/users/new': typeof AdminUsersNewRoute
   '/portal/licences/$id': typeof PortalLicencesIdRoute
-  '/portal/orders/$id': typeof PortalOrdersIdRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRouteWithChildren
+  '/admin/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
+  '/portal/orders/$id/invoice': typeof PortalOrdersIdInvoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -221,13 +235,15 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/admin/licences/$id': typeof AdminLicencesIdRoute
   '/admin/licences/new': typeof AdminLicencesNewRoute
-  '/admin/orders/$id': typeof AdminOrdersIdRoute
+  '/admin/orders/$id': typeof AdminOrdersIdRouteWithChildren
   '/admin/products/$id': typeof AdminProductsIdRoute
   '/admin/products/new': typeof AdminProductsNewRoute
   '/admin/users/$id': typeof AdminUsersIdRoute
   '/admin/users/new': typeof AdminUsersNewRoute
   '/portal/licences/$id': typeof PortalLicencesIdRoute
-  '/portal/orders/$id': typeof PortalOrdersIdRoute
+  '/portal/orders/$id': typeof PortalOrdersIdRouteWithChildren
+  '/admin/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
+  '/portal/orders/$id/invoice': typeof PortalOrdersIdInvoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -251,13 +267,15 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/admin/licences_/$id': typeof AdminLicencesIdRoute
   '/admin/licences_/new': typeof AdminLicencesNewRoute
-  '/admin/orders_/$id': typeof AdminOrdersIdRoute
+  '/admin/orders_/$id': typeof AdminOrdersIdRouteWithChildren
   '/admin/products_/$id': typeof AdminProductsIdRoute
   '/admin/products_/new': typeof AdminProductsNewRoute
   '/admin/users_/$id': typeof AdminUsersIdRoute
   '/admin/users_/new': typeof AdminUsersNewRoute
   '/portal/licences_/$id': typeof PortalLicencesIdRoute
-  '/portal/orders_/$id': typeof PortalOrdersIdRoute
+  '/portal/orders_/$id': typeof PortalOrdersIdRouteWithChildren
+  '/admin/orders_/$id/invoice': typeof AdminOrdersIdInvoiceRoute
+  '/portal/orders_/$id/invoice': typeof PortalOrdersIdInvoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -289,6 +307,8 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/portal/licences/$id'
     | '/portal/orders/$id'
+    | '/admin/orders/$id/invoice'
+    | '/portal/orders/$id/invoice'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -316,6 +336,8 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/portal/licences/$id'
     | '/portal/orders/$id'
+    | '/admin/orders/$id/invoice'
+    | '/portal/orders/$id/invoice'
   id:
     | '__root__'
     | '/'
@@ -345,6 +367,8 @@ export interface FileRouteTypes {
     | '/admin/users_/new'
     | '/portal/licences_/$id'
     | '/portal/orders_/$id'
+    | '/admin/orders_/$id/invoice'
+    | '/portal/orders_/$id/invoice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -546,8 +570,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLicencesIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/portal/orders_/$id/invoice': {
+      id: '/portal/orders_/$id/invoice'
+      path: '/invoice'
+      fullPath: '/portal/orders/$id/invoice'
+      preLoaderRoute: typeof PortalOrdersIdInvoiceRouteImport
+      parentRoute: typeof PortalOrdersIdRoute
+    }
+    '/admin/orders_/$id/invoice': {
+      id: '/admin/orders_/$id/invoice'
+      path: '/invoice'
+      fullPath: '/admin/orders/$id/invoice'
+      preLoaderRoute: typeof AdminOrdersIdInvoiceRouteImport
+      parentRoute: typeof AdminOrdersIdRoute
+    }
   }
 }
+
+interface AdminOrdersIdRouteChildren {
+  AdminOrdersIdInvoiceRoute: typeof AdminOrdersIdInvoiceRoute
+}
+
+const AdminOrdersIdRouteChildren: AdminOrdersIdRouteChildren = {
+  AdminOrdersIdInvoiceRoute: AdminOrdersIdInvoiceRoute,
+}
+
+const AdminOrdersIdRouteWithChildren = AdminOrdersIdRoute._addFileChildren(
+  AdminOrdersIdRouteChildren,
+)
 
 interface AdminRouteRouteChildren {
   AdminLicencesRoute: typeof AdminLicencesRoute
@@ -558,7 +608,7 @@ interface AdminRouteRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminLicencesIdRoute: typeof AdminLicencesIdRoute
   AdminLicencesNewRoute: typeof AdminLicencesNewRoute
-  AdminOrdersIdRoute: typeof AdminOrdersIdRoute
+  AdminOrdersIdRoute: typeof AdminOrdersIdRouteWithChildren
   AdminProductsIdRoute: typeof AdminProductsIdRoute
   AdminProductsNewRoute: typeof AdminProductsNewRoute
   AdminUsersIdRoute: typeof AdminUsersIdRoute
@@ -574,7 +624,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminLicencesIdRoute: AdminLicencesIdRoute,
   AdminLicencesNewRoute: AdminLicencesNewRoute,
-  AdminOrdersIdRoute: AdminOrdersIdRoute,
+  AdminOrdersIdRoute: AdminOrdersIdRouteWithChildren,
   AdminProductsIdRoute: AdminProductsIdRoute,
   AdminProductsNewRoute: AdminProductsNewRoute,
   AdminUsersIdRoute: AdminUsersIdRoute,
@@ -583,6 +633,18 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
+)
+
+interface PortalOrdersIdRouteChildren {
+  PortalOrdersIdInvoiceRoute: typeof PortalOrdersIdInvoiceRoute
+}
+
+const PortalOrdersIdRouteChildren: PortalOrdersIdRouteChildren = {
+  PortalOrdersIdInvoiceRoute: PortalOrdersIdInvoiceRoute,
+}
+
+const PortalOrdersIdRouteWithChildren = PortalOrdersIdRoute._addFileChildren(
+  PortalOrdersIdRouteChildren,
 )
 
 interface PortalRouteRouteChildren {
@@ -594,7 +656,7 @@ interface PortalRouteRouteChildren {
   PortalProductsRoute: typeof PortalProductsRoute
   PortalIndexRoute: typeof PortalIndexRoute
   PortalLicencesIdRoute: typeof PortalLicencesIdRoute
-  PortalOrdersIdRoute: typeof PortalOrdersIdRoute
+  PortalOrdersIdRoute: typeof PortalOrdersIdRouteWithChildren
 }
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
@@ -606,7 +668,7 @@ const PortalRouteRouteChildren: PortalRouteRouteChildren = {
   PortalProductsRoute: PortalProductsRoute,
   PortalIndexRoute: PortalIndexRoute,
   PortalLicencesIdRoute: PortalLicencesIdRoute,
-  PortalOrdersIdRoute: PortalOrdersIdRoute,
+  PortalOrdersIdRoute: PortalOrdersIdRouteWithChildren,
 }
 
 const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(
