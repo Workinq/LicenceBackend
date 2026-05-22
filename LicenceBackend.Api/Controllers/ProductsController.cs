@@ -42,6 +42,7 @@ public sealed class ProductsController(
         ["image/webp"] = ".webp",
     };
     private const long MaxImageBytes = 2 * 1024 * 1024;
+    private const long MaxUploadRequestBytes = 200L * 1024 * 1024;
     private const int MaxPageContentBytes = 256 * 1024;
 
     [HttpPost]
@@ -219,7 +220,7 @@ public sealed class ProductsController(
 
     [HttpPost("{id:guid}/files")]
     [Authorize(Roles = "admin")]
-    [DisableRequestSizeLimit]
+    [RequestSizeLimit(MaxUploadRequestBytes)]
     [ProducesResponseType(typeof(ProductFileResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
