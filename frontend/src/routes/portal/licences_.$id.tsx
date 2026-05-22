@@ -201,26 +201,29 @@ function PortalLicenceDetail() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-ink-muted">
-            The licence key is shown only once at creation. Only the licence owner can perform actions on it.
+            {lic.hasKey
+              ? 'The licence key is shown only once at creation. Only the licence owner can perform actions on it.'
+              : 'This licence has no key yet. Generate one to use the licence. The key is shown only once. Only the licence owner can perform actions on it.'}
           </p>
           {isOwner && lic.status === 'active' && (
             <RegenerateKeyDialog
               licenceId={lic.id}
               regenerate={(id) => regenerateMyLicenceKey(id, { reason: null })}
               invalidateQueryKey={['portal', 'licences', 'detail', lic.id]}
+              hasKey={lic.hasKey}
             />
           )}
           {isOwner && lic.status !== 'active' && (
-            <span title={`The key cannot be regenerated for a ${lic.status} licence.`} className="inline-block">
+            <span title={`The key cannot be ${lic.hasKey ? 'regenerated' : 'generated'} for a ${lic.status} licence.`} className="inline-block">
               <Button variant="outline" disabled className="pointer-events-none">
-                Regenerate key
+                {lic.hasKey ? 'Regenerate key' : 'Generate key'}
               </Button>
             </span>
           )}
           {!isOwner && (
-            <span title="Only the owner can regenerate the key." className="inline-block">
+            <span title={`Only the owner can ${lic.hasKey ? 'regenerate' : 'generate'} the key.`} className="inline-block">
               <Button variant="outline" disabled className="pointer-events-none">
-                Regenerate key
+                {lic.hasKey ? 'Regenerate key' : 'Generate key'}
               </Button>
             </span>
           )}

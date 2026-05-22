@@ -20,12 +20,14 @@ interface RegenerateKeyDialogProps {
   licenceId: string;
   regenerate?: (licenceId: string) => Promise<LicenceKeyRegeneratedResponse>;
   invalidateQueryKey?: readonly unknown[];
+  hasKey?: boolean;
 }
 
 export function RegenerateKeyDialog({
   licenceId,
   regenerate,
   invalidateQueryKey,
+  hasKey = true,
 }: RegenerateKeyDialogProps) {
   const queryClient = useQueryClient();
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -48,22 +50,32 @@ export function RegenerateKeyDialog({
     },
   });
 
+  const actionLabel = hasKey ? 'Regenerate key' : 'Generate key';
+
   return (
     <>
       <ConfirmDestructive
-        trigger={<Button variant="outline" disabled={mutation.isPending}>Regenerate key</Button>}
-        title="Regenerate the key for this licence?"
-        description="The current key stops working immediately and cannot be recovered. The client must be updated with the new key."
-        confirmLabel="Regenerate key"
+        trigger={<Button variant="outline" disabled={mutation.isPending}>{actionLabel}</Button>}
+        title={hasKey ? 'Regenerate the key for this licence?' : 'Generate a key for this licence?'}
+        description={
+          hasKey
+            ? 'The current key stops working immediately and cannot be recovered. The client must be updated with the new key.'
+            : 'The key is shown only once. Save it somewhere safe before closing the dialog.'
+        }
+        confirmLabel={actionLabel}
         onConfirm={() => { mutation.mutate(); }}
       />
       <Dialog open={newKey !== null} onOpenChange={(open) => { if (!open) setNewKey(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New licence key</DialogTitle>
-            <DialogDescription>The old key no longer works. You won't be able to see this new one again.</DialogDescription>
+            <DialogTitle>{hasKey ? 'New licence key' : 'Licence key'}</DialogTitle>
+            <DialogDescription>
+              {hasKey
+                ? "The old key no longer works. You won't be able to see this new one again."
+                : "You won't be able to see this key again."}
+            </DialogDescription>
           </DialogHeader>
-          {newKey !== null && <SecretRevealOnce label="New licence key" value={newKey} />}
+          {newKey !== null && <SecretRevealOnce label={hasKey ? 'New licence key' : 'Licence key'} value={newKey} />}
           <DialogFooter>
             <Button onClick={() => { setNewKey(null); }}>Done</Button>
           </DialogFooter>
