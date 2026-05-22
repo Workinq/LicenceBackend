@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Trash2 } from 'lucide-react';
+import { ArrowUpRight, Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -151,9 +151,10 @@ function PortalLicenceDetail() {
             <dd>
               <Link
                 to="/portal/products"
-                className="text-ink underline-offset-2 hover:underline"
+                className="inline-flex items-center gap-1 font-medium text-primary underline underline-offset-2 hover:no-underline"
               >
                 {lic.productSlug}
+                <ArrowUpRight className="size-3.5" aria-hidden="true" />
               </Link>
             </dd>
             <dt className="text-ink-muted">Label</dt>

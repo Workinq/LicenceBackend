@@ -22,7 +22,7 @@ export const Route = createFileRoute('/portal/licences')({
 const PAGE_SIZE = 25;
 
 function formatDate(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString() : '-';
+  return value ? new Date(value).toLocaleDateString() : 'Never';
 }
 
 function PortalLicencesPage() {
@@ -53,19 +53,20 @@ function PortalLicencesPage() {
               <TableHead>Status</TableHead>
               <TableHead>HWID</TableHead>
               <TableHead>Expires</TableHead>
+              <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {query.isPending && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {query.isError && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-status-revoked-fg">
+                <TableCell colSpan={7} className="text-sm text-status-revoked-fg">
                   Failed to load your licences.
                 </TableCell>
               </TableRow>
@@ -90,11 +91,18 @@ function PortalLicencesPage() {
                 <TableCell><StatusPill status={lic.status} /></TableCell>
                 <TableCell className="text-ink-muted">{lic.hwidBound ? 'Bound' : '-'}</TableCell>
                 <TableCell className="text-ink-muted">{formatDate(lic.expiresAt)}</TableCell>
+                <TableCell>
+                  <Button asChild variant="link" size="sm" className="px-0">
+                    <Link to="/portal/licences/$id" params={{ id: lic.id }}>
+                      View
+                    </Link>
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {data && data.items.length === 0 && !query.isError && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-ink-muted">
+                <TableCell colSpan={7} className="text-sm text-ink-muted">
                   You do not have any licences yet.
                 </TableCell>
               </TableRow>
