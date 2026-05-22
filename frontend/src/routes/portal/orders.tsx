@@ -35,12 +35,7 @@ function OrdersListPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">My orders</h1>
-        <p className="text-sm text-ink-muted">A history of everything you've bought.</p>
-      </div>
-
-      {query.isError && <p className="text-sm text-status-revoked-fg">Failed to load orders.</p>}
+      <h1 className="font-display text-2xl font-semibold text-ink">My orders</h1>
 
       <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
         <Table>
@@ -61,7 +56,14 @@ function OrdersListPage() {
                 </TableCell>
               </TableRow>
             )}
-            {!query.isPending && (data?.total ?? 0) === 0 && (
+            {query.isError && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-sm text-status-revoked-fg">
+                  Failed to load orders.
+                </TableCell>
+              </TableRow>
+            )}
+            {!query.isPending && !query.isError && (data?.total ?? 0) === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-sm text-ink-muted">
                   You haven't placed any orders yet.
