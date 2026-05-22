@@ -14,4 +14,4 @@ public sealed record LicenceKeyRegeneratedResponse(
     string? Label,
     DateTimeOffset CreatedAt,
     string LicenceKey
-) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, Label, CreatedAt);
+) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, true, IpAllowlist, Label, CreatedAt);

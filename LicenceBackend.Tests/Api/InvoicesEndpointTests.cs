@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Dapper;
+using LicenceBackend.Core.Payments;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LicenceBackend.Tests.Api;
 
@@ -12,7 +14,7 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("invoice-product", "Invoice Product", 12.50m, "USD");
 
-        var order = await PlaceOrderAsync(product.Id);
+        var order = await PlaceOrderAsync(product.Id, 12.50m);
 
         await using var conn = await OpenDbAsync();
         var count = await conn.ExecuteScalarAsync<int>(
@@ -30,7 +32,7 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("inv-read", "Inv Read", 30.00m, "USD");
-        var order = await PlaceOrderAsync(product.Id);
+        var order = await PlaceOrderAsync(product.Id, 30.00m);
 
         var response = await AuthedClient.GetAsync($"/me/orders/{order.Id}/invoice");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -48,7 +50,7 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("inv-foreign", "Inv Foreign", 5.00m, "USD");
-        var order = await PlaceOrderAsync(product.Id);
+        var order = await PlaceOrderAsync(product.Id, 5.00m);
 
         var email = "invoice-foreign@test.local";
         var password = "invoice-foreign-pw-12345";
@@ -65,7 +67,7 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("inv-admin", "Inv Admin", 7.00m, "USD");
-        var order = await PlaceOrderAsync(product.Id);
+        var order = await PlaceOrderAsync(product.Id, 7.00m);
 
         var response = await AuthedClient.GetAsync($"/admin/orders/{order.Id}/invoice");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -76,8 +78,8 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("inv-seq", "Inv Seq", 1.00m, "USD");
-        var first = await PlaceOrderAsync(product.Id);
-        var second = await PlaceOrderAsync(product.Id);
+        var first = await PlaceOrderAsync(product.Id, 1.00m);
+        var second = await PlaceOrderAsync(product.Id, 1.00m);
 
         var firstInvoice = await (await AuthedClient.GetAsync($"/me/orders/{first.Id}/invoice"))
             .Content.ReadFromJsonAsync<InvoicePayload>();
@@ -94,7 +96,7 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("inv-rename", "Original Name", 9.00m, "USD");
-        var order = await PlaceOrderAsync(product.Id);
+        var order = await PlaceOrderAsync(product.Id, 9.00m);
 
         await using (var conn = await OpenDbAsync())
         {
@@ -120,24 +122,20 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("inv-licence-link", "Inv Licence Link", 4.00m, "USD");
+        var order = await PlaceOrderAsync(product.Id, 4.00m);
 
-        var orderResponse = await AuthedClient.PostAsJsonAsync("/orders", new
+        Guid licenceId;
+        await using (var conn = await OpenDbAsync())
         {
-            items = new object[]
-            {
-                new { productId = product.Id, quantity = 1, labels = new string?[] { null } }
-            }
-        });
-        Assert.Equal(HttpStatusCode.Created, orderResponse.StatusCode);
-        var orderBody = await orderResponse.Content.ReadFromJsonAsync<OrderWithItems>();
-        Assert.NotNull(orderBody);
-        var licenceId = orderBody.Items[0].LicenceId;
+            licenceId = await conn.ExecuteScalarAsync<Guid>(
+                "SELECT licence_id FROM order_items WHERE order_id = @OrderId", new { OrderId = order.Id });
+        }
 
         var detail = await AuthedClient.GetAsync($"/me/licences/{licenceId}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
         var licence = await detail.Content.ReadFromJsonAsync<LicenceWithOrder>();
         Assert.NotNull(licence);
-        Assert.Equal(orderBody.Id, licence.OrderId);
+        Assert.Equal(order.Id, licence.OrderId);
     }
 
     private async Task<ProductRef> CreateProductAsync(string slug, string name, decimal price, string currency)
@@ -156,19 +154,28 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
         return body;
     }
 
-    private async Task<OrderRef> PlaceOrderAsync(Guid productId)
+    private async Task<OrderRef> PlaceOrderAsync(Guid productId, decimal unitPrice)
     {
-        var response = await AuthedClient.PostAsJsonAsync("/orders", new
+        var attemptId = Guid.NewGuid();
+        await using (var conn = await OpenDbAsync())
         {
-            items = new object[]
-            {
-                new { productId, quantity = 1, labels = new string?[] { null } }
-            }
-        });
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<OrderRef>();
-        Assert.NotNull(body);
-        return body;
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO checkout_attempts (id, user_id, contact_email, currency, amount_total, stripe_payment_intent_id, status)
+                VALUES (@Id, @UserId, @Email, 'USD', @Total, @Pi, 'pending');
+                """,
+                new { Id = attemptId, UserId = AdminUserId, Email = AdminEmail, Total = unitPrice, Pi = $"pi_{attemptId:N}" });
+            await conn.ExecuteAsync(
+                """
+                INSERT INTO checkout_attempt_items (id, checkout_attempt_id, product_id, quantity, labels, unit_price, currency)
+                VALUES (@Id, @AttemptId, @ProductId, 1, '[null]'::jsonb, @UnitPrice, 'USD');
+                """,
+                new { Id = Guid.NewGuid(), AttemptId = attemptId, ProductId = productId, UnitPrice = unitPrice });
+        }
+
+        var fulfillment = Factory!.Services.GetRequiredService<IOrderFulfillmentService>();
+        var orderId = await fulfillment.FulfillAsync(attemptId, CancellationToken.None);
+        return new OrderRef(orderId);
     }
 
     public sealed record OrderRef(Guid Id);
@@ -184,10 +191,6 @@ public sealed class InvoicesEndpointTests : IntegrationTestBase
     public sealed record InvoiceLinePayload(string ProductName, decimal? UnitPrice, string Currency);
 
     public sealed record TotalPayload(string Currency, decimal Amount);
-
-    public sealed record OrderWithItems(Guid Id, IReadOnlyList<OrderItemRef> Items);
-
-    public sealed record OrderItemRef(Guid LicenceId);
 
     public sealed record LicenceWithOrder(Guid Id, Guid? OrderId);
 }
