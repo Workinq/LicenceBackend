@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { useBasketStore } from '@/state/basket-store';
 import { Button } from '@/components/ui/button';
@@ -32,14 +33,18 @@ export function AddToBasketButton({ product, variant = 'default' }: AddToBasketB
     );
   }
 
-  const dec = () => {
+  const dec = (e: MouseEvent) => {
+    e.stopPropagation();
     if (item.quantity <= 1) {
       remove(product.id);
     } else {
       setQuantity(product.id, item.quantity - 1);
     }
   };
-  const inc = () => setQuantity(product.id, item.quantity + 1);
+  const inc = (e: MouseEvent) => {
+    e.stopPropagation();
+    setQuantity(product.id, item.quantity + 1);
+  };
 
   return (
     <div
@@ -47,7 +52,6 @@ export function AddToBasketButton({ product, variant = 'default' }: AddToBasketB
         'inline-flex items-center rounded-md border border-border bg-surface-elevated',
         variant === 'compact' ? 'h-7' : 'h-9',
       )}
-      onClick={(e) => e.stopPropagation()}
     >
       <button
         type="button"

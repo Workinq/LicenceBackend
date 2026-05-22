@@ -39,4 +39,4 @@ const body =
   `export const PASSWORD_MAX_LENGTH = ${password.maxLength};\n`;
 
 await writeFile(outFile, banner + '\n' + body, 'utf8');
-console.log(`Wrote ${outFile}: PASSWORD_MIN_LENGTH=${password.minLength}, PASSWORD_MAX_LENGTH=${password.maxLength}`);
+console.log(`Wrote ${outFile}`);
