@@ -26,7 +26,7 @@ export interface AuditEventResponse {
   payload: JsonElement;
 }
 
-export type NullableOfJsonElement = unknown;
+export type NullableOfJsonElement = unknown | null;
 
 export interface BindingHistoryEntryResponse {
   id: string;
@@ -149,6 +149,57 @@ export interface HealthResponse {
 
 export type IFormFile = Blob;
 
+export interface InvoiceBuyerResponse {
+  contactEmail: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  addressLine1: string | null;
+  /** @nullable */
+  addressLine2: string | null;
+  /** @nullable */
+  city: string | null;
+  /** @nullable */
+  region: string | null;
+  /** @nullable */
+  postalCode: string | null;
+  /** @nullable */
+  country: string | null;
+}
+
+export interface InvoiceLineItemResponse {
+  licenceId: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  /** @nullable */
+  label: string | null;
+  /** @nullable */
+  unitPrice: number | null;
+  currency: string;
+}
+
+export interface InvoiceSellerResponse {
+  name: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+}
+
+export interface InvoiceResponse {
+  orderId: string;
+  invoiceNumber: string;
+  issuedAt: string;
+  status: string;
+  seller: InvoiceSellerResponse;
+  buyer: InvoiceBuyerResponse;
+  lineItems: InvoiceLineItemResponse[];
+  totals: CurrencyTotalResponse[];
+}
+
 export interface JwkEntry {
   kty: string;
   crv: string;
@@ -182,6 +233,8 @@ export interface LicenceCreatedResponse {
   label: string | null;
   createdAt: string;
   /** @nullable */
+  orderId?: string | null;
+  /** @nullable */
   relationship?: string | null;
 }
 
@@ -203,6 +256,8 @@ export interface LicenceKeyRegeneratedResponse {
   /** @nullable */
   label: string | null;
   createdAt: string;
+  /** @nullable */
+  orderId?: string | null;
   /** @nullable */
   relationship?: string | null;
 }
@@ -235,6 +290,8 @@ export interface LicenceResponse {
   /** @nullable */
   label: string | null;
   createdAt: string;
+  /** @nullable */
+  orderId?: string | null;
   /** @nullable */
   relationship?: string | null;
 }

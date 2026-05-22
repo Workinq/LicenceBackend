@@ -30,6 +30,7 @@ import type {
   GetUsersParams,
   GetVerificationAttemptsParams,
   HealthResponse,
+  InvoiceResponse,
   JwksResponse,
   LicenceCreatedResponse,
   LicenceKeyRegeneratedResponse,
@@ -1607,6 +1608,111 @@ export const getGetAdminOrdersIdUrl = (id: string,) => {
 export const getAdminOrdersId = async (id: string, options?: RequestInit): Promise<getAdminOrdersIdResponse> => {
 
   return apiClient<getAdminOrdersIdResponse>(getGetAdminOrdersIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getMeOrdersIdInvoiceResponse200 = {
+  data: InvoiceResponse
+  status: 200
+}
+
+export type getMeOrdersIdInvoiceResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getMeOrdersIdInvoiceResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMeOrdersIdInvoiceResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getMeOrdersIdInvoiceResponseSuccess = (getMeOrdersIdInvoiceResponse200) & {
+  headers: Headers;
+};
+export type getMeOrdersIdInvoiceResponseError = (getMeOrdersIdInvoiceResponse400 | getMeOrdersIdInvoiceResponse401 | getMeOrdersIdInvoiceResponse404) & {
+  headers: Headers;
+};
+
+export type getMeOrdersIdInvoiceResponse = (getMeOrdersIdInvoiceResponseSuccess | getMeOrdersIdInvoiceResponseError)
+
+export const getGetMeOrdersIdInvoiceUrl = (id: string,) => {
+
+
+
+
+  return `/me/orders/${id}/invoice`
+}
+
+export const getMeOrdersIdInvoice = async (id: string, options?: RequestInit): Promise<getMeOrdersIdInvoiceResponse> => {
+
+  return apiClient<getMeOrdersIdInvoiceResponse>(getGetMeOrdersIdInvoiceUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getAdminOrdersIdInvoiceResponse200 = {
+  data: InvoiceResponse
+  status: 200
+}
+
+export type getAdminOrdersIdInvoiceResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type getAdminOrdersIdInvoiceResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getAdminOrdersIdInvoiceResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAdminOrdersIdInvoiceResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getAdminOrdersIdInvoiceResponseSuccess = (getAdminOrdersIdInvoiceResponse200) & {
+  headers: Headers;
+};
+export type getAdminOrdersIdInvoiceResponseError = (getAdminOrdersIdInvoiceResponse400 | getAdminOrdersIdInvoiceResponse401 | getAdminOrdersIdInvoiceResponse403 | getAdminOrdersIdInvoiceResponse404) & {
+  headers: Headers;
+};
+
+export type getAdminOrdersIdInvoiceResponse = (getAdminOrdersIdInvoiceResponseSuccess | getAdminOrdersIdInvoiceResponseError)
+
+export const getGetAdminOrdersIdInvoiceUrl = (id: string,) => {
+
+
+
+
+  return `/admin/orders/${id}/invoice`
+}
+
+export const getAdminOrdersIdInvoice = async (id: string, options?: RequestInit): Promise<getAdminOrdersIdInvoiceResponse> => {
+
+  return apiClient<getAdminOrdersIdInvoiceResponse>(getGetAdminOrdersIdInvoiceUrl(id),
   {
     ...options,
     method: 'GET'
