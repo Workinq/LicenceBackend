@@ -132,6 +132,13 @@ function PortalLicenceDetail() {
       <div className="flex items-center gap-3">
         <h1 className="font-display text-2xl font-semibold text-ink">{lic.productSlug}</h1>
         <StatusPill status={lic.status} />
+        {lic.orderId && (
+          <Button asChild variant="outline" size="sm" className="ml-auto">
+            <Link to="/portal/orders/$id/invoice" params={{ id: lic.orderId }}>
+              View invoice
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>

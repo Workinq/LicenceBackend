@@ -35,9 +35,16 @@ function OrderDetailPage() {
           <h1 className="font-display text-2xl font-semibold text-ink">Order detail</h1>
           {order && <p className="text-sm text-ink-muted">Placed {formatDateTime(order.createdAt)}</p>}
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/portal/orders">Back to orders</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/portal/orders/$id/invoice" params={{ id }}>
+              View invoice
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/portal/orders">Back to orders</Link>
+          </Button>
+        </div>
       </div>
 
       {justPlaced && (

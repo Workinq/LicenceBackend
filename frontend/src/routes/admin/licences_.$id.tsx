@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
 import { LicenceKey } from '@/components/LicenceKey';
@@ -34,6 +35,13 @@ function LicenceDetailPage() {
       <div className="flex items-center gap-3">
         <h1 className="font-display text-2xl font-semibold text-ink">Licence</h1>
         <StatusPill status={lic.status} />
+        {lic.orderId && (
+          <Button asChild variant="outline" size="sm" className="ml-auto">
+            <Link to="/admin/orders/$id/invoice" params={{ id: lic.orderId }}>
+              View invoice
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>

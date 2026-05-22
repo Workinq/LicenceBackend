@@ -21,9 +21,16 @@ function AdminOrderDetailPage() {
     <div className="max-w-3xl space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Order detail</h1>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/admin/orders">Back to orders</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/orders/$id/invoice" params={{ id }}>
+              View invoice
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/orders">Back to orders</Link>
+          </Button>
+        </div>
       </div>
 
       {query.isPending && <Skeleton className="h-40 w-full" />}
