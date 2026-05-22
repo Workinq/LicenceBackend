@@ -10,8 +10,10 @@ using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Users;
+using LicenceBackend.Infrastructure.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace LicenceBackend.Api.Controllers;
@@ -32,7 +34,8 @@ public sealed class OrdersController(
     IUserRepository users,
     ILicenceKeyGenerator keyGenerator,
     ILicenceKeyHasher keyHasher,
-    TimeProvider time
+    TimeProvider time,
+    IOptions<InvoicingOptions> invoicingOptions
 ) : ControllerBase
 {
     private const int MaxLabelLength = 10;
@@ -330,6 +333,91 @@ public sealed class OrdersController(
         var responses = await BuildOrderResponsesAsync([order], cancellationToken);
         return Ok(responses[0]);
     }
+
+    [HttpGet("/me/orders/{id:guid}/invoice")]
+    [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyInvoice(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+        var order = await orders.FindByIdAsync(id, cancellationToken);
+        if (order is null || order.UserId != userId) return InvoiceNotFound(id);
+
+        return await BuildInvoiceResultAsync(order, cancellationToken);
+    }
+
+    [HttpGet("/admin/orders/{id:guid}/invoice")]
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(typeof(InvoiceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdminInvoice(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await orders.FindByIdAsync(id, cancellationToken);
+        if (order is null) return InvoiceNotFound(id);
+
+        return await BuildInvoiceResultAsync(order, cancellationToken);
+    }
+
+    private async Task<IActionResult> BuildInvoiceResultAsync(Order order, CancellationToken cancellationToken)
+    {
+        var found = await invoices.FindByOrderIdAsync(order.Id, cancellationToken);
+        if (found is null) return InvoiceNotFound(order.Id);
+
+        var (invoice, lineItems) = found.Value;
+        var opts = invoicingOptions.Value;
+
+        var seller = new InvoiceSellerResponse(
+            opts.SellerName,
+            opts.SellerAddressLine1,
+            opts.SellerAddressLine2,
+            opts.SellerCity,
+            opts.SellerRegion,
+            opts.SellerPostalCode,
+            opts.SellerCountry);
+
+        var buyer = new InvoiceBuyerResponse(
+            invoice.ContactEmail,
+            invoice.BuyerName,
+            invoice.BuyerAddressLine1,
+            invoice.BuyerAddressLine2,
+            invoice.BuyerCity,
+            invoice.BuyerRegion,
+            invoice.BuyerPostalCode,
+            invoice.BuyerCountry);
+
+        var lines = lineItems.Select(li => new InvoiceLineItemResponse(
+            li.LicenceId,
+            li.ProductId,
+            li.ProductName,
+            li.ProductSlug,
+            li.Label,
+            li.UnitPrice,
+            li.Currency)).ToList();
+
+        var totals = lineItems
+            .GroupBy(li => li.Currency)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => new CurrencyTotalResponse(g.Key, g.Sum(li => li.UnitPrice ?? 0m)))
+            .ToList();
+
+        var response = new InvoiceResponse(
+            order.Id,
+            opts.FormatNumber(invoice.InvoiceNumber),
+            invoice.IssuedAt,
+            order.Status.ToString().ToLowerInvariant(),
+            seller,
+            buyer,
+            lines,
+            totals);
+
+        return Ok(response);
+    }
+
+    private IActionResult InvoiceNotFound(Guid id) => Problem(
+        statusCode: StatusCodes.Status404NotFound,
+        title: ProblemTitles.InvoiceNotFound,
+        detail: $"No invoice for order '{id}'.");
 
     private async Task<IReadOnlyList<OrderResponse>> BuildOrderResponsesAsync(IReadOnlyList<Order> orderList, CancellationToken cancellationToken)
     {
