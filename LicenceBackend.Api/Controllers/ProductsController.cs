@@ -1,5 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
@@ -23,6 +25,8 @@ public sealed class ProductsController(
     IProductImageStorage images,
     IProductFileRepository productFiles,
     IProductFileStorage productFileStorage,
+    IProductContentImageStorage contentImages,
+    IProductContentImageRepository contentImageRepository,
     IAuditEventRepository auditEvents,
     Microsoft.Extensions.Options.IOptions<LicenceBackend.Infrastructure.Options.ProductFileStorageOptions> productFileOptions,
     TimeProvider time
@@ -38,6 +42,7 @@ public sealed class ProductsController(
         ["image/webp"] = ".webp",
     };
     private const long MaxImageBytes = 2 * 1024 * 1024;
+    private const int MaxPageContentBytes = 256 * 1024;
 
     [HttpPost]
     [Authorize(Roles = "admin")]
@@ -91,7 +96,7 @@ public sealed class ProductsController(
 
         var publicOnly = !User.IsInRole("admin");
         var page = await products.ListAsync(effectiveLimit, effectiveOffset, q, publicOnly, cancellationToken);
-        var items = page.Items.Select(ToResponse).ToList();
+        var items = page.Items.Select(p => ToResponse(p, includePageContent: false)).ToList();
         return Ok(new PagedResponse<ProductResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
 
@@ -128,6 +133,16 @@ public sealed class ProductsController(
                 detail: $"No product with id '{id}'."
             );
 
+        if (request.PageContent is { } pageContent)
+        {
+            var pageContentBytes = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(pageContent));
+            if (pageContentBytes > MaxPageContentBytes)
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: ProblemTitles.PageContentTooLarge,
+                    detail: $"Page content exceeds the {MaxPageContentBytes} byte limit.");
+        }
+
         // PATCH semantics: a null field is left unchanged. Clearing description/tagline/price back to null is not supported here.
         var updated = product with
         {
@@ -138,6 +153,7 @@ public sealed class ProductsController(
             Price = request.Price ?? product.Price,
             Currency = request.Currency ?? product.Currency,
             SortOrder = request.SortOrder ?? product.SortOrder,
+            PageContent = request.PageContent ?? product.PageContent,
         };
 
         await products.UpdateAsync(updated, cancellationToken);
@@ -301,6 +317,68 @@ public sealed class ProductsController(
         return File(stream, file.ContentType, file.FileName);
     }
 
+    [HttpPost("{id:guid}/content-images")]
+    [Authorize(Roles = "admin")]
+    [RequestSizeLimit(MaxImageBytes)]
+    [ProducesResponseType(typeof(ProductContentImageResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadContentImage(Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        if (product is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductNotFound, detail: $"No product with id '{id}'.");
+
+        if (file is null || file.Length == 0)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductContentImage, detail: "No image file was provided.");
+        if (file.Length > MaxImageBytes)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductContentImage, detail: "The image is larger than 2 MB.");
+        if (!AllowedImageContentTypes.TryGetValue(file.ContentType, out var extension))
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.InvalidProductContentImage, detail: "The image must be a PNG, JPEG, or WebP.");
+
+        if (!TryGetCurrentUserId(out var adminId)) return Unauthorized();
+
+        var imageId = Guid.NewGuid();
+        string storagePath;
+        await using (var stream = file.OpenReadStream())
+        {
+            storagePath = await contentImages.SaveAsync(imageId, extension, stream, cancellationToken);
+        }
+
+        var image = new ProductContentImage(
+            imageId,
+            product.Id,
+            storagePath,
+            file.ContentType,
+            file.Length,
+            adminId,
+            time.GetUtcNow());
+        await contentImageRepository.CreateAsync(image, cancellationToken);
+
+        var response = new ProductContentImageResponse(image.Id, $"/products/{product.Id}/content-images/{image.Id}");
+        return CreatedAtAction(nameof(GetContentImage), new { id = product.Id, imageId = image.Id }, response);
+    }
+
+    [HttpGet("{id:guid}/content-images/{imageId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetContentImage(Guid id, Guid imageId, CancellationToken cancellationToken)
+    {
+        var image = await contentImageRepository.FindByIdAsync(imageId, cancellationToken);
+        if (image is null || image.ProductId != id)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductContentImageNotFound, detail: $"No content image '{imageId}' on product '{id}'.");
+
+        var product = await products.FindByIdAsync(id, cancellationToken);
+        var isAdmin = User.IsInRole("admin");
+        if (product is null || (!isAdmin && !product.IsPublic))
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductContentImageNotFound, detail: $"No content image '{imageId}' on product '{id}'.");
+
+        var stream = await contentImages.OpenReadAsync(image.StoragePath, cancellationToken);
+        if (stream is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound, title: ProblemTitles.ProductContentImageNotFound, detail: $"Image blob for '{imageId}' is missing.");
+        return File(stream, image.ContentType);
+    }
+
     private bool TryGetCurrentUserId(out Guid userId)
     {
         var subClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -320,7 +398,7 @@ public sealed class ProductsController(
             file.UploadedAt);
     }
 
-    private static ProductResponse ToResponse(Product product)
+    private static ProductResponse ToResponse(Product product, bool includePageContent = true)
     {
         return new ProductResponse(
             product.Id,
@@ -333,6 +411,7 @@ public sealed class ProductsController(
             product.Currency,
             product.SortOrder,
             product.ImagePath is null ? null : $"/products/{product.Id}/image",
-            product.CreatedAt);
+            product.CreatedAt,
+            includePageContent ? product.PageContent : null);
     }
 }

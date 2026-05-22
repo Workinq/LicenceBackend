@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace LicenceBackend.Api.Models.Request;
 
@@ -14,5 +15,6 @@ public sealed record UpdateProductRequest(
     decimal? Price,
     [RegularExpression("^[A-Z]{3}$", ErrorMessage = "Currency must be a 3-letter uppercase code.")]
     string? Currency,
-    int? SortOrder
+    int? SortOrder,
+    JsonElement? PageContent
 );

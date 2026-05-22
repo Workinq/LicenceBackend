@@ -458,6 +458,7 @@ export interface ProductResponse {
   /** @nullable */
   imageUrl: string | null;
   createdAt: string;
+  pageContent: NullableOfJsonElement | null;
 }
 
 export interface PagedResponseOfProductResponse {
@@ -537,6 +538,11 @@ export interface ProblemDetails {
   instance?: string | null;
 }
 
+export interface ProductContentImageResponse {
+  id: string;
+  url: string;
+}
+
 export interface ProductFileResponse {
   id: string;
   productId: string;
@@ -613,6 +619,7 @@ export interface UpdateProductRequest {
   currency: string | null;
   /** @nullable */
   sortOrder: number | null;
+  pageContent: NullableOfJsonElement | null;
 }
 
 export interface UpdateProfileRequest {
@@ -696,6 +703,10 @@ export type PostProductsIdImageBody = {
 };
 
 export type PostProductsIdFilesBody = {
+  file?: IFormFile;
+};
+
+export type PostProductsIdContentImagesBody = {
   file?: IFormFile;
 };
 

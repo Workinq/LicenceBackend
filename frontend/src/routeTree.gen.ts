@@ -27,6 +27,7 @@ import { Route as AdminProductsRouteImport } from './routes/admin/products'
 import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
 import { Route as AdminMeRouteImport } from './routes/admin/me'
 import { Route as AdminLicencesRouteImport } from './routes/admin/licences'
+import { Route as PortalProductsIdRouteImport } from './routes/portal/products_.$id'
 import { Route as PortalOrdersIdRouteImport } from './routes/portal/orders_.$id'
 import { Route as PortalLicencesIdRouteImport } from './routes/portal/licences_.$id'
 import { Route as AdminUsersNewRouteImport } from './routes/admin/users_.new'
@@ -129,6 +130,11 @@ const AdminLicencesRoute = AdminLicencesRouteImport.update({
   path: '/licences',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const PortalProductsIdRoute = PortalProductsIdRouteImport.update({
+  id: '/products_/$id',
+  path: '/products/$id',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
 const PortalOrdersIdRoute = PortalOrdersIdRouteImport.update({
   id: '/orders_/$id',
   path: '/orders/$id',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/portal/licences/$id': typeof PortalLicencesIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRouteWithChildren
+  '/portal/products/$id': typeof PortalProductsIdRoute
   '/admin/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
   '/portal/orders/$id/invoice': typeof PortalOrdersIdInvoiceRoute
 }
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/admin/users/new': typeof AdminUsersNewRoute
   '/portal/licences/$id': typeof PortalLicencesIdRoute
   '/portal/orders/$id': typeof PortalOrdersIdRouteWithChildren
+  '/portal/products/$id': typeof PortalProductsIdRoute
   '/admin/orders/$id/invoice': typeof AdminOrdersIdInvoiceRoute
   '/portal/orders/$id/invoice': typeof PortalOrdersIdInvoiceRoute
 }
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/admin/users_/new': typeof AdminUsersNewRoute
   '/portal/licences_/$id': typeof PortalLicencesIdRoute
   '/portal/orders_/$id': typeof PortalOrdersIdRouteWithChildren
+  '/portal/products_/$id': typeof PortalProductsIdRoute
   '/admin/orders_/$id/invoice': typeof AdminOrdersIdInvoiceRoute
   '/portal/orders_/$id/invoice': typeof PortalOrdersIdInvoiceRoute
 }
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/portal/licences/$id'
     | '/portal/orders/$id'
+    | '/portal/products/$id'
     | '/admin/orders/$id/invoice'
     | '/portal/orders/$id/invoice'
   fileRoutesByTo: FileRoutesByTo
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
     | '/admin/users/new'
     | '/portal/licences/$id'
     | '/portal/orders/$id'
+    | '/portal/products/$id'
     | '/admin/orders/$id/invoice'
     | '/portal/orders/$id/invoice'
   id:
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/admin/users_/new'
     | '/portal/licences_/$id'
     | '/portal/orders_/$id'
+    | '/portal/products_/$id'
     | '/admin/orders_/$id/invoice'
     | '/portal/orders_/$id/invoice'
   fileRoutesById: FileRoutesById
@@ -506,6 +518,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/licences'
       preLoaderRoute: typeof AdminLicencesRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/portal/products_/$id': {
+      id: '/portal/products_/$id'
+      path: '/products/$id'
+      fullPath: '/portal/products/$id'
+      preLoaderRoute: typeof PortalProductsIdRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/portal/orders_/$id': {
       id: '/portal/orders_/$id'
@@ -657,6 +676,7 @@ interface PortalRouteRouteChildren {
   PortalIndexRoute: typeof PortalIndexRoute
   PortalLicencesIdRoute: typeof PortalLicencesIdRoute
   PortalOrdersIdRoute: typeof PortalOrdersIdRouteWithChildren
+  PortalProductsIdRoute: typeof PortalProductsIdRoute
 }
 
 const PortalRouteRouteChildren: PortalRouteRouteChildren = {
@@ -669,6 +689,7 @@ const PortalRouteRouteChildren: PortalRouteRouteChildren = {
   PortalIndexRoute: PortalIndexRoute,
   PortalLicencesIdRoute: PortalLicencesIdRoute,
   PortalOrdersIdRoute: PortalOrdersIdRouteWithChildren,
+  PortalProductsIdRoute: PortalProductsIdRoute,
 }
 
 const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(

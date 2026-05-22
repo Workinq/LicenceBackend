@@ -50,9 +50,11 @@ import type {
   PagedResponseOfUserResponse,
   PagedResponseOfUserStatusHistoryResponse,
   PagedResponseOfVerificationAttemptResponse,
+  PostProductsIdContentImagesBody,
   PostProductsIdFilesBody,
   PostProductsIdImageBody,
   ProblemDetails,
+  ProductContentImageResponse,
   ProductFileResponse,
   ProductResponse,
   RegenerateLicenceKeyRequest,
@@ -2314,6 +2316,119 @@ export const getProductsIdFilesFileIdDownload = async (id: string,
     fileId: string, options?: RequestInit): Promise<getProductsIdFilesFileIdDownloadResponse> => {
 
   return apiClient<getProductsIdFilesFileIdDownloadResponse>(getGetProductsIdFilesFileIdDownloadUrl(id,fileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type postProductsIdContentImagesResponse201 = {
+  data: ProductContentImageResponse
+  status: 201
+}
+
+export type postProductsIdContentImagesResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postProductsIdContentImagesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postProductsIdContentImagesResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postProductsIdContentImagesResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type postProductsIdContentImagesResponseSuccess = (postProductsIdContentImagesResponse201) & {
+  headers: Headers;
+};
+export type postProductsIdContentImagesResponseError = (postProductsIdContentImagesResponse400 | postProductsIdContentImagesResponse401 | postProductsIdContentImagesResponse404 | postProductsIdContentImagesResponse429) & {
+  headers: Headers;
+};
+
+export type postProductsIdContentImagesResponse = (postProductsIdContentImagesResponseSuccess | postProductsIdContentImagesResponseError)
+
+export const getPostProductsIdContentImagesUrl = (id: string,) => {
+
+
+
+
+  return `/products/${id}/content-images`
+}
+
+export const postProductsIdContentImages = async (id: string,
+    postProductsIdContentImagesBody: PostProductsIdContentImagesBody, options?: RequestInit): Promise<postProductsIdContentImagesResponse> => {
+    const formData = new FormData();
+if(postProductsIdContentImagesBody.file !== undefined) {
+ formData.append(`file`, postProductsIdContentImagesBody.file);
+ }
+
+  return apiClient<postProductsIdContentImagesResponse>(getPostProductsIdContentImagesUrl(id),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+export type getProductsIdContentImagesImageIdResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getProductsIdContentImagesImageIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getProductsIdContentImagesImageIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getProductsIdContentImagesImageIdResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type getProductsIdContentImagesImageIdResponseSuccess = (getProductsIdContentImagesImageIdResponse200) & {
+  headers: Headers;
+};
+export type getProductsIdContentImagesImageIdResponseError = (getProductsIdContentImagesImageIdResponse401 | getProductsIdContentImagesImageIdResponse404 | getProductsIdContentImagesImageIdResponse429) & {
+  headers: Headers;
+};
+
+export type getProductsIdContentImagesImageIdResponse = (getProductsIdContentImagesImageIdResponseSuccess | getProductsIdContentImagesImageIdResponseError)
+
+export const getGetProductsIdContentImagesImageIdUrl = (id: string,
+    imageId: string,) => {
+
+
+
+
+  return `/products/${id}/content-images/${imageId}`
+}
+
+export const getProductsIdContentImagesImageId = async (id: string,
+    imageId: string, options?: RequestInit): Promise<getProductsIdContentImagesImageIdResponse> => {
+
+  return apiClient<getProductsIdContentImagesImageIdResponse>(getGetProductsIdContentImagesImageIdUrl(id,imageId),
   {
     ...options,
     method: 'GET'

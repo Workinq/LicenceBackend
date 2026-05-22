@@ -14,6 +14,8 @@ internal static class ProblemTitles
     public const string InvalidMaxSeats = "invalid_max_seats";
     public const string InvalidOutcome = "invalid_outcome";
     public const string InvalidProductImage = "invalid_product_image";
+    public const string InvalidProductContentImage = "invalid_product_content_image";
+    public const string ProductContentImageNotFound = "product_content_image_not_found";
     public const string InvalidRefresh = "invalid_refresh";
     public const string InvalidRole = "invalid_role";
     public const string InvalidStatus = "invalid_status";
@@ -37,6 +39,7 @@ internal static class ProblemTitles
     public const string ProductFileEmpty = "product_file_empty";
     public const string ProductFileTooLarge = "product_file_too_large";
     public const string ProductNotFound = "product_not_found";
+    public const string PageContentTooLarge = "page_content_too_large";
     public const string SeatGone = "seat_gone";
     public const string SeatNotFound = "seat_not_found";
     public const string SlugAlreadyExists = "slug_already_exists";

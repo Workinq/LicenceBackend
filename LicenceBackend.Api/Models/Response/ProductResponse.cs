@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace LicenceBackend.Api.Models.Response;
 
 public sealed record ProductResponse(
@@ -11,5 +13,6 @@ public sealed record ProductResponse(
     string Currency,
     int SortOrder,
     string? ImageUrl,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    JsonElement? PageContent
 );

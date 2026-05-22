@@ -25,6 +25,7 @@ CREATE TABLE products (
     sort_order          INTEGER NOT NULL DEFAULT 0,
     image_path          TEXT,
     image_content_type  TEXT,
+    page_content        JSONB,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -109,6 +110,17 @@ CREATE TABLE product_files (
     CONSTRAINT product_files_version_unique UNIQUE (product_id, version_number)
 );
 CREATE INDEX ix_product_files_product_latest ON product_files (product_id, version_number DESC);
+
+CREATE TABLE product_content_images (
+    id                    UUID PRIMARY KEY,
+    product_id            UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    storage_path          TEXT NOT NULL,
+    content_type          TEXT NOT NULL,
+    file_size_bytes       BIGINT NOT NULL,
+    uploaded_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    uploaded_by_admin_id  UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT
+);
+CREATE INDEX ix_product_content_images_product ON product_content_images (product_id);
 
 CREATE TABLE licence_checkouts (
     id                          UUID PRIMARY KEY,
