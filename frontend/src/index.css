@@ -306,4 +306,25 @@
   .tiptap-content .hljs-symbol {
     color: #b3261e;
   }
+  .dark .tiptap-content .hljs-keyword,
+  .dark .tiptap-content .hljs-selector-tag,
+  .dark .tiptap-content .hljs-meta {
+    color: #c9a8e8;
+  }
+  .dark .tiptap-content .hljs-string,
+  .dark .tiptap-content .hljs-attr,
+  .dark .tiptap-content .hljs-regexp {
+    color: #8fcf8f;
+  }
+  .dark .tiptap-content .hljs-number,
+  .dark .tiptap-content .hljs-literal {
+    color: #e0aa78;
+  }
+  .dark .tiptap-content :is(.hljs-title, .hljs-name, .hljs-built_in) {
+    color: #87b4e8;
+  }
+  .dark .tiptap-content .hljs-type,
+  .dark .tiptap-content .hljs-symbol {
+    color: #e89898;
+  }
 }
