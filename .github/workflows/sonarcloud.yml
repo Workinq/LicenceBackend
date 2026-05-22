@@ -20,9 +20,25 @@ jobs:
       contents: read
       pull-requests: read
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: licencebackend_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       DOTNET_NOLOGO: 'true'
       DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+      LICENCEBACKEND_TEST_POSTGRES: "Host=localhost;Port=5432;Database=licencebackend_test;Username=postgres;Password=postgres"
 
     steps:
       - uses: actions/checkout@v6
@@ -39,6 +55,18 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.x'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
@@ -69,6 +97,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Frontend test and coverage
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test --coverage
+
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,8 +113,14 @@ jobs:
             /o:"workinq" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.exclusions="**/bin/**,**/obj/**,migrations/**" \
+            /d:sonar.exclusions="**/bin/**,**/obj/**,migrations/**,tools/**,frontend/src/api/generated/**,frontend/src/routeTree.gen.ts,frontend/src/api/policies.generated.ts" \
+            /d:sonar.coverage.exclusions="**/*.config.ts,**/*.config.js,frontend/src/main.tsx,frontend/src/__tests__/**,frontend/scripts/**" \
+            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+            /d:sonar.javascript.lcov.reportPaths="frontend/coverage/lcov.info" \
             /d:sonar.cs.roslyn.ignoreIssues=false
           dotnet restore LicenceBackend.sln
           dotnet build LicenceBackend.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=false
+          dotnet test LicenceBackend.sln --no-build --no-restore --configuration Release \
+            --settings coverlet.runsettings \
+            --collect:"XPlat Code Coverage"
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"

@@ -16,9 +16,16 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/api/generated/**', 'src/routeTree.gen.ts'],
+      exclude: [
+        'src/api/generated/**',
+        'src/api/policies.generated.ts',
+        'src/routeTree.gen.ts',
+        'src/main.tsx',
+        'src/__tests__/setup.ts',
+        'src/**/*.d.ts',
+      ],
     },
   },
 });

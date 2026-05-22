@@ -35,6 +35,7 @@ docs/
 # Frontend build artefacts
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
 
 # Uploaded product images (local dev)
 /product-images/
