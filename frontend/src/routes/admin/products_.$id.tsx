@@ -21,7 +21,9 @@ import { downloadProductFileRevision, fetchProductFiles, triggerBlobDownload, up
 import { ApiError } from '@/auth/api-client';
 import { cn } from '@/lib/utils';
 import { LicenceKey } from '@/components/LicenceKey';
+import { ProductPageEditor } from '@/components/products/ProductPageEditor';
 import type { ProductFileResponse, ProductResponse } from '@/api/generated/api.schemas';
+import type { JSONContent } from '@tiptap/react';
 
 export const Route = createFileRoute('/admin/products_/$id')({
   component: ProductDetailPage,
@@ -171,6 +173,11 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
       </Card>
 
       <ProductDownloadsCard productId={id} />
+
+      <ProductPageEditor
+        productId={id}
+        initialContent={(product.pageContent as JSONContent | null | undefined) ?? null}
+      />
 
       <Card>
         <CardHeader>
