@@ -36,6 +36,7 @@ internal static class ProblemTitles
     public const string ProductFileEmpty = "product_file_empty";
     public const string ProductFileTooLarge = "product_file_too_large";
     public const string ProductNotFound = "product_not_found";
+    public const string PageContentTooLarge = "page_content_too_large";
     public const string SeatGone = "seat_gone";
     public const string SeatNotFound = "seat_not_found";
     public const string SlugAlreadyExists = "slug_already_exists";

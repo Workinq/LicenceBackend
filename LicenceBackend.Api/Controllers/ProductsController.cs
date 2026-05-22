@@ -1,5 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Api.RateLimiting;
@@ -38,6 +40,7 @@ public sealed class ProductsController(
         ["image/webp"] = ".webp",
     };
     private const long MaxImageBytes = 2 * 1024 * 1024;
+    private const int MaxPageContentBytes = 256 * 1024;
 
     [HttpPost]
     [Authorize(Roles = "admin")]
@@ -91,7 +94,7 @@ public sealed class ProductsController(
 
         var publicOnly = !User.IsInRole("admin");
         var page = await products.ListAsync(effectiveLimit, effectiveOffset, q, publicOnly, cancellationToken);
-        var items = page.Items.Select(ToResponse).ToList();
+        var items = page.Items.Select(p => ToResponse(p, includePageContent: false)).ToList();
         return Ok(new PagedResponse<ProductResponse>(items, page.Total, effectiveLimit, effectiveOffset));
     }
 
@@ -128,6 +131,16 @@ public sealed class ProductsController(
                 detail: $"No product with id '{id}'."
             );
 
+        if (request.PageContent is { } pageContent)
+        {
+            var pageContentBytes = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(pageContent));
+            if (pageContentBytes > MaxPageContentBytes)
+                return Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: ProblemTitles.PageContentTooLarge,
+                    detail: $"Page content exceeds the {MaxPageContentBytes} byte limit.");
+        }
+
         // PATCH semantics: a null field is left unchanged. Clearing description/tagline/price back to null is not supported here.
         var updated = product with
         {
@@ -138,6 +151,7 @@ public sealed class ProductsController(
             Price = request.Price ?? product.Price,
             Currency = request.Currency ?? product.Currency,
             SortOrder = request.SortOrder ?? product.SortOrder,
+            PageContent = request.PageContent ?? product.PageContent,
         };
 
         await products.UpdateAsync(updated, cancellationToken);
@@ -320,7 +334,7 @@ public sealed class ProductsController(
             file.UploadedAt);
     }
 
-    private static ProductResponse ToResponse(Product product)
+    private static ProductResponse ToResponse(Product product, bool includePageContent = true)
     {
         return new ProductResponse(
             product.Id,
@@ -333,6 +347,7 @@ public sealed class ProductsController(
             product.Currency,
             product.SortOrder,
             product.ImagePath is null ? null : $"/products/{product.Id}/image",
-            product.CreatedAt);
+            product.CreatedAt,
+            includePageContent ? product.PageContent : null);
     }
 }

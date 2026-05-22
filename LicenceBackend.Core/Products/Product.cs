@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace LicenceBackend.Core.Products;
 
 public sealed record Product(
@@ -12,5 +14,6 @@ public sealed record Product(
     int SortOrder,
     string? ImagePath,
     string? ImageContentType,
-    DateTimeOffset CreatedAt
+    DateTimeOffset CreatedAt,
+    JsonElement? PageContent = null
 );

@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace LicenceBackend.Tests.Api;
 
@@ -306,6 +308,75 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
         Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
     }
 
+    [SkippableFact]
+    public async Task Patch_round_trips_page_content()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var create = await AuthedClient.PostAsJsonAsync("/products", new { slug = "rich-1", displayName = "Rich 1" });
+        var created = await create.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(created);
+
+        var doc = new
+        {
+            type = "doc",
+            content = new object[]
+            {
+                new { type = "paragraph", content = new object[] { new { type = "text", text = "Hello page" } } },
+            },
+        };
+
+        var patch = await AuthedClient.PatchAsJsonAsync($"/products/{created.Id}", new { pageContent = doc });
+        Assert.Equal(HttpStatusCode.OK, patch.StatusCode);
+
+        var fetched = await AuthedClient.GetAsync($"/products/{created.Id}");
+        var body = await fetched.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(body);
+        Assert.Equal(JsonValueKind.Object, body.PageContent.ValueKind);
+        Assert.Equal("doc", body.PageContent.GetProperty("type").GetString());
+    }
+
+    [SkippableFact]
+    public async Task List_omits_page_content()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var create = await AuthedClient.PostAsJsonAsync("/products", new { slug = "rich-2", displayName = "Rich 2" });
+        var created = await create.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(created);
+        var doc = new { type = "doc", content = Array.Empty<object>() };
+        await AuthedClient.PatchAsJsonAsync($"/products/{created.Id}", new { pageContent = doc });
+
+        var list = await AuthedClient.GetAsync("/products?limit=50&offset=0");
+        var page = await list.Content.ReadFromJsonAsync<PagedProductsPayload>();
+        Assert.NotNull(page);
+        var listed = page.Items.Single(p => p.Id == created.Id);
+        Assert.Equal(JsonValueKind.Null, listed.PageContent.ValueKind);
+    }
+
+    [SkippableFact]
+    public async Task Patch_rejects_oversized_page_content()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+
+        var create = await AuthedClient.PostAsJsonAsync("/products", new { slug = "rich-3", displayName = "Rich 3" });
+        var created = await create.Content.ReadFromJsonAsync<ProductPayload>();
+        Assert.NotNull(created);
+
+        var hugeText = new string('x', 300 * 1024);
+        var doc = new
+        {
+            type = "doc",
+            content = new object[]
+            {
+                new { type = "paragraph", content = new object[] { new { type = "text", text = hugeText } } },
+            },
+        };
+
+        var patch = await AuthedClient.PatchAsJsonAsync($"/products/{created.Id}", new { pageContent = doc });
+        Assert.Equal(HttpStatusCode.BadRequest, patch.StatusCode);
+    }
+
     private sealed record ProductPayload(
         Guid Id,
         string Slug,
@@ -317,7 +388,8 @@ public sealed class ProductsEndpointTests : IntegrationTestBase
         string Currency,
         int SortOrder,
         string? ImageUrl,
-        DateTimeOffset CreatedAt
+        DateTimeOffset CreatedAt,
+        JsonElement PageContent
     );
 
     private sealed record PagedProductsPayload(IReadOnlyList<ProductPayload> Items, int Total, int Limit, int Offset);
