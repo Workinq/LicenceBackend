@@ -45,7 +45,7 @@ public sealed class OrdersController(
         var buyer = await users.FindByIdAsync(buyerId, cancellationToken);
         if (buyer is null) return Unauthorized();
 
-        if (request.Items is null || request.Items.Count == 0)
+        if (request.Items.Count == 0)
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
                 title: ProblemTitles.EmptyOrder,
@@ -216,7 +216,7 @@ public sealed class OrdersController(
                 orderId,
                 buyerId,
                 contactEmail,
-                OrderStatus.Completed.ToString().ToLowerInvariant(),
+                nameof(OrderStatus.Completed).ToLowerInvariant(),
                 now,
                 totals.Select(t => new CurrencyTotalResponse(t.Currency, t.Amount)).ToList(),
                 orderItemResponses);
@@ -257,7 +257,7 @@ public sealed class OrdersController(
                 detail: $"No order with id '{id}'."
             );
 
-        var responses = await BuildOrderResponsesAsync(new[] { order }, cancellationToken);
+        var responses = await BuildOrderResponsesAsync([order], cancellationToken);
         return Ok(responses[0]);
     }
 
@@ -294,7 +294,7 @@ public sealed class OrdersController(
                 detail: $"No order with id '{id}'."
             );
 
-        var responses = await BuildOrderResponsesAsync(new[] { order }, cancellationToken);
+        var responses = await BuildOrderResponsesAsync([order], cancellationToken);
         return Ok(responses[0]);
     }
 

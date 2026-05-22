@@ -307,7 +307,7 @@ public sealed class LicencesController(
         var page = await auditEvents.QueryAsync(
                        AuditSubjectTypes.Licence,
                        id,
-                       new[] { AuditEventTypes.LicenceStatusChanged },
+                       [AuditEventTypes.LicenceStatusChanged],
                        effectiveLimit,
                        effectiveOffset,
                        cancellationToken);
@@ -496,7 +496,7 @@ public sealed class LicencesController(
         var page = await auditEvents.QueryAsync(
                        AuditSubjectTypes.Licence,
                        id,
-                       new[] { AuditEventTypes.LicenceBindingChanged },
+                       [AuditEventTypes.LicenceBindingChanged],
                        effectiveLimit,
                        effectiveOffset,
                        cancellationToken);

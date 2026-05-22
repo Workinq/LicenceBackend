@@ -81,7 +81,7 @@ function LicenceSeatsView({
       <div className="flex flex-wrap items-end gap-4">
         <div>
           <Label className="text-xs text-ink-muted">Live seats</Label>
-          <p className="text-sm text-ink">
+          <p className="flex h-8 items-center text-base font-medium text-ink">
             {live.length} of {data.maxSeats}
           </p>
         </div>

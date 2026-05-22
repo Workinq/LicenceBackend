@@ -47,7 +47,8 @@ function OrderDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-ink">
-              These keys are shown once. After you leave this page they cannot be retrieved.
+              These keys are shown once. After you leave this page they cannot be retrieved, and a
+              key would need to be regenerated to see it again.
             </p>
             {justPlaced.items.map((item) => (
               <div key={item.id} className="space-y-1">
