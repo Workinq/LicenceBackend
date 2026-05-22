@@ -148,6 +148,12 @@ try
                 var key = $"seat:{seatId}";
                 return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.Checkin));
             });
+
+            options.AddPolicy(RateLimiterPolicyNames.StripeWebhook, httpContext =>
+            {
+                var key = ClientIpKey(httpContext);
+                return RateLimitPartition.GetSlidingWindowLimiter(key, _ => BuildSlidingWindow(rateLimitingOptions.StripeWebhook));
+            });
         });
 
     var app = builder.Build();
