@@ -37,8 +37,8 @@ function LicenceDetailPage() {
         <StatusPill status={lic.status} />
         {lic.orderId && (
           <Button asChild variant="outline" size="sm" className="ml-auto">
-            <Link to="/admin/orders/$id/invoice" params={{ id: lic.orderId }}>
-              View invoice
+            <Link to="/admin/orders/$id" params={{ id: lic.orderId }}>
+              View order
             </Link>
           </Button>
         )}

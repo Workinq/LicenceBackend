@@ -134,8 +134,8 @@ function PortalLicenceDetail() {
         <StatusPill status={lic.status} />
         {lic.orderId && (
           <Button asChild variant="outline" size="sm" className="ml-auto">
-            <Link to="/portal/orders/$id/invoice" params={{ id: lic.orderId }}>
-              View invoice
+            <Link to="/portal/orders/$id" params={{ id: lic.orderId }}>
+              View order
             </Link>
           </Button>
         )}
