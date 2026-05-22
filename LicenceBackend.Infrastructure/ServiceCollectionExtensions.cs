@@ -10,6 +10,7 @@ using LicenceBackend.Core.Users;
 using LicenceBackend.Infrastructure.Crypto;
 using LicenceBackend.Infrastructure.Hosting;
 using LicenceBackend.Infrastructure.Options;
+using LicenceBackend.Infrastructure.Payments;
 using LicenceBackend.Infrastructure.Persistence;
 using LicenceBackend.Infrastructure.RateLimiting;
 using Microsoft.Extensions.Configuration;
@@ -87,6 +88,11 @@ public static class ServiceCollectionExtensions
         services.AddOptions<ProductContentImageStorageOptions>()
                 .Bind(configuration.GetSection(ProductContentImageStorageOptions.SectionName));
 
+        services.AddOptions<StripeOptions>()
+                .Bind(configuration.GetSection(StripeOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
         var connectionString = configuration.GetConnectionString("Postgres") ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required.");
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 
@@ -143,6 +149,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
         services.AddSingleton<ILicenceVerifyRateLimiter, LicenceVerifyRateLimiter>();
         services.AddSingleton<ILicenceCheckoutRateLimiter, LicenceCheckoutRateLimiter>();
+        services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
     }
 
     private static byte[] LoadPepper(string pepperPath)
