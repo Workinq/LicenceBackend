@@ -382,8 +382,8 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
             INSERT INTO products (id, slug, display_name) VALUES (@ProductId, @Slug, 'Test');
             INSERT INTO users (id, email, email_lower, password_hash, role, status, created_at, updated_at)
               VALUES (@OwnerId, @Email, @EmailLower, 'placeholder', 'user', 'active', NOW(), NOW());
-            INSERT INTO licences (id, product_id, user_id, key_hmac, status, max_seats, created_at, updated_at)
-              VALUES (@LicenceId, @ProductId, @OwnerId, @KeyHmac, 'active', @MaxSeats, NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, max_seats, created_at, updated_at)
+              VALUES (@LicenceId, @ProductId, @OwnerId, @KeyHmac, @KeyHmacPepperVersion, 'active', @MaxSeats, NOW(), NOW());
             """,
             new
             {
@@ -394,6 +394,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
                 EmailLower = $"u-{ownerId:N}@test.local",
                 LicenceId = licenceId,
                 KeyHmac = RandomNumberGenerator.GetBytes(32),
+                KeyHmacPepperVersion = (short)1,
                 MaxSeats = maxSeats
             });
         return (licenceId, productId, ownerId);
