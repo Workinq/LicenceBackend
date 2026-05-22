@@ -5,6 +5,7 @@ using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
 using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Auditing.Payloads;
+using LicenceBackend.Core.Invoices;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
@@ -24,6 +25,7 @@ public sealed class OrdersController(
     NpgsqlDataSource dataSource,
     IOrderRepository orders,
     IOrderItemRepository orderItems,
+    IInvoiceRepository invoices,
     ILicenceRepository licences,
     IAuditEventRepository auditEvents,
     IProductRepository products,
@@ -183,6 +185,37 @@ public sealed class OrdersController(
             var order = new Order(orderId, buyerId, contactEmail, OrderStatus.Completed, now);
             await orders.CreateInTxAsync(connection, transaction, order, cancellationToken);
             await orderItems.BulkCreateInTxAsync(connection, transaction, orderItemEntities, cancellationToken);
+
+            var invoiceId = Guid.NewGuid();
+            var invoiceLineItems = createdLicences.Select((entry, index) =>
+            {
+                var orderItem = orderItemEntities[index];
+                return new InvoiceLineItem(
+                    Guid.NewGuid(),
+                    invoiceId,
+                    entry.Product.Id,
+                    entry.Licence.Id,
+                    entry.Product.DisplayName,
+                    entry.Product.Slug,
+                    entry.Licence.Label,
+                    orderItem.UnitPrice,
+                    orderItem.Currency);
+            }).ToList();
+
+            var invoice = new Invoice(
+                invoiceId,
+                orderId,
+                InvoiceNumber: 0,
+                IssuedAt: now,
+                ContactEmail: contactEmail,
+                BuyerName: null,
+                BuyerAddressLine1: null,
+                BuyerAddressLine2: null,
+                BuyerCity: null,
+                BuyerRegion: null,
+                BuyerPostalCode: null,
+                BuyerCountry: null);
+            await invoices.CreateInTxAsync(connection, transaction, invoice, invoiceLineItems, cancellationToken);
 
             var totals = ComputeTotals(orderItemEntities);
             var orderPlacedEvt = AuditEvent.Create(
