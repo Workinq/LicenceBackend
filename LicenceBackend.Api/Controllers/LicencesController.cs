@@ -744,6 +744,7 @@ public sealed class LicencesController(
             licence.ExpiresAt,
             licence.Notes,
             licence.HwidHmac is not null,
+            licence.KeyHmac is not null,
             licence.IpAllowlist,
             licence.Label,
             licence.CreatedAt,

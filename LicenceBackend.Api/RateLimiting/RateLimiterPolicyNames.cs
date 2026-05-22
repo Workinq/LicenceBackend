@@ -7,4 +7,5 @@ public static class RateLimiterPolicyNames
     public const string Admin = "admin";
     public const string CheckoutHeartbeat = "checkout-heartbeat";
     public const string CheckoutCheckin = "checkout-checkin";
+    public const string StripeWebhook = "stripe-webhook";
 }

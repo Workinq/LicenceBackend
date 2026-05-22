@@ -16,6 +16,7 @@ public sealed class RateLimitingOptions
     public RateLimitPolicyOptions Checkout { get; init; } = new() { PermitLimit = 60, WindowSeconds = 60 };
     public RateLimitPolicyOptions Heartbeat { get; init; } = new() { PermitLimit = 12, WindowSeconds = 60 };
     public RateLimitPolicyOptions Checkin { get; init; } = new() { PermitLimit = 30, WindowSeconds = 60 };
+    public RateLimitPolicyOptions StripeWebhook { get; init; } = new() { PermitLimit = 120, WindowSeconds = 60 };
 }
 
 public sealed class RateLimitPolicyOptions

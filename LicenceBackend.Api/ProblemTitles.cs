@@ -21,6 +21,8 @@ internal static class ProblemTitles
     public const string InvalidStatus = "invalid_status";
     public const string InvalidSubjectType = "invalid_subject_type";
     public const string InvoiceNotFound = "invoice_not_found";
+    public const string MixedCurrencyCart = "mixed_currency_cart";
+    public const string CheckoutAttemptNotFound = "checkout_attempt_not_found";
     public const string EmptyOrder = "empty_order";
     public const string InvalidQuantity = "invalid_quantity";
     public const string LabelTooLong = "label_too_long";

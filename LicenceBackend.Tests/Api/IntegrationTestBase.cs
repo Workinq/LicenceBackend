@@ -7,7 +7,9 @@ using LicenceBackend.Infrastructure.Crypto;
 using LicenceBackend.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using LicenceBackend.Core.Payments;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
@@ -26,6 +28,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected const string AdminPassword = "admin-integration-test-pw!";
 
     protected static readonly Uri HttpsBaseAddress = new("https://localhost");
+
+    protected readonly FakePaymentGateway FakeGateway = new();
 
     private string? _connectionString;
     protected Guid AdminUserId;
@@ -109,10 +113,21 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         Environment.SetEnvironmentVariable("Session__TtlSeconds", "900");
         Environment.SetEnvironmentVariable("Session__RefreshTtlSeconds", "2592000");
         Environment.SetEnvironmentVariable("RateLimiting__Enabled", "false");
+        Environment.SetEnvironmentVariable("Stripe__SecretKey", "sk_test_fake");
+        Environment.SetEnvironmentVariable("Stripe__WebhookSigningSecret", "whsec_fake");
+        Environment.SetEnvironmentVariable("Stripe__PublishableKey", "pk_test_fake");
 
         ApplyPreFactoryEnvironment();
 
-        Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
+        Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Testing");
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IPaymentGateway>();
+                services.AddSingleton<IPaymentGateway>(FakeGateway);
+            });
+        });
         UnauthedClient = Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = HttpsBaseAddress,

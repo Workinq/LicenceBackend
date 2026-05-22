@@ -1,20 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Mail;
 using System.Security.Claims;
-using LicenceBackend.Api.Models.Request;
 using LicenceBackend.Api.Models.Response;
-using LicenceBackend.Core.Auditing;
-using LicenceBackend.Core.Auditing.Payloads;
 using LicenceBackend.Core.Invoices;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Orders;
 using LicenceBackend.Core.Products;
-using LicenceBackend.Core.Users;
 using LicenceBackend.Infrastructure.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace LicenceBackend.Api.Controllers;
 
@@ -24,248 +18,14 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public sealed class OrdersController(
-    NpgsqlDataSource dataSource,
     IOrderRepository orders,
     IOrderItemRepository orderItems,
     IInvoiceRepository invoices,
     ILicenceRepository licences,
-    IAuditEventRepository auditEvents,
     IProductRepository products,
-    IUserRepository users,
-    ILicenceKeyGenerator keyGenerator,
-    ILicenceKeyHasher keyHasher,
-    TimeProvider time,
     IOptions<InvoicingOptions> invoicingOptions
 ) : ControllerBase
 {
-    private const int MaxLabelLength = 10;
-
-    [HttpPost]
-    [ProducesResponseType(typeof(OrderCreatedResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
-    {
-        if (!TryGetCurrentUserId(out var buyerId)) return Unauthorized();
-        var buyer = await users.FindByIdAsync(buyerId, cancellationToken);
-        if (buyer is null) return Unauthorized();
-
-        if (request.Items.Count == 0)
-            return Problem(
-                statusCode: StatusCodes.Status400BadRequest,
-                title: ProblemTitles.EmptyOrder,
-                detail: "At least one item is required."
-            );
-
-        foreach (var item in request.Items)
-        {
-            if (item.Quantity < 1)
-                return Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: ProblemTitles.InvalidQuantity,
-                    detail: "Quantity must be at least 1."
-                );
-
-            var labels = item.Labels ?? Array.Empty<string?>();
-            if (labels.Count != item.Quantity)
-                return Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: ProblemTitles.LabelCountMismatch,
-                    detail: $"Item for product '{item.ProductId}' has quantity {item.Quantity} but {labels.Count} label entries; they must match."
-                );
-
-            foreach (var label in labels)
-            {
-                if (label is not null && label.Trim().Length > MaxLabelLength)
-                    return Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: ProblemTitles.LabelTooLong,
-                        detail: $"Labels must be {MaxLabelLength} characters or fewer."
-                    );
-            }
-        }
-
-        string contactEmail;
-        if (string.IsNullOrWhiteSpace(request.ContactEmail))
-        {
-            contactEmail = buyer.Email;
-        }
-        else
-        {
-            var candidate = request.ContactEmail.Trim();
-            if (!IsValidEmail(candidate))
-                return Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: ProblemTitles.InvalidContactEmail,
-                    detail: "contactEmail is not a valid email address."
-                );
-            contactEmail = candidate;
-        }
-
-        var resolved = new List<ResolvedItem>();
-        foreach (var item in request.Items)
-        {
-            var product = await products.FindByIdAsync(item.ProductId, cancellationToken);
-            if (product is null)
-                return Problem(
-                    statusCode: StatusCodes.Status404NotFound,
-                    title: ProblemTitles.ProductNotFound,
-                    detail: $"No product with id '{item.ProductId}'."
-                );
-
-            if (!product.IsPublic)
-                return Problem(
-                    statusCode: StatusCodes.Status403Forbidden,
-                    title: ProblemTitles.ProductNotPurchasable,
-                    detail: $"Product '{product.Slug}' is not available for purchase."
-                );
-
-            resolved.Add(new ResolvedItem(product, item.Quantity, item.Labels ?? Array.Empty<string?>()));
-        }
-
-        var now = time.GetUtcNow();
-        var orderId = Guid.NewGuid();
-
-        var createdLicences = new List<(Licence Licence, string RawKey, Product Product)>();
-        var orderItemEntities = new List<OrderItem>();
-        var orderItemResponses = new List<OrderItemCreatedResponse>();
-
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            foreach (var item in resolved)
-            {
-                for (var unit = 0; unit < item.Quantity; unit++)
-                {
-                    var rawKey = keyGenerator.Generate();
-                    var hashed = keyHasher.HashWithActive(rawKey);
-                    var labelInput = item.Labels[unit];
-                    var label = string.IsNullOrWhiteSpace(labelInput) ? null : labelInput.Trim();
-
-                    var licence = new Licence(
-                        Guid.NewGuid(),
-                        item.Product.Id,
-                        buyerId,
-                        hashed.Hmac,
-                        hashed.PepperVersion,
-                        LicenceStatus.Active,
-                        ExpiresAt: null,
-                        Notes: null,
-                        HwidHmac: null,
-                        HwidHmacPepperVersion: null,
-                        IpAllowlist: null,
-                        Label: label,
-                        MaxSeats: 1,
-                        CreatedAt: now,
-                        UpdatedAt: now);
-                    await licences.CreateInTxAsync(connection, transaction, licence, cancellationToken);
-
-                    var orderItem = new OrderItem(
-                        Guid.NewGuid(),
-                        orderId,
-                        item.Product.Id,
-                        licence.Id,
-                        item.Product.Price,
-                        item.Product.Currency,
-                        now);
-                    orderItemEntities.Add(orderItem);
-
-                    createdLicences.Add((licence, rawKey, item.Product));
-                    orderItemResponses.Add(new OrderItemCreatedResponse(
-                        orderItem.Id,
-                        item.Product.Id,
-                        item.Product.Slug,
-                        item.Product.DisplayName,
-                        licence.Id,
-                        label,
-                        item.Product.Price,
-                        item.Product.Currency,
-                        rawKey));
-                }
-            }
-
-            var order = new Order(orderId, buyerId, contactEmail, OrderStatus.Completed, now);
-            await orders.CreateInTxAsync(connection, transaction, order, cancellationToken);
-            await orderItems.BulkCreateInTxAsync(connection, transaction, orderItemEntities, cancellationToken);
-
-            var invoiceId = Guid.NewGuid();
-            var invoiceLineItems = createdLicences.Select((entry, index) =>
-            {
-                var orderItem = orderItemEntities[index];
-                return new InvoiceLineItem(
-                    Guid.NewGuid(),
-                    invoiceId,
-                    entry.Product.Id,
-                    entry.Licence.Id,
-                    entry.Product.DisplayName,
-                    entry.Product.Slug,
-                    entry.Licence.Label,
-                    orderItem.UnitPrice,
-                    orderItem.Currency);
-            }).ToList();
-
-            var invoice = new Invoice(
-                invoiceId,
-                orderId,
-                InvoiceNumber: 0,
-                IssuedAt: now,
-                ContactEmail: contactEmail,
-                BuyerName: null,
-                BuyerAddressLine1: null,
-                BuyerAddressLine2: null,
-                BuyerCity: null,
-                BuyerRegion: null,
-                BuyerPostalCode: null,
-                BuyerCountry: null);
-            await invoices.CreateInTxAsync(connection, transaction, invoice, invoiceLineItems, cancellationToken);
-
-            var totals = ComputeTotals(orderItemEntities);
-            var orderPlacedEvt = AuditEvent.Create(
-                AuditEventTypes.OrderPlaced,
-                AuditSubjectTypes.Order,
-                orderId,
-                AuditActorTypes.User,
-                buyerId,
-                reason: null,
-                new OrderPlacedPayload(orderItemEntities.Count, totals, contactEmail),
-                now);
-            await auditEvents.RecordInTxAsync(connection, transaction, orderPlacedEvt, cancellationToken);
-
-            foreach (var entry in createdLicences)
-            {
-                var licenceCreatedEvt = AuditEvent.Create(
-                    AuditEventTypes.LicenceCreated,
-                    AuditSubjectTypes.Licence,
-                    entry.Licence.Id,
-                    AuditActorTypes.User,
-                    buyerId,
-                    reason: null,
-                    new LicenceCreatedPayload(orderId, entry.Product.Id, entry.Product.Price, entry.Product.Currency, entry.Licence.Label),
-                    now);
-                await auditEvents.RecordInTxAsync(connection, transaction, licenceCreatedEvt, cancellationToken);
-            }
-
-            await transaction.CommitAsync(cancellationToken);
-
-            var response = new OrderCreatedResponse(
-                orderId,
-                buyerId,
-                contactEmail,
-                nameof(OrderStatus.Completed).ToLowerInvariant(),
-                now,
-                totals.Select(t => new CurrencyTotalResponse(t.Currency, t.Amount)).ToList(),
-                orderItemResponses);
-
-            return CreatedAtAction(nameof(GetMyById), new { id = orderId }, response);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
-    }
-
     [HttpGet("/me/orders")]
     [ProducesResponseType(typeof(PagedResponse<OrderResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListMine([FromQuery] int? limit, [FromQuery] int? offset, CancellationToken cancellationToken)
@@ -484,11 +244,4 @@ public sealed class OrdersController(
         var subClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return Guid.TryParse(subClaim, out userId);
     }
-
-    private static bool IsValidEmail(string candidate)
-    {
-        return MailAddress.TryCreate(candidate, out _);
-    }
-
-    private sealed record ResolvedItem(Product Product, int Quantity, IReadOnlyList<string?> Labels);
 }

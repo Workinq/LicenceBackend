@@ -3,12 +3,14 @@ using LicenceBackend.Core.Auditing;
 using LicenceBackend.Core.Invoices;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Core.Orders;
+using LicenceBackend.Core.Payments;
 using LicenceBackend.Core.Products;
 using LicenceBackend.Core.Sessions;
 using LicenceBackend.Core.Users;
 using LicenceBackend.Infrastructure.Crypto;
 using LicenceBackend.Infrastructure.Hosting;
 using LicenceBackend.Infrastructure.Options;
+using LicenceBackend.Infrastructure.Payments;
 using LicenceBackend.Infrastructure.Persistence;
 using LicenceBackend.Infrastructure.RateLimiting;
 using Microsoft.Extensions.Configuration;
@@ -86,6 +88,11 @@ public static class ServiceCollectionExtensions
         services.AddOptions<ProductContentImageStorageOptions>()
                 .Bind(configuration.GetSection(ProductContentImageStorageOptions.SectionName));
 
+        services.AddOptions<StripeOptions>()
+                .Bind(configuration.GetSection(StripeOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
         var connectionString = configuration.GetConnectionString("Postgres") ?? throw new InvalidOperationException("ConnectionStrings:Postgres is required.");
         services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 
@@ -136,11 +143,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOrderRepository, OrderRepository>();
         services.AddSingleton<IOrderItemRepository, OrderItemRepository>();
         services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
+        services.AddSingleton<ICheckoutAttemptRepository, CheckoutAttemptRepository>();
         services.AddSingleton<IUserRepository, UserRepository>();
         services.AddSingleton<ISessionRefreshTokenRepository, SessionRefreshTokenRepository>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
         services.AddSingleton<ILicenceVerifyRateLimiter, LicenceVerifyRateLimiter>();
         services.AddSingleton<ILicenceCheckoutRateLimiter, LicenceCheckoutRateLimiter>();
+        services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
+        services.AddSingleton<IOrderFulfillmentService, OrderFulfillmentService>();
     }
 
     private static byte[] LoadPepper(string pepperPath)
