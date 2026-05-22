@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -161,18 +161,20 @@ function CardsView({ isPending, items, total }: ViewProps) {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((p) => (
         <Card key={p.id} className="overflow-hidden py-0 gap-0">
-          {p.imageUrl ? (
-            <img src={`/api${p.imageUrl}`} alt="" className="aspect-video w-full object-cover" />
-          ) : (
-            <div className="flex aspect-video w-full items-center justify-center bg-surface-sunken text-ink-subtle">
-              <ImageOff className="size-5" aria-hidden="true" />
-            </div>
-          )}
-          <CardHeader className="p-3 gap-1">
-            <CardTitle className="truncate text-sm">{p.displayName}</CardTitle>
-            <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
-            {p.tagline && <p className="text-xs text-ink-muted">{p.tagline}</p>}
-          </CardHeader>
+          <Link to="/portal/products/$id" params={{ id: p.id }} className="block">
+            {p.imageUrl ? (
+              <img src={`/api${p.imageUrl}`} alt="" className="aspect-video w-full object-cover" />
+            ) : (
+              <div className="flex aspect-video w-full items-center justify-center bg-surface-sunken text-ink-subtle">
+                <ImageOff className="size-5" aria-hidden="true" />
+              </div>
+            )}
+            <CardHeader className="p-3 gap-1">
+              <CardTitle className="truncate text-sm">{p.displayName}</CardTitle>
+              <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
+              {p.tagline && <p className="text-xs text-ink-muted">{p.tagline}</p>}
+            </CardHeader>
+          </Link>
           <CardContent className="px-3 pb-3 flex items-center justify-between gap-2 text-xs">
             <span>
               {p.price != null ? formatPrice(p.price, p.currency) : <span className="text-ink-subtle">Free</span>}
@@ -225,7 +227,11 @@ function TableView({ isPending, items, total }: ViewProps) {
                   </div>
                 )}
               </TableCell>
-              <TableCell className="font-medium text-ink">{p.displayName}</TableCell>
+              <TableCell className="font-medium text-ink">
+                <Link to="/portal/products/$id" params={{ id: p.id }} className="hover:underline">
+                  {p.displayName}
+                </Link>
+              </TableCell>
               <TableCell className="font-mono text-xs text-ink-muted">{p.slug}</TableCell>
               <TableCell className="text-ink-muted">
                 {p.price != null ? formatPrice(p.price, p.currency) : 'Free'}
