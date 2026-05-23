@@ -27,7 +27,7 @@ public interface ILicenceKeyRepository
         CancellationToken cancellationToken
     );
 
-    Task<LicenceKey?> UpdateLabelAsync(Guid licenceKeyId, Guid changedByUserId, string? newLabel, CancellationToken cancellationToken);
+    Task<LicenceKey?> UpdateLabelAsync(Guid licenceKeyId, string? newLabel, CancellationToken cancellationToken);
 
     Task BumpLastSeenAsync(Guid licenceKeyId, DateTimeOffset seenAt, CancellationToken cancellationToken);
 }

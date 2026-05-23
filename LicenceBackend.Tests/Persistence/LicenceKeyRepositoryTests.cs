@@ -134,7 +134,7 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         var repo = Factory!.Services.GetRequiredService<ILicenceKeyRepository>();
         var (_, seedKeyId) = await CreateLicenceAsync();
 
-        var updated = await repo.UpdateLabelAsync(seedKeyId, AdminUserId, "renamed", CancellationToken.None);
+        var updated = await repo.UpdateLabelAsync(seedKeyId, "renamed", CancellationToken.None);
 
         Assert.NotNull(updated);
         Assert.Equal("renamed", updated!.Label);
@@ -161,6 +161,37 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
             new { Id = seedKeyId });
         Assert.NotNull(lastSeen);
         Assert.Equal(seenAt.UtcDateTime, DateTime.SpecifyKind(lastSeen!.Value, DateTimeKind.Utc));
+    }
+
+    [SkippableFact]
+    public async Task Revoke_returns_AlreadyRevoked_on_double_revoke()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceKeyRepository>();
+        var (_, seedKeyId) = await CreateLicenceAsync();
+
+        var first = await repo.RevokeAsync(seedKeyId, AdminUserId, "first", CancellationToken.None);
+        Assert.IsType<RevokeKeyOutcome.Revoked>(first);
+
+        var second = await repo.RevokeAsync(seedKeyId, AdminUserId, "second", CancellationToken.None);
+        var already = Assert.IsType<RevokeKeyOutcome.AlreadyRevoked>(second);
+        Assert.Equal(seedKeyId, already.Key.Id);
+    }
+
+    [SkippableFact]
+    public async Task Mint_returns_LicenceNotFound_when_licence_does_not_exist()
+    {
+        var repo = Factory!.Services.GetRequiredService<ILicenceKeyRepository>();
+
+        var outcome = await repo.MintAsync(
+            Guid.NewGuid(),
+            new PepperedHmac(NewRandom(32), PepperVersion),
+            keyPrefix: "LIC-MISS-...",
+            label: null,
+            createdByUserId: AdminUserId,
+            activeCap: Cap,
+            CancellationToken.None);
+
+        Assert.IsType<MintKeyOutcome.LicenceNotFound>(outcome);
     }
 
     private async Task<Guid> CreateProductAsync()
