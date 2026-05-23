@@ -10,7 +10,7 @@ namespace LicenceBackend.Api.Controllers;
 [AllowAnonymous]
 public sealed class HealthController(NpgsqlDataSource dataSource, ILogger<HealthController> logger) : ControllerBase
 {
-    private static readonly string Version = ResolveVersion();
+    private static readonly string AssemblyVersion = ResolveVersion();
 
     [HttpGet]
     [ProducesResponseType(typeof(HealthResponse), StatusCodes.Status200OK)]
@@ -23,12 +23,12 @@ public sealed class HealthController(NpgsqlDataSource dataSource, ILogger<Health
             await using var command = connection.CreateCommand();
             command.CommandText = "SELECT 1;";
             await command.ExecuteScalarAsync(cancellationToken);
-            return Ok(new HealthResponse("ok", "ok", Version));
+            return Ok(new HealthResponse("ok", "ok", AssemblyVersion));
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Health check DB probe failed");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new HealthResponse("degraded", ex.GetType().Name, Version));
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new HealthResponse("degraded", ex.GetType().Name, AssemblyVersion));
         }
     }
 
