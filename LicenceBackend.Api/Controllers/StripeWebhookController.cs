@@ -63,7 +63,7 @@ public sealed class StripeWebhookController(
     }
 }
 
-internal sealed class StripeWebhookProcessingException : Exception
+public sealed class StripeWebhookProcessingException : Exception
 {
     public StripeWebhookProcessingException(string message, Exception inner) : base(message, inner) { }
 }
