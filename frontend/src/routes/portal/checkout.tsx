@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { loadStripe } from '@stripe/stripe-js';
@@ -13,7 +13,7 @@ import { startCheckout, fetchCheckoutStatus, fetchPaymentConfig } from '@/api/pa
 import type { CreateOrderRequest } from '@/api/generated/api.schemas';
 
 function readBasketFromStorage(): unknown[] {
-  if (typeof globalThis.window === 'undefined') return [];
+  if (globalThis.window === undefined) return [];
   const uid = useAccessTokenStore.getState().user?.id;
   if (!uid) return [];
   const raw = globalThis.localStorage.getItem(`basket:${uid}`);
@@ -84,7 +84,7 @@ function CheckoutPage() {
     await navigate({ to: '/portal/orders/$id', params: { id: orderId } });
   };
 
-  const onContinue = (e: React.FormEvent<HTMLFormElement>) => {
+  const onContinue = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (startingRef.current) return;
     startingRef.current = true;

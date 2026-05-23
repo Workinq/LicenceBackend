@@ -20,7 +20,7 @@ function readStoredMode(): ThemeMode {
 }
 
 function prefersDark(): boolean {
-  if (typeof globalThis.window === 'undefined' || typeof globalThis.matchMedia !== 'function') return false;
+  if (globalThis.window === undefined || typeof globalThis.matchMedia !== 'function') return false;
   try {
     return globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
   } catch {
@@ -53,7 +53,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
 
 apply(useThemeStore.getState().mode);
 
-if (typeof globalThis.window !== 'undefined' && typeof globalThis.matchMedia === 'function') {
+if (globalThis.window !== undefined && typeof globalThis.matchMedia === 'function') {
   try {
     const mq = globalThis.matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', () => {

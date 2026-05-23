@@ -11,7 +11,7 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
-if (typeof globalThis.window !== 'undefined' && typeof globalThis.window.localStorage?.clear !== 'function') {
+if (globalThis.window !== undefined && typeof globalThis.window.localStorage?.clear !== 'function') {
   const store = new Map<string, string>();
   Object.defineProperty(globalThis.window, 'localStorage', {
     configurable: true,

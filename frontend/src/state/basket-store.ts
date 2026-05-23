@@ -29,7 +29,7 @@ function storageKey(userId: string): string {
 }
 
 function loadItems(userId: string | null): BasketItem[] {
-  if (!userId || typeof globalThis.window === 'undefined') return [];
+  if (!userId || globalThis.window === undefined) return [];
   try {
     const raw = globalThis.localStorage.getItem(storageKey(userId));
     return raw ? (JSON.parse(raw) as BasketItem[]) : [];
@@ -39,7 +39,7 @@ function loadItems(userId: string | null): BasketItem[] {
 }
 
 function saveItems(userId: string | null, items: BasketItem[]): void {
-  if (!userId || typeof globalThis.window === 'undefined') return;
+  if (!userId || globalThis.window === undefined) return;
   try {
     globalThis.localStorage.setItem(storageKey(userId), JSON.stringify(items));
   } catch {
