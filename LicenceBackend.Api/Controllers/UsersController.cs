@@ -24,6 +24,7 @@ public sealed class UsersController(
     IUserRepository users,
     IAuditEventRepository auditEvents,
     ILicenceRepository licences,
+    ILicenceKeyRepository licenceKeys,
     ILicenceMemberRepository licenceMembers,
     ILicenceCheckoutRepository checkouts,
     IProductRepository products,
@@ -662,6 +663,23 @@ public sealed class UsersController(
             cancellationToken
         );
         if (updated is null) return LicenceNotFound(id);
+
+        var existingActiveKeys = await licenceKeys.ListForLicenceAsync(id, includeRevoked: false, cancellationToken);
+        foreach (var existingKey in existingActiveKeys)
+        {
+            await licenceKeys.RevokeAsync(existingKey.Id, userId, "regenerate", cancellationToken);
+        }
+        var keyPrefix = rawKey.Length > 12 ? $"{rawKey[..12]}..." : $"{rawKey}...";
+        var mint = await licenceKeys.MintAsync(
+            id,
+            pepperedHmac,
+            keyPrefix,
+            label: null,
+            createdByUserId: userId,
+            activeCap: int.MaxValue,
+            cancellationToken);
+        if (mint is not MintKeyOutcome.Minted)
+            throw new InvalidOperationException("Failed to mint regenerated licence key");
 
         var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
         var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
