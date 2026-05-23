@@ -13,3 +13,14 @@ export function formatDate(value: string): string {
 export function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
 }
+
+export function formatRelative(value: string | Date, now: Date = new Date()): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  const diffSeconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  const abs = Math.abs(diffSeconds);
+  if (abs < 60) return diffSeconds <= 0 ? 'just now' : `${diffSeconds}s ago`;
+  if (abs < 3600) return `${Math.floor(diffSeconds / 60)}m ago`;
+  if (abs < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`;
+  if (abs < 604800) return `${Math.floor(diffSeconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+}

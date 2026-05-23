@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
   createRootRoute,
@@ -7,6 +7,18 @@ import {
   createMemoryHistory,
   RouterProvider,
 } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+vi.mock('../api/licences', () => ({
+  fetchLicences: vi.fn().mockResolvedValue({ items: [], total: 0, limit: 1, offset: 0 }),
+}));
+vi.mock('../api/products', () => ({
+  fetchProducts: vi.fn().mockResolvedValue({ items: [], total: 0, limit: 1, offset: 0 }),
+}));
+vi.mock('../api/audit-events', () => ({
+  fetchAuditEvents: vi.fn().mockResolvedValue({ items: [], total: 0, limit: 7, offset: 0 }),
+}));
+
 import { Route as AdminIndexRoute } from '../routes/admin/index';
 import { useAccessTokenStore } from '../auth/access-token-store';
 
@@ -21,7 +33,12 @@ function renderAdminIndex() {
     routeTree: rootRoute.addChildren([indexRoute]),
     history: createMemoryHistory({ initialEntries: ['/admin'] }),
   });
-  render(<RouterProvider router={router} />);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
 }
 
 afterEach(() => {
@@ -29,23 +46,17 @@ afterEach(() => {
 });
 
 describe('AdminIndexRoute', () => {
-  it('shows the overview heading and the signed-in user email and role', async () => {
-    useAccessTokenStore.getState().setSession('tok', new Date(Date.now() + 900_000), {
-      id: 'u1',
-      email: 'admin@example.com',
-      displayName: 'Admin',
-      role: 'admin',
-      status: 'active',
-      createdAt: '2026-01-01T00:00:00Z',
-    });
+  it('shows the overview heading and metric labels', async () => {
     renderAdminIndex();
     expect(await screen.findByRole('heading', { name: /overview/i })).toBeInTheDocument();
-    expect(screen.getByText('admin@example.com')).toBeInTheDocument();
-    expect(screen.getByText(/\(admin\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/active licences/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/verifications \/ 24h/i)).toBeInTheDocument();
+    expect(screen.getByText('MRR')).toBeInTheDocument();
   });
 
-  it('shows a loading session message when there is no signed-in user', async () => {
+  it('renders the recent activity feed section', async () => {
     renderAdminIndex();
-    expect(await screen.findByText(/loading session/i)).toBeInTheDocument();
+    expect(await screen.findByText(/recent activity/i)).toBeInTheDocument();
+    expect(screen.getByText(/top products/i)).toBeInTheDocument();
   });
 });
