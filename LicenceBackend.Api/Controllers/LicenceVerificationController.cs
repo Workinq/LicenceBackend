@@ -392,7 +392,7 @@ public sealed class LicenceVerificationController(
     private static string HostRouteFor(IPAddress address)
     {
         var prefix = address.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
-        return FormattableString.Invariant($"{address}/{prefix}");
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{address}/{prefix}");
     }
 
     private ObjectResult InvalidLicence()
