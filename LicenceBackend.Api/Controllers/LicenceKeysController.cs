@@ -91,27 +91,27 @@ public sealed class LicenceKeysController(
                     title: ProblemTitles.LicenceKeyCapExceeded,
                     detail: $"Licence already has {cap.ActiveCount} active keys (cap {cap.Cap}). Revoke one before minting another.");
             case MintKeyOutcome.Minted minted:
-            {
-                var actorType = caller!.Role == UserRole.Admin ? AuditActorTypes.Admin : AuditActorTypes.User;
-                var payload = new LicenceKeyMintedPayload(
-                    minted.Key.Id,
-                    Convert.ToBase64String(minted.Key.KeyHmac),
-                    minted.Key.KeyHmacPepperVersion,
-                    minted.Key.KeyPrefix,
-                    minted.Key.Label);
-                var auditEvent = AuditEvent.Create(
-                    AuditEventTypes.LicenceKeyMinted,
-                    AuditSubjectTypes.Licence,
-                    id,
-                    actorType,
-                    userId,
-                    reason,
-                    payload,
-                    time.GetUtcNow());
-                await auditEvents.RecordAsync(auditEvent, cancellationToken);
-                var response = new LicenceKeyMintedResponse(ToResponse(minted.Key), rawKey);
-                return CreatedAtAction(nameof(List), new { id }, response);
-            }
+                {
+                    var actorType = caller!.Role == UserRole.Admin ? AuditActorTypes.Admin : AuditActorTypes.User;
+                    var payload = new LicenceKeyMintedPayload(
+                        minted.Key.Id,
+                        Convert.ToBase64String(minted.Key.KeyHmac),
+                        minted.Key.KeyHmacPepperVersion,
+                        minted.Key.KeyPrefix,
+                        minted.Key.Label);
+                    var auditEvent = AuditEvent.Create(
+                        AuditEventTypes.LicenceKeyMinted,
+                        AuditSubjectTypes.Licence,
+                        id,
+                        actorType,
+                        userId,
+                        reason,
+                        payload,
+                        time.GetUtcNow());
+                    await auditEvents.RecordAsync(auditEvent, cancellationToken);
+                    var response = new LicenceKeyMintedResponse(ToResponse(minted.Key), rawKey);
+                    return CreatedAtAction(nameof(List), new { id }, response);
+                }
             default:
                 throw new InvalidOperationException($"Unexpected mint outcome '{outcome.GetType().Name}'.");
         }
@@ -146,27 +146,27 @@ public sealed class LicenceKeysController(
             case RevokeKeyOutcome.AlreadyRevoked already:
                 return Ok(ToResponse(already.Key));
             case RevokeKeyOutcome.Revoked revoked:
-            {
-                var cascaded = await checkouts.ForceRevokeByLicenceKeyAsync(keyId, userId, reason, cancellationToken);
-                var actorType = caller!.Role == UserRole.Admin ? AuditActorTypes.Admin : AuditActorTypes.User;
-                var payload = new LicenceKeyRevokedPayload(
-                    revoked.Key.Id,
-                    Convert.ToBase64String(revoked.Key.KeyHmac),
-                    revoked.Key.KeyPrefix,
-                    revoked.Key.Label,
-                    cascaded);
-                var auditEvent = AuditEvent.Create(
-                    AuditEventTypes.LicenceKeyRevoked,
-                    AuditSubjectTypes.Licence,
-                    id,
-                    actorType,
-                    userId,
-                    reason,
-                    payload,
-                    time.GetUtcNow());
-                await auditEvents.RecordAsync(auditEvent, cancellationToken);
-                return Ok(ToResponse(revoked.Key));
-            }
+                {
+                    var cascaded = await checkouts.ForceRevokeByLicenceKeyAsync(keyId, userId, reason, cancellationToken);
+                    var actorType = caller!.Role == UserRole.Admin ? AuditActorTypes.Admin : AuditActorTypes.User;
+                    var payload = new LicenceKeyRevokedPayload(
+                        revoked.Key.Id,
+                        Convert.ToBase64String(revoked.Key.KeyHmac),
+                        revoked.Key.KeyPrefix,
+                        revoked.Key.Label,
+                        cascaded);
+                    var auditEvent = AuditEvent.Create(
+                        AuditEventTypes.LicenceKeyRevoked,
+                        AuditSubjectTypes.Licence,
+                        id,
+                        actorType,
+                        userId,
+                        reason,
+                        payload,
+                        time.GetUtcNow());
+                    await auditEvents.RecordAsync(auditEvent, cancellationToken);
+                    return Ok(ToResponse(revoked.Key));
+                }
             default:
                 throw new InvalidOperationException($"Unexpected revoke outcome '{outcome.GetType().Name}'.");
         }
