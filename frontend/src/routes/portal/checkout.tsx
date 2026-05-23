@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type SubmitEvent } from 'react';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { loadStripe } from '@stripe/stripe-js';
@@ -84,7 +84,7 @@ function CheckoutPage() {
     await navigate({ to: '/portal/orders/$id', params: { id: orderId } });
   };
 
-  const onContinue = (e: FormEvent<HTMLFormElement>) => {
+  const onContinue = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (startingRef.current) return;
     startingRef.current = true;

@@ -56,7 +56,7 @@ export function LicenceMembers({ licenceId }: Readonly<{ licenceId: string }>) {
     },
   });
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAddError(null);
     const trimmed = email.trim();
