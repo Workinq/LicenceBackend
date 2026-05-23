@@ -27,6 +27,7 @@ namespace LicenceBackend.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
 public sealed class LicencesController(
     ILicenceRepository licences,
+    ILicenceKeyRepository licenceKeys,
     ILicenceMemberRepository members,
     IAuditEventRepository auditEvents,
     IProductRepository products,
@@ -130,6 +131,18 @@ public sealed class LicencesController(
         );
 
         await licences.CreateAsync(licence, cancellationToken);
+
+        var keyPrefix = BuildKeyPrefix(rawKey);
+        var mintOutcome = await licenceKeys.MintAsync(
+            licence.Id,
+            pepperedHmac,
+            keyPrefix,
+            label: null,
+            createdByUserId: null,
+            activeCap: 5,
+            cancellationToken);
+        if (mintOutcome is not MintKeyOutcome.Minted)
+            throw new InvalidOperationException("Failed to mint initial licence key");
 
         var response = new LicenceCreatedResponse(
             licence.Id,
@@ -430,6 +443,23 @@ public sealed class LicencesController(
                 detail: $"No licence with id '{id}'."
             );
 
+        var existingActiveKeys = await licenceKeys.ListForLicenceAsync(id, includeRevoked: false, cancellationToken);
+        foreach (var existingKey in existingActiveKeys)
+        {
+            await licenceKeys.RevokeAsync(existingKey.Id, currentUserId, "regenerate", cancellationToken);
+        }
+        var regenPrefix = BuildKeyPrefix(rawKey);
+        var regenMint = await licenceKeys.MintAsync(
+            id,
+            pepperedHmac,
+            regenPrefix,
+            label: null,
+            createdByUserId: currentUserId,
+            activeCap: int.MaxValue,
+            cancellationToken);
+        if (regenMint is not MintKeyOutcome.Minted)
+            throw new InvalidOperationException("Failed to mint regenerated licence key");
+
         var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
         var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
 
@@ -561,6 +591,9 @@ public sealed class LicencesController(
 
     private static string? NormaliseReason(string? reason)
         => string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+
+    private static string BuildKeyPrefix(string rawKey)
+        => rawKey.Length > 12 ? $"{rawKey[..12]}..." : $"{rawKey}...";
 
     private async Task<IActionResult> BuildLicenceUpdateResponseAsync(
         Guid id, Licence? updated, CancellationToken cancellationToken)

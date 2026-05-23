@@ -242,6 +242,19 @@ public sealed class PepperRotationTests : IntegrationTestBase
                 HwidHmac = hwidHmac,
                 HwidHmacPepperVersion = hwidVersion
             });
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO licence_keys (id, licence_id, key_hmac, key_hmac_pepper_version, key_prefix, created_at)
+            VALUES (@Id, @LicenceId, @KeyHmac, @KeyHmacPepperVersion, @KeyPrefix, NOW());
+            """,
+            new
+            {
+                Id = Guid.NewGuid(),
+                LicenceId = licenceId,
+                KeyHmac = hashed.Hmac,
+                KeyHmacPepperVersion = hashed.PepperVersion,
+                KeyPrefix = licenceKey.Length > 12 ? licenceKey[..12] + "..." : licenceKey + "..."
+            });
 
         return (productId, licenceKey, licenceId);
     }

@@ -22,6 +22,7 @@ namespace LicenceBackend.Api.Controllers;
 [AllowAnonymous]
 public sealed class LicenceVerificationController(
     ILicenceRepository licences,
+    ILicenceKeyRepository licenceKeys,
     IProductRepository products,
     IUserRepository users,
     ILicenceKeyHasher hasher,
@@ -70,7 +71,9 @@ public sealed class LicenceVerificationController(
             return InvalidLicence();
         }
 
-        var licence = await licences.FindByKeyHmacAsync(keyHmacCandidates, cancellationToken);
+        var key = await licenceKeys.FindActiveByKeyHmacAsync(keyHmacCandidates, cancellationToken);
+        if (key is null) return InvalidLicence();
+        var licence = await licences.FindByIdAsync(key.LicenceId, cancellationToken);
         if (licence is null) return InvalidLicence();
 
         var remote = HttpContext.Connection.RemoteIpAddress ?? IPAddress.None;
@@ -198,6 +201,15 @@ public sealed class LicenceVerificationController(
             licence.Notes,
             request.ClientNonce!
         );
+
+        try
+        {
+            await licenceKeys.BumpLastSeenAsync(key.Id, now, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to bump last_seen_at for licence key {KeyId}", key.Id);
+        }
 
         return Ok(new SignedLicenceVerificationResponse(signer.Sign(claims)));
     }

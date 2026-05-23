@@ -410,6 +410,19 @@ public sealed class RateLimitingTests : IntegrationTestBase
                 KeyHmac = pepperedHmac.Hmac,
                 KeyHmacPepperVersion = pepperedHmac.PepperVersion
             });
+        await conn.ExecuteAsync(
+            """
+            INSERT INTO licence_keys (id, licence_id, key_hmac, key_hmac_pepper_version, key_prefix, created_at)
+            VALUES (@Id, @LicenceId, @KeyHmac, @KeyHmacPepperVersion, @KeyPrefix, NOW());
+            """,
+            new
+            {
+                Id = Guid.NewGuid(),
+                LicenceId = licenceId,
+                KeyHmac = pepperedHmac.Hmac,
+                KeyHmacPepperVersion = pepperedHmac.PepperVersion,
+                KeyPrefix = key.Length > 12 ? key[..12] + "..." : key + "..."
+            });
         return (productId, key);
     }
 
