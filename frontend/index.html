@@ -10,10 +10,10 @@
         try {
           var stored = localStorage.getItem('licencebackend.theme');
           var mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var prefersDark = globalThis.matchMedia && globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
           var dark = mode === 'dark' || (mode === 'system' && prefersDark);
           if (dark) document.documentElement.classList.add('dark');
-        } catch (e) {
+        } catch {
           // localStorage / matchMedia unavailable; default to light.
         }
       })();
