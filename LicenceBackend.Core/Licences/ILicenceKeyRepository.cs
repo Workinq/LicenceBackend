@@ -2,6 +2,15 @@ using System.Data;
 
 namespace LicenceBackend.Core.Licences;
 
+public sealed record MintLicenceKeyParameters(
+    Guid LicenceId,
+    PepperedHmac PepperedHmac,
+    string KeyPrefix,
+    string? Label,
+    Guid? CreatedByUserId,
+    int ActiveCap
+);
+
 public interface ILicenceKeyRepository
 {
     Task<LicenceKey?> FindActiveByKeyHmacAsync(IReadOnlyList<byte[]> keyHmacCandidates, CancellationToken cancellationToken);
@@ -12,25 +21,12 @@ public interface ILicenceKeyRepository
 
     Task<int> CountActiveForLicenceAsync(Guid licenceId, CancellationToken cancellationToken);
 
-    Task<MintKeyOutcome> MintAsync(
-        Guid licenceId,
-        PepperedHmac pepperedHmac,
-        string keyPrefix,
-        string? label,
-        Guid? createdByUserId,
-        int activeCap,
-        CancellationToken cancellationToken
-    );
+    Task<MintKeyOutcome> MintAsync(MintLicenceKeyParameters parameters, CancellationToken cancellationToken);
 
     Task<MintKeyOutcome> MintInTxAsync(
         IDbConnection connection,
         IDbTransaction transaction,
-        Guid licenceId,
-        PepperedHmac pepperedHmac,
-        string keyPrefix,
-        string? label,
-        Guid? createdByUserId,
-        int activeCap,
+        MintLicenceKeyParameters parameters,
         CancellationToken cancellationToken
     );
 

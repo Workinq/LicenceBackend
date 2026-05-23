@@ -157,7 +157,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            var evt = AuditEvent.Create(
+            var evt = AuditEvent.Create(new AuditEventDraft(
                 AuditEventTypes.LicenceStatusChanged,
                 AuditSubjectTypes.Licence,
                 licenceId,
@@ -166,7 +166,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                 reason,
                 new LicenceStatusChangedPayload(previousStatusText, newStatusText),
                 time.GetUtcNow()
-            );
+            ));
             await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -219,7 +219,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            var evt = AuditEvent.Create(
+            var evt = AuditEvent.Create(new AuditEventDraft(
                 AuditEventTypes.LicenceMaxSeatsUpdated,
                 AuditSubjectTypes.Licence,
                 licenceId,
@@ -228,7 +228,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                 reason,
                 new LicenceMaxSeatsUpdatedPayload(previousMaxSeats, newMaxSeats),
                 time.GetUtcNow()
-            );
+            ));
             await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -355,22 +355,23 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
             await InsertBindingChangedAsync(
                 connection,
                 transaction,
-                licenceId,
-                LicenceBindingType.Hwid,
-                previousValue: null,
-                newValue: newValueElement,
-                source: BindingChangeSource.FirstUse,
-                actorUserId: null,
-                reason: null,
+                new BindingChange(
+                    licenceId,
+                    LicenceBindingType.Hwid,
+                    PreviousValue: null,
+                    NewValue: newValueElement,
+                    Source: BindingChangeSource.FirstUse,
+                    ActorUserId: null,
+                    Reason: null),
                 cancellationToken);
 
-            var verifyEvt = AuditEvent.Create(
+            var verifyEvt = AuditEvent.Create(new AuditEventDraft(
                 AuditEventTypes.LicenceVerified,
                 AuditSubjectTypes.Licence,
                 licenceId,
                 AuditActorTypes.Anonymous,
-                actorUserId: null,
-                reason: null,
+                ActorUserId: null,
+                Reason: null,
                 new LicenceVerifiedPayload(
                     productIdRequested,
                     hwidBase64,
@@ -379,7 +380,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                     DenialReason: null
                 ),
                 attemptedAt
-            );
+            ));
             await auditEvents.RecordInTxAsync(connection, transaction, verifyEvt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -420,13 +421,14 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                 await InsertBindingChangedAsync(
                     conn,
                     tx,
-                    licenceId,
-                    LicenceBindingType.Hwid,
-                    previousValue,
-                    newValue: null,
-                    source: BindingChangeSource.Admin,
-                    actorUserId: changedByUserId,
-                    reason: reason,
+                    new BindingChange(
+                        licenceId,
+                        LicenceBindingType.Hwid,
+                        previousValue,
+                        NewValue: null,
+                        Source: BindingChangeSource.Admin,
+                        ActorUserId: changedByUserId,
+                        Reason: reason),
                     cancellationToken);
             },
             cancellationToken);
@@ -475,13 +477,14 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
             await InsertBindingChangedAsync(
                 connection,
                 transaction,
-                licenceId,
-                LicenceBindingType.IpAllowlist,
-                ParseJsonElement(previousJson),
-                ParseJsonElement(newJson),
-                BindingChangeSource.Admin,
-                changedByUserId,
-                reason,
+                new BindingChange(
+                    licenceId,
+                    LicenceBindingType.IpAllowlist,
+                    ParseJsonElement(previousJson),
+                    ParseJsonElement(newJson),
+                    BindingChangeSource.Admin,
+                    changedByUserId,
+                    reason),
                 cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -533,13 +536,14 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
             await InsertBindingChangedAsync(
                 connection,
                 transaction,
-                licenceId,
-                LicenceBindingType.IpAllowlist,
-                ParseJsonElement(previousValueJson),
-                ParseJsonElement(newValueJson),
-                BindingChangeSource.FirstUse,
-                null,
-                null,
+                new BindingChange(
+                    licenceId,
+                    LicenceBindingType.IpAllowlist,
+                    ParseJsonElement(previousValueJson),
+                    ParseJsonElement(newValueJson),
+                    BindingChangeSource.FirstUse,
+                    null,
+                    null),
                 cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -604,33 +608,37 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
     private async Task InsertBindingChangedAsync(
         IDbConnection connection,
         IDbTransaction transaction,
-        Guid licenceId,
-        LicenceBindingType bindingType,
-        JsonElement? previousValue,
-        JsonElement? newValue,
-        BindingChangeSource source,
-        Guid? actorUserId,
-        string? reason,
+        BindingChange change,
         CancellationToken cancellationToken)
     {
-        var actorType = source == BindingChangeSource.Admin ? AuditActorTypes.Admin : AuditActorTypes.System;
-        var evt = AuditEvent.Create(
+        var actorType = change.Source == BindingChangeSource.Admin ? AuditActorTypes.Admin : AuditActorTypes.System;
+        var evt = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.LicenceBindingChanged,
             AuditSubjectTypes.Licence,
-            licenceId,
+            change.LicenceId,
             actorType,
-            actorUserId,
-            reason,
+            change.ActorUserId,
+            change.Reason,
             new LicenceBindingChangedPayload(
-                BindingTypeNames.ToString(bindingType),
-                BindingChangeSourceNames.ToString(source),
-                previousValue,
-                newValue
+                BindingTypeNames.ToString(change.BindingType),
+                BindingChangeSourceNames.ToString(change.Source),
+                change.PreviousValue,
+                change.NewValue
             ),
             time.GetUtcNow()
-        );
+        ));
         await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
     }
+
+    private sealed record BindingChange(
+        Guid LicenceId,
+        LicenceBindingType BindingType,
+        JsonElement? PreviousValue,
+        JsonElement? NewValue,
+        BindingChangeSource Source,
+        Guid? ActorUserId,
+        string? Reason
+    );
 
     private static JsonElement? ParseJsonElement(string? json)
     {

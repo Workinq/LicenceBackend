@@ -25,15 +25,15 @@ public sealed class LicenceCheckoutSweeper(
 
         if (result.ReclaimedCount > 0)
         {
-            var evt = AuditEvent.Create(
+            var evt = AuditEvent.Create(new AuditEventDraft(
                 AuditEventTypes.LicenceCheckoutSweeperRan,
                 AuditSubjectTypes.System,
                 Guid.Empty,
                 AuditActorTypes.System,
-                actorUserId: null,
-                reason: null,
+                ActorUserId: null,
+                Reason: null,
                 new LicenceCheckoutSweeperRanPayload(result.ReclaimedCount, result.LicencesAffected),
-                now);
+                now));
             await auditEvents.RecordAsync(evt, cancellationToken);
         }
 

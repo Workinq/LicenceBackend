@@ -18,7 +18,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 2);
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        var outcome = await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
+        var outcome = await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
 
         var opened = Assert.IsType<OpenCheckoutOutcome.Opened>(outcome);
         Assert.Equal(licenceId, opened.Result.Checkout.LicenceId);
@@ -35,8 +35,8 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 1);
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        var first = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
-        var second = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
+        var first = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
+        var second = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
 
         Assert.Equal(first.Result.Checkout.Id, second.Result.Checkout.Id);
         Assert.True(second.Result.IsIdempotentReplay);
@@ -51,8 +51,8 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var hashA = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
         var hashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        await repo.OpenAsync(licenceId, hashA, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
-        var outcome = await repo.OpenAsync(licenceId, hashB, null, null, null, "10.0.0.2", null, Lease, CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hashA, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
+        var outcome = await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hashB, null, null, null, "10.0.0.2", null, Lease), CancellationToken.None);
 
         var denied = Assert.IsType<OpenCheckoutOutcome.DeniedNoSeats>(outcome);
         Assert.Equal(1, denied.Detail.ActiveSeats);
@@ -77,7 +77,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
                 new { Id = Guid.NewGuid(), LicenceId = licenceId, Hash = hashOld });
         }
 
-        var outcome = await repo.OpenAsync(licenceId, hashNew, null, null, null, "10.0.0.2", null, Lease, CancellationToken.None);
+        var outcome = await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hashNew, null, null, null, "10.0.0.2", null, Lease), CancellationToken.None);
 
         var opened = Assert.IsType<OpenCheckoutOutcome.Opened>(outcome);
         Assert.Equal(1, opened.Result.SeatsAfter);
@@ -95,7 +95,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        var outcome = await repo.OpenAsync(Guid.NewGuid(), hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
+        var outcome = await repo.OpenAsync(new OpenCheckoutParameters(Guid.NewGuid(), hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
 
         Assert.IsType<OpenCheckoutOutcome.LicenceNotFound>(outcome);
     }
@@ -107,7 +107,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var (licenceId, _, _) = await SeedLicenceAsync(maxSeats: 2);
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
 
         await using var conn = await OpenDbAsync();
         var eventType = await conn.QuerySingleAsync<string>(
@@ -124,8 +124,8 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var hashA = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
         var hashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        await repo.OpenAsync(licenceId, hashA, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
-        await repo.OpenAsync(licenceId, hashB, null, null, null, "10.0.0.2", null, Lease, CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hashA, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hashB, null, null, null, "10.0.0.2", null, Lease), CancellationToken.None);
 
         await using var conn = await OpenDbAsync();
         var count = await conn.QuerySingleAsync<int>(
@@ -140,7 +140,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
         var (licenceId, _, _) = await SeedLicenceAsync();
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
-        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, TimeSpan.FromMinutes(1), CancellationToken.None);
+        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, TimeSpan.FromMinutes(1)), CancellationToken.None);
         var initialExpiry = opened.Result.Checkout.ExpiresAt;
 
         await Task.Delay(50);
@@ -187,7 +187,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
         var (licenceId, _, _) = await SeedLicenceAsync();
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
-        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
+        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
 
         var closed = await repo.CloseAsync(opened.Result.Checkout.Id, CancellationToken.None);
 
@@ -224,7 +224,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
         var (licenceId, _, _) = await SeedLicenceAsync();
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
-        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
+        var opened = (OpenCheckoutOutcome.Opened)await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
 
         var revoked = await repo.ForceRevokeAsync(
             opened.Result.Checkout.Id,
@@ -321,9 +321,9 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
         var hashA2 = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
         var hashB = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
 
-        await repo.OpenAsync(licenceA, hashA1, null, null, null, "10.0.0.1", null, Lease, CancellationToken.None);
-        await repo.OpenAsync(licenceA, hashA2, null, null, null, "10.0.0.2", null, Lease, CancellationToken.None);
-        await repo.OpenAsync(licenceB, hashB, null, null, null, "10.0.0.3", null, Lease, CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceA, hashA1, null, null, null, "10.0.0.1", null, Lease), CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceA, hashA2, null, null, null, "10.0.0.2", null, Lease), CancellationToken.None);
+        await repo.OpenAsync(new OpenCheckoutParameters(licenceB, hashB, null, null, null, "10.0.0.3", null, Lease), CancellationToken.None);
 
         await using (var conn = await OpenDbAsync())
         {
@@ -437,7 +437,7 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
     {
         var repo = Factory!.Services.GetRequiredService<ILicenceCheckoutRepository>();
         var hash = SHA256.HashData(RandomNumberGenerator.GetBytes(32));
-        var outcome = await repo.OpenAsync(licenceId, hash, null, null, null, "10.0.0.1", keyId, Lease, CancellationToken.None);
+        var outcome = await repo.OpenAsync(new OpenCheckoutParameters(licenceId, hash, null, null, null, "10.0.0.1", keyId, Lease), CancellationToken.None);
         Assert.IsType<OpenCheckoutOutcome.Opened>(outcome);
     }
 

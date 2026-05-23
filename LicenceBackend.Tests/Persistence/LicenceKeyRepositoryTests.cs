@@ -19,12 +19,13 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         var (licenceId, _) = await CreateLicenceAsync();
 
         var outcome = await repo.MintAsync(
-            licenceId,
-            new PepperedHmac(NewRandom(32), PepperVersion),
-            keyPrefix: "LIC-AAAA-...",
-            label: "second-machine",
-            createdByUserId: AdminUserId,
-            activeCap: Cap,
+            new MintLicenceKeyParameters(
+                licenceId,
+                new PepperedHmac(NewRandom(32), PepperVersion),
+                KeyPrefix: "LIC-AAAA-...",
+                Label: "second-machine",
+                CreatedByUserId: AdminUserId,
+                ActiveCap: Cap),
             CancellationToken.None);
 
         var minted = Assert.IsType<MintKeyOutcome.Minted>(outcome);
@@ -43,23 +44,25 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         for (var i = 0; i < Cap - 1; i++)
         {
             var fillOutcome = await repo.MintAsync(
-                licenceId,
-                new PepperedHmac(NewRandom(32), PepperVersion),
-                keyPrefix: $"LIC-FILL{i}-...",
-                label: null,
-                createdByUserId: AdminUserId,
-                activeCap: Cap,
+                new MintLicenceKeyParameters(
+                    licenceId,
+                    new PepperedHmac(NewRandom(32), PepperVersion),
+                    KeyPrefix: $"LIC-FILL{i}-...",
+                    Label: null,
+                    CreatedByUserId: AdminUserId,
+                    ActiveCap: Cap),
                 CancellationToken.None);
             Assert.IsType<MintKeyOutcome.Minted>(fillOutcome);
         }
 
         var outcome = await repo.MintAsync(
-            licenceId,
-            new PepperedHmac(NewRandom(32), PepperVersion),
-            keyPrefix: "LIC-OVER-...",
-            label: null,
-            createdByUserId: AdminUserId,
-            activeCap: Cap,
+            new MintLicenceKeyParameters(
+                licenceId,
+                new PepperedHmac(NewRandom(32), PepperVersion),
+                KeyPrefix: "LIC-OVER-...",
+                Label: null,
+                CreatedByUserId: AdminUserId,
+                ActiveCap: Cap),
             CancellationToken.None);
 
         var capExceeded = Assert.IsType<MintKeyOutcome.CapExceeded>(outcome);
@@ -76,12 +79,13 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         for (var i = 0; i < Cap - 1; i++)
         {
             var fillOutcome = await repo.MintAsync(
-                licenceId,
-                new PepperedHmac(NewRandom(32), PepperVersion),
-                keyPrefix: $"LIC-FILL{i}-...",
-                label: null,
-                createdByUserId: AdminUserId,
-                activeCap: Cap,
+                new MintLicenceKeyParameters(
+                    licenceId,
+                    new PepperedHmac(NewRandom(32), PepperVersion),
+                    KeyPrefix: $"LIC-FILL{i}-...",
+                    Label: null,
+                    CreatedByUserId: AdminUserId,
+                    ActiveCap: Cap),
                 CancellationToken.None);
             Assert.IsType<MintKeyOutcome.Minted>(fillOutcome);
         }
@@ -90,12 +94,13 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         Assert.IsType<RevokeKeyOutcome.Revoked>(revoked);
 
         var outcome = await repo.MintAsync(
-            licenceId,
-            new PepperedHmac(NewRandom(32), PepperVersion),
-            keyPrefix: "LIC-NEW-...",
-            label: null,
-            createdByUserId: AdminUserId,
-            activeCap: Cap,
+            new MintLicenceKeyParameters(
+                licenceId,
+                new PepperedHmac(NewRandom(32), PepperVersion),
+                KeyPrefix: "LIC-NEW-...",
+                Label: null,
+                CreatedByUserId: AdminUserId,
+                ActiveCap: Cap),
             CancellationToken.None);
 
         Assert.IsType<MintKeyOutcome.Minted>(outcome);
@@ -109,12 +114,13 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         var hmac = NewRandom(32);
 
         var minted = (MintKeyOutcome.Minted)await repo.MintAsync(
-            licenceId,
-            new PepperedHmac(hmac, PepperVersion),
-            keyPrefix: "LIC-FIND-...",
-            label: null,
-            createdByUserId: AdminUserId,
-            activeCap: Cap,
+            new MintLicenceKeyParameters(
+                licenceId,
+                new PepperedHmac(hmac, PepperVersion),
+                KeyPrefix: "LIC-FIND-...",
+                Label: null,
+                CreatedByUserId: AdminUserId,
+                ActiveCap: Cap),
             CancellationToken.None);
 
         var found = await repo.FindActiveByKeyHmacAsync(new[] { hmac }, CancellationToken.None);
@@ -183,12 +189,13 @@ public sealed class LicenceKeyRepositoryTests : IntegrationTestBase
         var repo = Factory!.Services.GetRequiredService<ILicenceKeyRepository>();
 
         var outcome = await repo.MintAsync(
-            Guid.NewGuid(),
-            new PepperedHmac(NewRandom(32), PepperVersion),
-            keyPrefix: "LIC-MISS-...",
-            label: null,
-            createdByUserId: AdminUserId,
-            activeCap: Cap,
+            new MintLicenceKeyParameters(
+                Guid.NewGuid(),
+                new PepperedHmac(NewRandom(32), PepperVersion),
+                KeyPrefix: "LIC-MISS-...",
+                Label: null,
+                CreatedByUserId: AdminUserId,
+                ActiveCap: Cap),
             CancellationToken.None);
 
         Assert.IsType<MintKeyOutcome.LicenceNotFound>(outcome);

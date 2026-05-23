@@ -168,7 +168,7 @@ public sealed class UserRepository(NpgsqlDataSource dataSource, IAuditEventRepos
                                      transaction,
                                      cancellationToken: cancellationToken));
 
-            var evt = AuditEvent.Create(
+            var evt = AuditEvent.Create(new AuditEventDraft(
                 AuditEventTypes.UserStatusChanged,
                 AuditSubjectTypes.User,
                 userId,
@@ -177,7 +177,7 @@ public sealed class UserRepository(NpgsqlDataSource dataSource, IAuditEventRepos
                 reason,
                 new UserStatusChangedPayload(previousStatusText, newStatusText),
                 time.GetUtcNow()
-            );
+            ));
             await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
 
             if (newStatus == UserStatus.Suspended)

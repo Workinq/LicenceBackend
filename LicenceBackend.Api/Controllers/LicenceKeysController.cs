@@ -80,7 +80,9 @@ public sealed class LicenceKeysController(
         var label = NormaliseOptional(request.Label);
         var reason = NormaliseOptional(request.Reason);
 
-        var outcome = await licenceKeys.MintAsync(id, peppered, prefix, label, userId, MaxActiveKeysPerLicence, cancellationToken);
+        var outcome = await licenceKeys.MintAsync(
+            new MintLicenceKeyParameters(id, peppered, prefix, label, userId, MaxActiveKeysPerLicence),
+            cancellationToken);
         switch (outcome)
         {
             case MintKeyOutcome.LicenceNotFound:
@@ -99,7 +101,7 @@ public sealed class LicenceKeysController(
                         minted.Key.KeyHmacPepperVersion,
                         minted.Key.KeyPrefix,
                         minted.Key.Label);
-                    var auditEvent = AuditEvent.Create(
+                    var auditEvent = AuditEvent.Create(new AuditEventDraft(
                         AuditEventTypes.LicenceKeyMinted,
                         AuditSubjectTypes.Licence,
                         id,
@@ -107,7 +109,7 @@ public sealed class LicenceKeysController(
                         userId,
                         reason,
                         payload,
-                        time.GetUtcNow());
+                        time.GetUtcNow()));
                     await auditEvents.RecordAsync(auditEvent, cancellationToken);
                     var response = new LicenceKeyMintedResponse(ToResponse(minted.Key), rawKey);
                     return CreatedAtAction(nameof(List), new { id }, response);
@@ -155,7 +157,7 @@ public sealed class LicenceKeysController(
                         revoked.Key.KeyPrefix,
                         revoked.Key.Label,
                         cascaded);
-                    var auditEvent = AuditEvent.Create(
+                    var auditEvent = AuditEvent.Create(new AuditEventDraft(
                         AuditEventTypes.LicenceKeyRevoked,
                         AuditSubjectTypes.Licence,
                         id,
@@ -163,7 +165,7 @@ public sealed class LicenceKeysController(
                         userId,
                         reason,
                         payload,
-                        time.GetUtcNow());
+                        time.GetUtcNow()));
                     await auditEvents.RecordAsync(auditEvent, cancellationToken);
                     return Ok(ToResponse(revoked.Key));
                 }
@@ -197,7 +199,7 @@ public sealed class LicenceKeysController(
 
         var actorType = caller!.Role == UserRole.Admin ? AuditActorTypes.Admin : AuditActorTypes.User;
         var payload = new LicenceKeyLabelChangedPayload(keyId, existing.Label, updated.Label);
-        var auditEvent = AuditEvent.Create(
+        var auditEvent = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.LicenceKeyLabelChanged,
             AuditSubjectTypes.Licence,
             id,
@@ -205,7 +207,7 @@ public sealed class LicenceKeysController(
             userId,
             NormaliseOptional(request.Reason),
             payload,
-            time.GetUtcNow());
+            time.GetUtcNow()));
         await auditEvents.RecordAsync(auditEvent, cancellationToken);
 
         return Ok(ToResponse(updated));

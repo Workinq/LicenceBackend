@@ -16,17 +16,17 @@ public sealed class LicenceCheckoutRepository(
     private const string CheckoutColumns =
         "id, licence_id, instance_id_hash, member_user_id, hwid_hmac, hwid_hmac_pepper_version, source_ip::text AS source_ip, issued_at, last_heartbeat_at, expires_at";
 
-    public async Task<OpenCheckoutOutcome> OpenAsync(
-        Guid licenceId,
-        byte[] instanceIdHash,
-        Guid? memberUserId,
-        byte[]? hwidHmac,
-        short? hwidHmacPepperVersion,
-        string sourceIp,
-        Guid? issuedWithLicenceKeyId,
-        TimeSpan leaseDuration,
-        CancellationToken cancellationToken)
+    public async Task<OpenCheckoutOutcome> OpenAsync(OpenCheckoutParameters parameters, CancellationToken cancellationToken)
     {
+        var licenceId = parameters.LicenceId;
+        var instanceIdHash = parameters.InstanceIdHash;
+        var memberUserId = parameters.MemberUserId;
+        var hwidHmac = parameters.HwidHmac;
+        var hwidHmacPepperVersion = parameters.HwidHmacPepperVersion;
+        var sourceIp = parameters.SourceIp;
+        var issuedWithLicenceKeyId = parameters.IssuedWithLicenceKeyId;
+        var leaseDuration = parameters.LeaseDuration;
+
         const string licenceLookupSql = "SELECT max_seats FROM licences WHERE id = @LicenceId LIMIT 1;";
         const string reclaimSql = """
                                    WITH expired AS (
@@ -94,13 +94,13 @@ public sealed class LicenceCheckoutRepository(
                                        new CommandDefinition(oldestExpirySql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
                 var oldestExpiryOffset = TimestampConversion.ToUtcOffset(oldestExpiry);
 
-                var denyEvt = AuditEvent.Create(
+                var denyEvt = AuditEvent.Create(new AuditEventDraft(
                     AuditEventTypes.LicenceCheckoutDeniedNoSeats,
                     AuditSubjectTypes.Licence,
                     licenceId,
                     AuditActorTypes.Anonymous,
-                    actorUserId: null,
-                    reason: null,
+                    ActorUserId: null,
+                    Reason: null,
                     new LicenceCheckoutDeniedNoSeatsPayload(
                         InstanceHashPrefix(instanceIdHash),
                         memberUserId,
@@ -111,7 +111,7 @@ public sealed class LicenceCheckoutRepository(
                         oldestExpiryOffset
                     ),
                     now
-                );
+                ));
                 await auditEvents.RecordInTxAsync(connection, transaction, denyEvt, cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return new OpenCheckoutOutcome.DeniedNoSeats(new DeniedNoSeatsResult(activeSeats, maxSeats.Value, oldestExpiryOffset));
@@ -137,13 +137,13 @@ public sealed class LicenceCheckoutRepository(
                 cancellationToken: cancellationToken));
 
             var seatsAfter = activeSeats + 1;
-            var openedEvt = AuditEvent.Create(
+            var openedEvt = AuditEvent.Create(new AuditEventDraft(
                 AuditEventTypes.LicenceCheckoutOpened,
                 AuditSubjectTypes.Licence,
                 licenceId,
                 AuditActorTypes.Anonymous,
-                actorUserId: null,
-                reason: null,
+                ActorUserId: null,
+                Reason: null,
                 new LicenceCheckoutOpenedPayload(
                     newId,
                     InstanceHashPrefix(instanceIdHash),
@@ -154,7 +154,7 @@ public sealed class LicenceCheckoutRepository(
                     maxSeats.Value
                 ),
                 now
-            );
+            ));
             await auditEvents.RecordInTxAsync(connection, transaction, openedEvt, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
@@ -279,7 +279,7 @@ public sealed class LicenceCheckoutRepository(
                 var maxSeats = await connection.QuerySingleAsync<int>(
                                    new CommandDefinition(maxSeatsSql, new { row.LicenceId }, transaction, cancellationToken: cancellationToken));
 
-                var evt = AuditEvent.Create(
+                var evt = AuditEvent.Create(new AuditEventDraft(
                     AuditEventTypes.LicenceCheckoutClosed,
                     AuditSubjectTypes.Licence,
                     row.LicenceId,
@@ -297,7 +297,7 @@ public sealed class LicenceCheckoutRepository(
                         maxSeats
                     ),
                     now
-                );
+                ));
                 await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
             }
 
@@ -373,7 +373,7 @@ public sealed class LicenceCheckoutRepository(
                 var actorType = reason == LicenceCheckoutCloseReason.AdminRevoked
                     ? AuditActorTypes.Admin
                     : AuditActorTypes.User;
-                var evt = AuditEvent.Create(
+                var evt = AuditEvent.Create(new AuditEventDraft(
                     AuditEventTypes.LicenceCheckoutClosed,
                     AuditSubjectTypes.Licence,
                     row.LicenceId,
@@ -391,7 +391,7 @@ public sealed class LicenceCheckoutRepository(
                         maxSeats
                     ),
                     now
-                );
+                ));
                 await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
             }
 

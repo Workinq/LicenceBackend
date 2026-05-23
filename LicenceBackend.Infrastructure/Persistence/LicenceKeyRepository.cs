@@ -69,21 +69,13 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
         return await connection.ExecuteScalarAsync<int>(command);
     }
 
-    public async Task<MintKeyOutcome> MintAsync(
-        Guid licenceId,
-        PepperedHmac pepperedHmac,
-        string keyPrefix,
-        string? label,
-        Guid? createdByUserId,
-        int activeCap,
-        CancellationToken cancellationToken)
+    public async Task<MintKeyOutcome> MintAsync(MintLicenceKeyParameters parameters, CancellationToken cancellationToken)
     {
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         try
         {
-            var outcome = await MintCoreAsync(
-                connection, transaction, licenceId, pepperedHmac, keyPrefix, label, createdByUserId, activeCap, cancellationToken);
+            var outcome = await MintCoreAsync(connection, transaction, parameters, cancellationToken);
             if (outcome is MintKeyOutcome.Minted)
                 await transaction.CommitAsync(cancellationToken);
             else
@@ -100,24 +92,14 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
     public Task<MintKeyOutcome> MintInTxAsync(
         IDbConnection connection,
         IDbTransaction transaction,
-        Guid licenceId,
-        PepperedHmac pepperedHmac,
-        string keyPrefix,
-        string? label,
-        Guid? createdByUserId,
-        int activeCap,
+        MintLicenceKeyParameters parameters,
         CancellationToken cancellationToken)
-        => MintCoreAsync(connection, transaction, licenceId, pepperedHmac, keyPrefix, label, createdByUserId, activeCap, cancellationToken);
+        => MintCoreAsync(connection, transaction, parameters, cancellationToken);
 
     private static async Task<MintKeyOutcome> MintCoreAsync(
         IDbConnection connection,
         IDbTransaction transaction,
-        Guid licenceId,
-        PepperedHmac pepperedHmac,
-        string keyPrefix,
-        string? label,
-        Guid? createdByUserId,
-        int activeCap,
+        MintLicenceKeyParameters parameters,
         CancellationToken cancellationToken)
     {
         const string licenceExistsSql = "SELECT 1 FROM licences WHERE id = @LicenceId LIMIT 1;";
@@ -129,6 +111,8 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
                                   RETURNING {Columns};
                                   """;
 
+        var licenceId = parameters.LicenceId;
+
         await connection.ExecuteAsync(
             new CommandDefinition(advisoryLockSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
 
@@ -138,7 +122,7 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
 
         var activeCount = await connection.QuerySingleAsync<int>(
             new CommandDefinition(countSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
-        if (activeCount >= activeCap) return new MintKeyOutcome.CapExceeded(activeCount, activeCap);
+        if (activeCount >= parameters.ActiveCap) return new MintKeyOutcome.CapExceeded(activeCount, parameters.ActiveCap);
 
         var inserted = await connection.QuerySingleAsync<Row>(
             new CommandDefinition(
@@ -147,11 +131,11 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
                 {
                     Id = Guid.NewGuid(),
                     LicenceId = licenceId,
-                    KeyHmac = pepperedHmac.Hmac,
-                    PepperVersion = pepperedHmac.PepperVersion,
-                    KeyPrefix = keyPrefix,
-                    Label = label,
-                    CreatedByUserId = createdByUserId
+                    KeyHmac = parameters.PepperedHmac.Hmac,
+                    PepperVersion = parameters.PepperedHmac.PepperVersion,
+                    KeyPrefix = parameters.KeyPrefix,
+                    Label = parameters.Label,
+                    CreatedByUserId = parameters.CreatedByUserId
                 },
                 transaction,
                 cancellationToken: cancellationToken));

@@ -263,15 +263,15 @@ public sealed class ProductsController(
             now);
         await productFiles.CreateAsync(productFile, cancellationToken);
 
-        var evt = AuditEvent.Create(
+        var evt = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.ProductFileUploaded,
             AuditSubjectTypes.Product,
             product.Id,
             AuditActorTypes.Admin,
             adminId,
-            reason: null,
+            Reason: null,
             new ProductFileUploadedPayload(productFile.Id, versionNumber, fileName, contentType, file.Length),
-            now);
+            now));
         await auditEvents.RecordAsync(evt, cancellationToken);
 
         var response = ToFileResponse(productFile);

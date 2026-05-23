@@ -24,19 +24,20 @@ public abstract record OpenCheckoutOutcome
 
 public sealed record ReclaimExpiredResult(int ReclaimedCount, int LicencesAffected);
 
+public sealed record OpenCheckoutParameters(
+    Guid LicenceId,
+    byte[] InstanceIdHash,
+    Guid? MemberUserId,
+    byte[]? HwidHmac,
+    short? HwidHmacPepperVersion,
+    string SourceIp,
+    Guid? IssuedWithLicenceKeyId,
+    TimeSpan LeaseDuration
+);
+
 public interface ILicenceCheckoutRepository
 {
-    Task<OpenCheckoutOutcome> OpenAsync(
-        Guid licenceId,
-        byte[] instanceIdHash,
-        Guid? memberUserId,
-        byte[]? hwidHmac,
-        short? hwidHmacPepperVersion,
-        string sourceIp,
-        Guid? issuedWithLicenceKeyId,
-        TimeSpan leaseDuration,
-        CancellationToken cancellationToken
-    );
+    Task<OpenCheckoutOutcome> OpenAsync(OpenCheckoutParameters parameters, CancellationToken cancellationToken);
 
     Task<LicenceCheckout?> HeartbeatAsync(
         Guid checkoutId,

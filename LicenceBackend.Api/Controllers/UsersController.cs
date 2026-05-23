@@ -469,15 +469,15 @@ public sealed class UsersController(
         var stream = await productFileStorage.OpenReadAsync(file.StoragePath, cancellationToken);
         if (stream is null) return LicenceNotFound(id);
 
-        var evt = AuditEvent.Create(
+        var evt = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.ProductFileDownloaded,
             AuditSubjectTypes.Product,
             licence.ProductId,
             AuditActorTypes.User,
             userId,
-            reason: null,
+            Reason: null,
             new ProductFileDownloadedPayload(file.Id, file.VersionNumber, licence.Id),
-            now);
+            now));
         await auditEvents.RecordAsync(evt, cancellationToken);
 
         return File(stream, file.ContentType, file.FileName);
@@ -571,7 +571,7 @@ public sealed class UsersController(
         var now = time.GetUtcNow();
         await licenceMembers.AddAsync(new LicenceMember(id, memberUser.Id, userId, now), cancellationToken);
 
-        var auditEvent = AuditEvent.Create(
+        var auditEvent = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.LicenceMemberAdded,
             AuditSubjectTypes.Licence,
             id,
@@ -580,7 +580,7 @@ public sealed class UsersController(
             null,
             new LicenceMemberChangedPayload(memberUser.Id, memberUser.Email),
             now
-        );
+        ));
         await auditEvents.RecordAsync(auditEvent, cancellationToken);
 
         var actor = await users.FindByIdAsync(userId, cancellationToken);
@@ -614,7 +614,7 @@ public sealed class UsersController(
                 detail: $"User '{memberId}' is not a member of this licence."
             );
 
-        var auditEvent = AuditEvent.Create(
+        var auditEvent = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.LicenceMemberRemoved,
             AuditSubjectTypes.Licence,
             id,
@@ -623,7 +623,7 @@ public sealed class UsersController(
             null,
             new LicenceMemberChangedPayload(memberId, memberUser?.Email ?? string.Empty),
             time.GetUtcNow()
-        );
+        ));
         await auditEvents.RecordAsync(auditEvent, cancellationToken);
 
         return NoContent();
@@ -664,17 +664,18 @@ public sealed class UsersController(
         }
         var keyPrefix = rawKey.Length > 12 ? $"{rawKey[..12]}..." : $"{rawKey}...";
         var mint = await licenceKeys.MintAsync(
-            id,
-            pepperedHmac,
-            keyPrefix,
-            label: null,
-            createdByUserId: userId,
-            activeCap: int.MaxValue,
+            new MintLicenceKeyParameters(
+                id,
+                pepperedHmac,
+                keyPrefix,
+                Label: null,
+                CreatedByUserId: userId,
+                ActiveCap: int.MaxValue),
             cancellationToken);
         if (mint is not MintKeyOutcome.Minted)
             throw new InvalidOperationException("Failed to mint regenerated licence key");
 
-        var regenEvent = AuditEvent.Create(
+        var regenEvent = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.LicenceKeyRegenerated,
             AuditSubjectTypes.Licence,
             id,
@@ -688,7 +689,7 @@ public sealed class UsersController(
                 pepperedHmac.PepperVersion
             ),
             time.GetUtcNow()
-        );
+        ));
         await auditEvents.RecordAsync(regenEvent, cancellationToken);
 
         var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
