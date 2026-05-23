@@ -111,11 +111,11 @@ describe('AdminLicenceDetailRoute', () => {
     expect(await screen.findByText(/failed to load this licence/i)).toBeInTheDocument();
   });
 
-  it('renders the Licence heading and key details when loaded', async () => {
+  it('renders the product-slug heading and key details when loaded', async () => {
     vi.mocked(fetchLicence).mockResolvedValue(licence());
     renderDetail();
-    expect(await screen.findByRole('heading', { name: /^licence$/i })).toBeInTheDocument();
-    expect(screen.getByText('owner@example.com')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /acme-pro/i })).toBeInTheDocument();
+    expect(screen.getAllByText('owner@example.com').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/not bound/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^none$/i).length).toBeGreaterThan(0);
   });
@@ -123,28 +123,28 @@ describe('AdminLicenceDetailRoute', () => {
   it('renders a link to the product detail page using productId', async () => {
     vi.mocked(fetchLicence).mockResolvedValue(licence());
     renderDetail();
-    const link = await screen.findByRole('link', { name: /acme-pro/i });
+    const link = await screen.findByRole('link', { name: 'acme-pro' });
     expect(link.getAttribute('href')).toBe('/admin/products/p-1');
   });
 
-  it('shows the View order button when the licence has an orderId', async () => {
+  it('links the issuing order when the licence has an orderId', async () => {
     vi.mocked(fetchLicence).mockResolvedValue(licence({ orderId: 'ord-9' }));
     renderDetail();
-    const link = await screen.findByRole('link', { name: /view order/i });
+    const link = await screen.findByRole('link', { name: /ord-9/i });
     expect(link.getAttribute('href')).toBe('/admin/orders/ord-9');
   });
 
-  it('omits the View order button when there is no associated order', async () => {
+  it('omits the order link when there is no associated order', async () => {
     vi.mocked(fetchLicence).mockResolvedValue(licence({ orderId: null }));
     renderDetail();
-    await screen.findByRole('heading', { name: /^licence$/i });
-    expect(screen.queryByRole('link', { name: /view order/i })).not.toBeInTheDocument();
+    await screen.findByRole('heading', { name: /acme-pro/i });
+    expect(screen.queryByText(/issued from/i)).not.toBeInTheDocument();
   });
 
   it('shows the armed IP allowlist message when the allowlist is empty', async () => {
     vi.mocked(fetchLicence).mockResolvedValue(licence({ ipAllowlist: [] }));
     renderDetail();
-    await screen.findByRole('heading', { name: /^licence$/i });
-    expect(screen.getByText(/armed \(binds the first verifying ip\)/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: /acme-pro/i });
+    expect(screen.getByText(/armed \(binds first verifying ip\)/i)).toBeInTheDocument();
   });
 });

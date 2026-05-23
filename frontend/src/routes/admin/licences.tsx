@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -9,129 +10,222 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
+import { FilterChip } from '@/components/FilterChip';
 import { fetchLicences } from '@/api/licences';
+import { fetchProducts } from '@/api/products';
+import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/admin/licences')({
   component: LicencesPage,
 });
 
 const PAGE_SIZE = 25;
-const STATUS_FILTERS = ['all', 'active', 'suspended', 'revoked'] as const;
-type StatusFilter = (typeof STATUS_FILTERS)[number];
+type StatusFilter = 'all' | 'active' | 'suspended' | 'revoked';
+type ExpiresFilter = 'all' | 'expired' | 'soon';
 
-function formatDate(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString() : '-';
-}
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'revoked', label: 'Revoked' },
+] as const;
+
+const EXPIRES_OPTIONS = [
+  { value: 'all', label: 'Any time' },
+  { value: 'soon', label: 'Soon (30d)' },
+  { value: 'expired', label: 'Expired' },
+] as const;
 
 function LicencesPage() {
   const [status, setStatus] = useState<StatusFilter>('all');
+  const [productId, setProductId] = useState<string>('all');
+  const [expires, setExpires] = useState<ExpiresFilter>('all');
   const [offset, setOffset] = useState(0);
 
+  const products = useQuery({
+    queryKey: ['products-filter'],
+    queryFn: () => fetchProducts({ limit: 100, offset: 0 }),
+    staleTime: 60_000,
+  });
+
+  const productOptions = [
+    { value: 'all', label: 'All' },
+    ...(products.data?.items.map((p) => ({ value: p.id, label: p.slug })) ?? []),
+  ];
+
   const query = useQuery({
-    queryKey: ['licences', 'list', { status, offset }],
+    queryKey: ['licences', 'list', { status, productId, offset }],
     queryFn: () =>
       fetchLicences({
         status: status === 'all' ? undefined : status,
+        productId: productId === 'all' ? undefined : productId,
         limit: PAGE_SIZE,
         offset,
       }),
     placeholderData: keepPreviousData,
   });
 
-  const onStatusChange = (next: string) => {
-    setStatus(next as StatusFilter);
-    setOffset(0);
-  };
+  // Independent counts for the subtitle line.
+  const activeCount = useQuery({
+    queryKey: ['licences-count-active'],
+    queryFn: () => fetchLicences({ status: 'active', limit: 1, offset: 0 }),
+    staleTime: 30_000,
+  });
+  const suspendedCount = useQuery({
+    queryKey: ['licences-count-suspended'],
+    queryFn: () => fetchLicences({ status: 'suspended', limit: 1, offset: 0 }),
+    staleTime: 30_000,
+  });
+  const revokedCount = useQuery({
+    queryKey: ['licences-count-revoked'],
+    queryFn: () => fetchLicences({ status: 'revoked', limit: 1, offset: 0 }),
+    staleTime: 30_000,
+  });
 
   const data = query.data;
-  const rangeLabel = data
-    ? `${data.total === 0 ? 0 : data.offset + 1}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
-    : '';
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+  const rangeStart = data && data.total > 0 ? data.offset + 1 : 0;
+  const rangeEnd = data ? Math.min(data.offset + data.limit, data.total) : 0;
+
+  const filtered =
+    expires === 'all'
+      ? data?.items
+      : data?.items.filter((lic) => {
+          if (!lic.expiresAt) return false;
+          const exp = new Date(lic.expiresAt).getTime();
+          const now = Date.now();
+          if (expires === 'expired') return exp < now;
+          if (expires === 'soon') return exp > now && exp - now < 30 * 86_400_000;
+          return true;
+        });
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold text-ink">Licences</h1>
-        <Link to="/admin/licences/new" className={buttonVariants()}>
-          New licence
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-semibold tracking-tight text-foreground">Licences</h1>
+          <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink-muted">
+            <span className="tabular-nums">{activeCount.data?.total ?? 0}</span> active
+            <span aria-hidden className="text-ink-subtle">·</span>
+            <span className="tabular-nums">{suspendedCount.data?.total ?? 0}</span> suspended
+            <span aria-hidden className="text-ink-subtle">·</span>
+            <span className="tabular-nums">{revokedCount.data?.total ?? 0}</span> revoked
+          </p>
+        </div>
+        <Link to="/admin/licences/new" className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}>
+          <Plus className="size-3.5" /> New licence
         </Link>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Select value={status} onValueChange={onStatusChange}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_FILTERS.map((s) => (
-              <SelectItem key={s} value={s} className="capitalize">
-                {s === 'all' ? 'All statuses' : s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchTrigger />
+        <FilterChip
+          label="Status"
+          value={status}
+          options={STATUS_OPTIONS as unknown as { value: StatusFilter; label: string }[]}
+          onChange={(v) => {
+            setStatus(v);
+            setOffset(0);
+          }}
+        />
+        <FilterChip
+          label="Product"
+          value={productId}
+          options={productOptions}
+          onChange={(v) => {
+            setProductId(v);
+            setOffset(0);
+          }}
+        />
+        <FilterChip
+          label="Expires"
+          value={expires}
+          options={EXPIRES_OPTIONS as unknown as { value: ExpiresFilter; label: string }[]}
+          onChange={(v) => setExpires(v)}
+        />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
-        <Table>
+      <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+        <Table className="text-[12.5px]">
           <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>HWID</TableHead>
-              <TableHead>Expires</TableHead>
-              <TableHead>Created</TableHead>
+            <TableRow className="border-border">
+              <Th>Licence</Th>
+              <Th>Product</Th>
+              <Th>Customer</Th>
+              <Th className="w-[100px]">Status</Th>
+              <Th className="w-[80px]">HWID</Th>
+              <Th className="w-[110px]">Expires</Th>
+              <Th className="w-[110px]">Created</Th>
+              <Th className="w-[60px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {query.isPending && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={8}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {query.isError && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-status-revoked-fg">
+                <TableCell colSpan={8} className="text-status-revoked-fg">
                   Failed to load licences.
                 </TableCell>
               </TableRow>
             )}
-            {data?.items.map((lic) => (
-              <TableRow key={lic.id}>
-                <TableCell>
+            {filtered?.map((lic) => (
+              <TableRow key={lic.id} className="border-border hover:bg-surface-sunken">
+                <Td>
                   <Link
                     to="/admin/licences/$id"
                     params={{ id: lic.id }}
-                    className="font-medium text-ink underline-offset-2 hover:underline"
+                    className="font-mono text-[11.5px] text-foreground hover:underline"
                   >
-                    {lic.productSlug}
+                    {lic.id.length > 16 ? `${lic.id.slice(0, 16)}` : lic.id}
                   </Link>
-                </TableCell>
-                <TableCell className="text-ink-muted">{lic.userEmail}</TableCell>
-                <TableCell>
+                </Td>
+                <Td>
+                  <span className="font-mono text-[11.5px] text-foreground">{lic.productSlug}</span>
+                </Td>
+                <Td>
+                  <span className="text-ink-muted">{lic.userEmail}</span>
+                </Td>
+                <Td>
                   <StatusPill status={lic.status} />
-                </TableCell>
-                <TableCell className="text-ink-muted">{lic.hwidBound ? 'Bound' : '-'}</TableCell>
-                <TableCell className="text-ink-muted">{formatDate(lic.expiresAt)}</TableCell>
-                <TableCell className="text-ink-muted">{formatDate(lic.createdAt)}</TableCell>
+                </Td>
+                <Td>
+                  {lic.hwidBound ? (
+                    <span className="inline-flex items-center gap-1 text-[12px] text-status-active-fg">
+                      <span aria-hidden className="size-1.5 rounded-full bg-status-active-fg" /> Bound
+                    </span>
+                  ) : (
+                    <span className="text-ink-subtle">-</span>
+                  )}
+                </Td>
+                <Td className="font-mono text-[11.5px] text-ink-muted">
+                  {lic.expiresAt ? formatDate(lic.expiresAt) : '-'}
+                </Td>
+                <Td className="font-mono text-[11.5px] text-ink-muted">{formatDate(lic.createdAt)}</Td>
+                <Td>
+                  <Link
+                    to="/admin/licences/$id"
+                    params={{ id: lic.id }}
+                    className="text-[12px] text-accent hover:underline"
+                  >
+                    View
+                  </Link>
+                </Td>
               </TableRow>
             ))}
-            {data && data.items.length === 0 && !query.isError && (
+            {filtered && filtered.length === 0 && !query.isError && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-ink-muted">
+                <TableCell colSpan={8} className="text-ink-muted">
                   No licences match this filter.
                 </TableCell>
               </TableRow>
@@ -140,27 +234,72 @@ function LicencesPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-ink-muted">
-        <span>{rangeLabel}</span>
-        <div className="flex gap-2">
+      <div className="flex items-center justify-between text-[12px] text-ink-muted">
+        <span className="font-mono tabular-nums">
+          {rangeStart}-{rangeEnd} of {data?.total ?? 0}
+        </span>
+        <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
+            className="size-7"
             disabled={offset === 0}
             onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+            aria-label="Previous page"
           >
-            Previous
+            <ChevronLeft className="size-3.5" />
           </Button>
+          <span className="font-mono text-[11.5px] tabular-nums">
+            {currentPage} / {totalPages}
+          </span>
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
+            className="size-7"
             disabled={!data || offset + PAGE_SIZE >= data.total}
             onClick={() => setOffset(offset + PAGE_SIZE)}
+            aria-label="Next page"
           >
-            Next
+            <ChevronRight className="size-3.5" />
           </Button>
         </div>
       </div>
     </div>
+  );
+}
+
+function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <TableHead
+      className={cn(
+        'h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted',
+        className,
+      )}
+    >
+      {children}
+    </TableHead>
+  );
+}
+
+function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
+}
+
+function SearchTrigger() {
+  const onClick = () => {
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true }),
+    );
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group inline-flex h-7 w-[280px] items-center gap-2 rounded-[4px] border border-border bg-card px-2.5 text-left text-[12px] text-ink-muted transition-colors hover:bg-surface-sunken"
+    >
+      <Search className="size-3.5 text-ink-subtle" aria-hidden />
+      <span className="flex-1 truncate">Search by key, email, HWID...</span>
+      <span className="rounded border border-border px-1 py-0 font-mono text-[10.5px] text-ink-subtle">⌘K</span>
+    </button>
   );
 }
