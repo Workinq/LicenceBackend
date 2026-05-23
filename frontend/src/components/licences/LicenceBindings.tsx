@@ -23,16 +23,18 @@ interface Props {
   licence: LicenceResponse;
 }
 
-export function LicenceBindings({ licence }: Props) {
+export function LicenceBindings({ licence }: Readonly<Props>) {
   const queryClient = useQueryClient();
   const [restricted, setRestricted] = useState(licence.ipAllowlist != null);
   const [cidrs, setCidrs] = useState<string[]>(licence.ipAllowlist ?? []);
 
   const hwidMutation = useMutation({
     mutationFn: () => updateLicenceHwid(licence.id, { hwid: null, reason: null }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] });
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] }),
+        queryClient.invalidateQueries({ queryKey: ['licences', 'list'] }),
+      ]);
       toast.success('Hardware binding cleared.');
     },
     onError: (error) => {
@@ -50,9 +52,11 @@ export function LicenceBindings({ licence }: Props) {
         reason: null,
       });
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] });
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] }),
+        queryClient.invalidateQueries({ queryKey: ['licences', 'list'] }),
+      ]);
       if (restricted) setCidrs((rows) => rows.map((c) => c.trim()).filter((c) => c.length > 0));
       toast.success('IP allowlist saved.');
     },

@@ -22,7 +22,7 @@ export function FilterChip<V extends string>({
   options,
   onChange,
   className,
-}: FilterChipProps<V>) {
+}: Readonly<FilterChipProps<V>>) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
 

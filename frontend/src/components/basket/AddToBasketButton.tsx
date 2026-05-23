@@ -10,7 +10,7 @@ interface AddToBasketButtonProps {
   variant?: 'default' | 'compact';
 }
 
-export function AddToBasketButton({ product, variant = 'default' }: AddToBasketButtonProps) {
+export function AddToBasketButton({ product, variant = 'default' }: Readonly<AddToBasketButtonProps>) {
   const item = useBasketStore((s) => s.items.find((i) => i.productId === product.id));
   const add = useBasketStore((s) => s.add);
   const setQuantity = useBasketStore((s) => s.setQuantity);

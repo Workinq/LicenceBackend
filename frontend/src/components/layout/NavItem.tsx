@@ -11,7 +11,7 @@ interface NavItemProps {
   badge?: string | number;
 }
 
-export function NavItem({ to, label, icon: Icon, exact, badge }: NavItemProps) {
+export function NavItem({ to, label, icon: Icon, exact, badge }: Readonly<NavItemProps>) {
   return (
     <Link
       to={to}

@@ -27,7 +27,7 @@ export function ConfirmDestructive({
   confirmLabel,
   onConfirm,
   children,
-}: ConfirmDestructiveProps) {
+}: Readonly<ConfirmDestructiveProps>) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>

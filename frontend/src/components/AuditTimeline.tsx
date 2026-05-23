@@ -28,7 +28,7 @@ export function AuditTimeline({
   isError,
   errorText = 'Could not load this history.',
   emptyText = 'Nothing here yet.',
-}: AuditTimelineProps) {
+}: Readonly<AuditTimelineProps>) {
   if (isLoading) {
     return (
       <div className="space-y-3">

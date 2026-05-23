@@ -110,11 +110,14 @@ function LicencesPage() {
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-foreground">Licences</h1>
           <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink-muted">
-            <span className="tabular-nums">{activeCount.data?.total ?? 0}</span> active
+            <span className="tabular-nums">{activeCount.data?.total ?? 0}</span>
+            {' '}active{' '}
             <span aria-hidden className="text-ink-subtle">·</span>
-            <span className="tabular-nums">{suspendedCount.data?.total ?? 0}</span> suspended
+            <span className="tabular-nums">{suspendedCount.data?.total ?? 0}</span>
+            {' '}suspended{' '}
             <span aria-hidden className="text-ink-subtle">·</span>
-            <span className="tabular-nums">{revokedCount.data?.total ?? 0}</span> revoked
+            <span className="tabular-nums">{revokedCount.data?.total ?? 0}</span>
+            {' '}revoked
           </p>
         </div>
         <Link to="/admin/licences/new" className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}>
@@ -223,7 +226,7 @@ function LicencesPage() {
                 </Td>
               </TableRow>
             ))}
-            {filtered && filtered.length === 0 && !query.isError && (
+            {filtered?.length === 0 && !query.isError && (
               <TableRow>
                 <TableCell colSpan={8} className="text-ink-muted">
                   No licences match this filter.
@@ -268,7 +271,7 @@ function LicencesPage() {
   );
 }
 
-function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Th({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return (
     <TableHead
       className={cn(
@@ -281,13 +284,13 @@ function Th({ children, className }: { children?: React.ReactNode; className?: s
   );
 }
 
-function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Td({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }
 
 function SearchTrigger() {
   const onClick = () => {
-    window.dispatchEvent(
+    globalThis.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true }),
     );
   };

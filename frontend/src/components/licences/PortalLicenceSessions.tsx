@@ -18,7 +18,7 @@ function errorDetail(error: unknown, fallback: string): string {
     : fallback;
 }
 
-export function PortalLicenceSessions({ licenceId }: { licenceId: string }) {
+export function PortalLicenceSessions({ licenceId }: Readonly<{ licenceId: string }>) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -28,8 +28,8 @@ export function PortalLicenceSessions({ licenceId }: { licenceId: string }) {
 
   const signOutMutation = useMutation({
     mutationFn: (seatId: string) => checkinSeat(seatId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['portal', 'licences', 'seats', licenceId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['portal', 'licences', 'seats', licenceId] });
       toast.success('Session signed out.');
     },
     onError: (error: unknown) => {

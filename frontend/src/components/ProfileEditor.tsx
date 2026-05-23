@@ -261,7 +261,7 @@ function PasswordInput({
   disabled,
   show,
   onToggleShow,
-}: {
+}: Readonly<{
   id: string;
   autoComplete: string;
   value: string;
@@ -269,7 +269,7 @@ function PasswordInput({
   disabled: boolean;
   show: boolean;
   onToggleShow: () => void;
-}) {
+}>) {
   return (
     <div className="relative max-w-sm">
       <Input

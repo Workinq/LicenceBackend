@@ -5,10 +5,12 @@ import { basketCount, useBasketStore } from '@/state/basket-store';
 export function BasketIconButton() {
   const items = useBasketStore((s) => s.items);
   const count = basketCount(items);
+  const itemWord = count === 1 ? 'item' : 'items';
+  const ariaLabel = count > 0 ? `Basket (${count} ${itemWord})` : 'Basket (empty)';
   return (
     <Link
       to="/portal/basket"
-      aria-label={count > 0 ? `Basket (${count} item${count === 1 ? '' : 's'})` : 'Basket (empty)'}
+      aria-label={ariaLabel}
       className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
     >
       <ShoppingCart className="size-5" aria-hidden="true" />

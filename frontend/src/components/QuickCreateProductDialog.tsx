@@ -35,7 +35,7 @@ interface QuickCreateProductDialogProps {
   onCreated: (product: ProductResponse) => void;
 }
 
-export function QuickCreateProductDialog({ open, onOpenChange, onCreated }: QuickCreateProductDialogProps) {
+export function QuickCreateProductDialog({ open, onOpenChange, onCreated }: Readonly<QuickCreateProductDialogProps>) {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {

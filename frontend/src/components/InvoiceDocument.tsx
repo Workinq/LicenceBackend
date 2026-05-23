@@ -2,12 +2,12 @@ import { Button } from '@/components/ui/button';
 import { formatDateTime, formatPrice } from '@/lib/format';
 import type { InvoiceResponse } from '@/api/generated/api.schemas';
 
-export function InvoiceDocument({ invoice }: { invoice: InvoiceResponse }) {
+export function InvoiceDocument({ invoice }: Readonly<{ invoice: InvoiceResponse }>) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between print:hidden">
         <h1 className="font-display text-2xl font-semibold text-ink">Invoice</h1>
-        <Button variant="outline" size="sm" onClick={() => window.print()}>
+        <Button variant="outline" size="sm" onClick={() => globalThis.print()}>
           Print / Save as PDF
         </Button>
       </div>
@@ -68,7 +68,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceResponse }) {
                 </td>
                 <td className="py-2 text-ink-muted">{item.label ?? '-'}</td>
                 <td className="py-2 text-right tabular-nums">
-                  {item.unitPrice != null ? formatPrice(item.unitPrice, item.currency) : 'Free'}
+                  {item.unitPrice == null ? 'Free' : formatPrice(item.unitPrice, item.currency)}
                 </td>
               </tr>
             ))}
@@ -90,26 +90,26 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceResponse }) {
   );
 }
 
-function AddressBlock(props: {
+function AddressBlock(props: Readonly<{
   line1?: string | null;
   line2?: string | null;
   city?: string | null;
   region?: string | null;
   postalCode?: string | null;
   country?: string | null;
-}) {
+}>) {
   const lines = [
-    props.line1,
-    props.line2,
-    [props.city, props.region, props.postalCode].filter(Boolean).join(', '),
-    props.country,
-  ].filter((line) => line && line.trim().length > 0);
+    { tag: 'line1', value: props.line1 },
+    { tag: 'line2', value: props.line2 },
+    { tag: 'locality', value: [props.city, props.region, props.postalCode].filter(Boolean).join(', ') },
+    { tag: 'country', value: props.country },
+  ].filter((line) => line.value && line.value.trim().length > 0);
 
   if (lines.length === 0) return null;
   return (
     <div className="mt-1 text-sm text-ink-muted">
-      {lines.map((line, index) => (
-        <div key={index}>{line}</div>
+      {lines.map((line) => (
+        <div key={line.tag}>{line.value}</div>
       ))}
     </div>
   );

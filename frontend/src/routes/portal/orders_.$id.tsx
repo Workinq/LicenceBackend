@@ -83,7 +83,7 @@ function OrderDetailPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-ink-muted">
-                      {item.unitPrice != null ? formatPrice(item.unitPrice, item.currency) : 'Free'}
+                      {item.unitPrice == null ? 'Free' : formatPrice(item.unitPrice, item.currency)}
                     </span>
                     <Button asChild variant="link" size="sm" className="px-0">
                       <Link to="/portal/licences/$id" params={{ id: item.licenceId }}>
@@ -101,7 +101,7 @@ function OrderDetailPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <div>
       <div className="text-xs uppercase tracking-wide text-ink-subtle">{label}</div>

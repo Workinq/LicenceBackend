@@ -21,7 +21,7 @@ function errorDetail(error: unknown, fallback: string): string {
     : fallback;
 }
 
-export function LicenceSeats({ licenceId }: { licenceId: string }) {
+export function LicenceSeats({ licenceId }: Readonly<{ licenceId: string }>) {
   const seatsQuery = useQuery({
     queryKey: ['licences', 'seats', licenceId],
     queryFn: () => fetchLicenceSeats(licenceId),
@@ -42,17 +42,17 @@ export function LicenceSeats({ licenceId }: { licenceId: string }) {
 function LicenceSeatsView({
   licenceId,
   data,
-}: {
+}: Readonly<{
   licenceId: string;
   data: LicenceSeatsResponse;
-}) {
+}>) {
   const queryClient = useQueryClient();
   const [draftMaxSeats, setDraftMaxSeats] = useState<number>(data.maxSeats);
 
   const revokeMutation = useMutation({
     mutationFn: (seatId: string) => forceRevokeSeat(licenceId, seatId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'seats', licenceId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['licences', 'seats', licenceId] });
       toast.success('Seat revoked.');
     },
     onError: (error: unknown) => {
@@ -63,9 +63,11 @@ function LicenceSeatsView({
   const maxSeatsMutation = useMutation({
     mutationFn: (next: number) =>
       updateLicenceMaxSeats(licenceId, { maxSeats: next, reason: null }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'seats', licenceId] });
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licenceId] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['licences', 'seats', licenceId] }),
+        queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licenceId] }),
+      ]);
       toast.success('Max seats updated.');
     },
     onError: (error: unknown) => {

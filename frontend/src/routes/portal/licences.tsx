@@ -35,8 +35,9 @@ function PortalLicencesPage() {
   });
 
   const data = query.data;
+  const rangeStart = data && data.total > 0 ? data.offset + 1 : 0;
   const rangeLabel = data
-    ? `${data.total === 0 ? 0 : data.offset + 1}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
+    ? `${rangeStart}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
     : '';
 
   return (
@@ -100,7 +101,7 @@ function PortalLicencesPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {data && data.items.length === 0 && !query.isError && (
+            {data?.items.length === 0 && !query.isError && (
               <TableRow>
                 <TableCell colSpan={7} className="text-sm text-ink-muted">
                   You do not have any licences yet.

@@ -8,7 +8,7 @@ interface KeyChipProps {
   className?: string;
 }
 
-export function KeyChip({ value, display, className }: KeyChipProps) {
+export function KeyChip({ value, display, className }: Readonly<KeyChipProps>) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {

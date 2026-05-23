@@ -19,11 +19,11 @@ export function ProductPageEditor({
   productId,
   initialContent,
   onDirtyChange,
-}: {
+}: Readonly<{
   productId: string;
   initialContent: JSONContent | null;
   onDirtyChange?: (dirty: boolean) => void;
-}) {
+}>) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
@@ -59,8 +59,8 @@ export function ProductPageEditor({
       sortOrder: null,
       pageContent: editor?.getJSON() ?? null,
     }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['products', 'detail', productId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['products', 'detail', productId] });
       dirtyRef.current = false;
       onDirtyChange?.(false);
       toast.success('Product page saved.');

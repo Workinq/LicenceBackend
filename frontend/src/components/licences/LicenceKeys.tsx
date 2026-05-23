@@ -46,7 +46,7 @@ function formatDateTime(value: string | null): string {
   return value === null ? 'never' : new Date(value).toLocaleString();
 }
 
-export function LicenceKeys({ licenceId, canMutate }: LicenceKeysProps) {
+export function LicenceKeys({ licenceId, canMutate }: Readonly<LicenceKeysProps>) {
   const queryClient = useQueryClient();
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
 
@@ -57,8 +57,8 @@ export function LicenceKeys({ licenceId, canMutate }: LicenceKeysProps) {
 
   const mintMutation = useMutation({
     mutationFn: () => mintLicenceKey(licenceId, { label: null, reason: null }),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'keys', licenceId] });
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['licences', 'keys', licenceId] });
       setRevealedKey(data.licenceKey);
     },
     onError: (error: unknown) => {
@@ -72,9 +72,11 @@ export function LicenceKeys({ licenceId, canMutate }: LicenceKeysProps) {
 
   const revokeMutation = useMutation({
     mutationFn: (keyId: string) => revokeLicenceKey(licenceId, keyId, null),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'keys', licenceId] });
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'seats', licenceId] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['licences', 'keys', licenceId] }),
+        queryClient.invalidateQueries({ queryKey: ['licences', 'seats', licenceId] }),
+      ]);
       toast.success('Key revoked.');
     },
     onError: () => {
@@ -85,8 +87,8 @@ export function LicenceKeys({ licenceId, canMutate }: LicenceKeysProps) {
   const labelMutation = useMutation({
     mutationFn: ({ keyId, label }: { keyId: string; label: string | null }) =>
       updateLicenceKeyLabel(licenceId, keyId, { label, reason: null }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'keys', licenceId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['licences', 'keys', licenceId] });
       toast.success('Label updated.');
     },
     onError: () => {
@@ -180,8 +182,32 @@ function LicenceKeyRow({
   onLabelSave,
   revoking,
   labelPending,
-}: LicenceKeyRowProps) {
+}: Readonly<LicenceKeyRowProps>) {
   const revoked = entry.revokedAt !== null;
+
+  let trailing: React.ReactNode = null;
+  if (revoked) {
+    trailing = <span className="text-xs text-ink-muted">revoked</span>;
+  } else if (canMutate) {
+    trailing = (
+      <ConfirmDestructive
+        trigger={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Revoke key"
+            disabled={revoking}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        }
+        title="Revoke this key?"
+        description={`Revoke key ${entry.keyPrefix}? The key stops working immediately and cannot be recovered.`}
+        confirmLabel="Revoke key"
+        onConfirm={onRevoke}
+      />
+    );
+  }
 
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-3">
@@ -198,26 +224,7 @@ function LicenceKeyRow({
           {revoked && <> - Revoked {formatDateTime(entry.revokedAt)}</>}
         </p>
       </div>
-      {revoked ? (
-        <span className="text-xs text-ink-muted">revoked</span>
-      ) : canMutate ? (
-        <ConfirmDestructive
-          trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Revoke key"
-              disabled={revoking}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          }
-          title="Revoke this key?"
-          description={`Revoke key ${entry.keyPrefix}? The key stops working immediately and cannot be recovered.`}
-          confirmLabel="Revoke key"
-          onConfirm={onRevoke}
-        />
-      ) : null}
+      {trailing}
     </li>
   );
 }
@@ -229,7 +236,7 @@ interface KeyLabelEditorProps {
   onSave: (label: string | null) => void;
 }
 
-function KeyLabelEditor({ label, editable, pending, onSave }: KeyLabelEditorProps) {
+function KeyLabelEditor({ label, editable, pending, onSave }: Readonly<KeyLabelEditorProps>) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label ?? '');
 

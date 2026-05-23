@@ -98,12 +98,14 @@ function UserDetailPage() {
   const mutation = useMutation({
     mutationFn: ({ status, reason }: { status: string; reason: string | null }) =>
       updateUserStatus(id, { status, reason }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setActionError(null);
       setSuspendReason('');
-      void queryClient.invalidateQueries({ queryKey: ['users', 'detail', id] });
-      void queryClient.invalidateQueries({ queryKey: ['users', 'audit', id] });
-      void queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users', 'detail', id] }),
+        queryClient.invalidateQueries({ queryKey: ['users', 'audit', id] }),
+        queryClient.invalidateQueries({ queryKey: ['users', 'list'] }),
+      ]);
     },
     onError: (error) => {
       setActionError(
@@ -141,38 +143,9 @@ function UserDetailPage() {
   const lastActivity = auditData?.items[0]?.occurredAt;
 
   const initial = (user.displayName ?? user.email).charAt(0).toUpperCase();
-  const suspendButton =
-    user.status === 'active' ? (
-      isSelf ? (
-        <span title="You cannot suspend your own account." className="inline-block">
-          <Button variant="destructive" size="sm" disabled className="pointer-events-none">
-            Suspend
-          </Button>
-        </span>
-      ) : (
-        <ConfirmDestructive
-          trigger={
-            <Button variant="destructive" size="sm" disabled={mutation.isPending}>
-              Suspend
-            </Button>
-          }
-          title="Suspend user"
-          description={`This will block ${user.email} from logging in and revoke all of their refresh tokens.`}
-          confirmLabel="Suspend user"
-          onConfirm={() => { mutation.mutate({ status: 'suspended', reason: suspendReason.trim() || null }); }}
-        >
-          <div className="space-y-1">
-            <Label htmlFor="suspend-reason">Reason (optional)</Label>
-            <Textarea
-              id="suspend-reason"
-              rows={2}
-              value={suspendReason}
-              onChange={(e) => { setSuspendReason(e.target.value); }}
-            />
-          </div>
-        </ConfirmDestructive>
-      )
-    ) : (
+  let suspendButton: React.ReactNode;
+  if (user.status !== 'active') {
+    suspendButton = (
       <Button
         size="sm"
         disabled={mutation.isPending}
@@ -181,6 +154,39 @@ function UserDetailPage() {
         Reactivate
       </Button>
     );
+  } else if (isSelf) {
+    suspendButton = (
+      <span title="You cannot suspend your own account." className="inline-block">
+        <Button variant="destructive" size="sm" disabled className="pointer-events-none">
+          Suspend
+        </Button>
+      </span>
+    );
+  } else {
+    suspendButton = (
+      <ConfirmDestructive
+        trigger={
+          <Button variant="destructive" size="sm" disabled={mutation.isPending}>
+            Suspend
+          </Button>
+        }
+        title="Suspend user"
+        description={`This will block ${user.email} from logging in and revoke all of their refresh tokens.`}
+        confirmLabel="Suspend user"
+        onConfirm={() => { mutation.mutate({ status: 'suspended', reason: suspendReason.trim() || null }); }}
+      >
+        <div className="space-y-1">
+          <Label htmlFor="suspend-reason">Reason (optional)</Label>
+          <Textarea
+            id="suspend-reason"
+            rows={2}
+            value={suspendReason}
+            onChange={(e) => { setSuspendReason(e.target.value); }}
+          />
+        </div>
+      </ConfirmDestructive>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -279,7 +285,7 @@ function UserDetailPage() {
                   </TableRow>
                 )}
                 {licenceData?.items.map((lic) => {
-                  const go = () => { void navigate({ to: '/admin/licences/$id', params: { id: lic.id } }); };
+                  const go = () => { navigate({ to: '/admin/licences/$id', params: { id: lic.id } }).catch(() => undefined); };
                   return (
                     <TableRow
                       key={lic.id}
@@ -319,7 +325,7 @@ function UserDetailPage() {
                     </TableRow>
                   );
                 })}
-                {licenceData && licenceData.items.length === 0 && !licencesQuery.isError && (
+                {licenceData?.items.length === 0 && !licencesQuery.isError && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-ink-muted">
                       This user has no licences.
@@ -362,7 +368,7 @@ function UserDetailPage() {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="bg-card px-3 py-3">
       <div className="text-[10.5px] font-medium uppercase tracking-wide text-ink-muted">{label}</div>
@@ -371,7 +377,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
+function DetailCard({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
       <div className="border-b border-border px-4 py-2.5">
@@ -382,7 +388,7 @@ function DetailCard({ title, children }: { title: string; children: React.ReactN
   );
 }
 
-function RoleBadge({ role }: { role: string }) {
+function RoleBadge({ role }: Readonly<{ role: string }>) {
   const isAdmin = role === 'admin';
   return (
     <span
@@ -406,7 +412,7 @@ interface PagerProps {
   onChange: (next: number) => void;
 }
 
-function Pager({ offset, limit, total, pageSize, onChange }: PagerProps) {
+function Pager({ offset, limit, total, pageSize, onChange }: Readonly<PagerProps>) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.floor(offset / pageSize) + 1;
   const rangeStart = total > 0 ? offset + 1 : 0;
@@ -446,7 +452,7 @@ function Pager({ offset, limit, total, pageSize, onChange }: PagerProps) {
   );
 }
 
-function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Th({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return (
     <TableHead
       className={cn(
@@ -459,6 +465,6 @@ function Th({ children, className }: { children?: React.ReactNode; className?: s
   );
 }
 
-function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Td({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }

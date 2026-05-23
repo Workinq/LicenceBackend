@@ -67,8 +67,8 @@ function NewLicencePage() {
         notes: values.notes ? values.notes : null,
         ipAllowlist: ipRestricted ? ipCidrs.map((c) => c.trim()).filter((c) => c.length > 0) : null,
       }),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
       setCreated(data);
     },
     onError: (error) => {
@@ -90,7 +90,7 @@ function NewLicencePage() {
       <div className="max-w-2xl space-y-6">
         <h1 className="font-display text-2xl font-semibold text-ink">Licence created</h1>
         <SecretRevealOnce label="Licence key" value={created.licenceKey} />
-        <Button onClick={() => { void navigate({ to: '/admin/licences/$id', params: { id: created.id } }); }}>
+        <Button onClick={() => { navigate({ to: '/admin/licences/$id', params: { id: created.id } }).catch(() => undefined); }}>
           Go to licence
         </Button>
       </div>
@@ -208,7 +208,7 @@ function NewLicencePage() {
         open={productDialogOpen}
         onOpenChange={setProductDialogOpen}
         onCreated={(product) => {
-          void queryClient.invalidateQueries({ queryKey: ['products'] });
+          queryClient.invalidateQueries({ queryKey: ['products'] }).catch(() => undefined);
           setValue('productId', product.id, { shouldValidate: true });
           setProductDialogOpen(false);
         }}
@@ -218,7 +218,7 @@ function NewLicencePage() {
         open={userDialogOpen}
         onOpenChange={setUserDialogOpen}
         onCreated={(user) => {
-          void queryClient.invalidateQueries({ queryKey: ['users'] });
+          queryClient.invalidateQueries({ queryKey: ['users'] }).catch(() => undefined);
           setValue('userId', user.id, { shouldValidate: true });
         }}
       />

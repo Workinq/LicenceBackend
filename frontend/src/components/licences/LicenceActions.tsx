@@ -7,14 +7,16 @@ import { updateLicenceStatus } from '@/api/licences';
 import { ApiError } from '@/auth/api-client';
 import type { LicenceResponse } from '@/api/generated/api.schemas';
 
-export function LicenceActions({ licence }: { licence: LicenceResponse }) {
+export function LicenceActions({ licence }: Readonly<{ licence: LicenceResponse }>) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (status: string) => updateLicenceStatus(licence.id, { status, reason: null }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] });
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'list'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['licences', 'detail', licence.id] }),
+        queryClient.invalidateQueries({ queryKey: ['licences', 'list'] }),
+      ]);
       toast.success('Licence updated.');
     },
     onError: (error) => {

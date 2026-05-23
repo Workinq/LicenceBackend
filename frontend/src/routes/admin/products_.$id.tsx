@@ -79,7 +79,7 @@ function ProductDetailPage() {
   return <ProductDetailContent product={query.data} />;
 }
 
-function ProductDetailContent({ product }: { product: ProductResponse }) {
+function ProductDetailContent({ product }: Readonly<{ product: ProductResponse }>) {
   const id = product.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -97,9 +97,11 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
         currency: values.currency ? values.currency : null,
         sortOrder: values.sortOrder ? Number(values.sortOrder) : null,
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] });
-      void queryClient.invalidateQueries({ queryKey: ['products'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
       toast.success('Product updated.');
     },
     onError: (error) => {
@@ -109,9 +111,11 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
 
   const imageMutation = useMutation({
     mutationFn: (f: File) => uploadProductImage(id, f),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] });
-      void queryClient.invalidateQueries({ queryKey: ['products'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
       setImageVersion((v) => v + 1);
       toast.success('Image uploaded.');
     },
@@ -122,9 +126,11 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
 
   const imageDeleteMutation = useMutation({
     mutationFn: () => deleteProductImage(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] });
-      void queryClient.invalidateQueries({ queryKey: ['products'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
       setImageVersion((v) => v + 1);
       toast.success('Image removed.');
     },
@@ -140,7 +146,7 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
       description: product.description ?? '',
       tagline: product.tagline ?? '',
       isPublic: product.isPublic,
-      price: product.price != null ? String(product.price) : '',
+      price: product.price == null ? '' : String(product.price),
       currency: product.currency,
       sortOrder: String(product.sortOrder),
     },
@@ -257,7 +263,7 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => { void navigate({ to: '/admin/products' }); }}
+                onClick={() => { navigate({ to: '/admin/products' }).catch(() => undefined); }}
               >
                 Cancel
               </Button>
@@ -325,7 +331,7 @@ function ProductDetailContent({ product }: { product: ProductResponse }) {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="bg-card px-3 py-3">
       <div className="text-[10.5px] font-medium uppercase tracking-wide text-ink-muted">{label}</div>
@@ -334,7 +340,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DetailCard({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+function DetailCard({ title, children, action }: Readonly<{ title: string; children: React.ReactNode; action?: React.ReactNode }>) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
@@ -351,12 +357,12 @@ function Field({
   htmlFor,
   error,
   children,
-}: {
+}: Readonly<{
   label: string;
   htmlFor: string;
   error?: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="space-y-1">
       <Label htmlFor={htmlFor} className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
@@ -382,12 +388,12 @@ interface ProductDownloadsCardProps {
   isError: boolean;
 }
 
-function ProductDownloadsCard({ productId, files, isPending, isError }: ProductDownloadsCardProps) {
+function ProductDownloadsCard({ productId, files, isPending, isError }: Readonly<ProductDownloadsCardProps>) {
   const queryClient = useQueryClient();
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadProductFile(productId, file),
-    onSuccess: (uploaded) => {
-      void queryClient.invalidateQueries({ queryKey: ['products', 'files', productId] });
+    onSuccess: async (uploaded) => {
+      await queryClient.invalidateQueries({ queryKey: ['products', 'files', productId] });
       toast.success(`Uploaded version ${uploaded.versionNumber}.`);
     },
     onError: (error) => {
@@ -409,6 +415,60 @@ function ProductDownloadsCard({ productId, files, isPending, isError }: ProductD
   };
 
   const uploadLabel = items.length > 0 ? 'Upload new revision' : 'Upload first revision';
+
+  let revisionsBody: React.ReactNode;
+  if (isPending) {
+    revisionsBody = <Skeleton className="h-16 w-full" />;
+  } else if (isError) {
+    revisionsBody = <p className="text-[12.5px] text-status-revoked-fg">Failed to load revisions.</p>;
+  } else if (isEmpty) {
+    revisionsBody = <p className="text-[12.5px] text-ink-muted">No revisions uploaded yet.</p>;
+  } else {
+    revisionsBody = (
+      <Table className="text-[12.5px]">
+        <TableHeader>
+          <TableRow className="border-border">
+            <Th className="w-[80px]">Version</Th>
+            <Th>File</Th>
+            <Th className="w-[100px] text-right">Size</Th>
+            <Th className="w-[140px]">Uploaded</Th>
+            <Th className="w-[60px]" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((f, idx) => (
+            <TableRow key={f.id} className="border-border">
+              <Td>
+                <span className="font-mono text-[11.5px] text-foreground">v{f.versionNumber}</span>
+                {idx === 0 && (
+                  <span className="ml-2 rounded-[3px] border border-status-active-fg/30 bg-status-active-bg px-1.5 py-0 font-mono text-[10.5px] leading-[1.5] text-status-active-fg">
+                    latest
+                  </span>
+                )}
+              </Td>
+              <Td>
+                <span className="font-mono text-[11.5px] text-foreground">{f.fileName}</span>
+              </Td>
+              <Td className="text-right font-mono text-[11.5px] text-ink-muted">{formatFileSize(f.fileSizeBytes)}</Td>
+              <Td className="font-mono text-[11px] text-ink-muted">{formatRelative(f.uploadedAt)}</Td>
+              <Td>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={() => { void downloadRevision(f); }}
+                  aria-label={`Download v${f.versionNumber}`}
+                >
+                  <Download className="size-3.5" aria-hidden />
+                </Button>
+              </Td>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
 
   return (
     <DetailCard
@@ -441,63 +501,14 @@ function ProductDownloadsCard({ productId, files, isPending, isError }: ProductD
         </>
       }
     >
-      {isPending ? (
-        <Skeleton className="h-16 w-full" />
-      ) : isError ? (
-        <p className="text-[12.5px] text-status-revoked-fg">Failed to load revisions.</p>
-      ) : isEmpty ? (
-        <p className="text-[12.5px] text-ink-muted">No revisions uploaded yet.</p>
-      ) : (
-        <Table className="text-[12.5px]">
-          <TableHeader>
-            <TableRow className="border-border">
-              <Th className="w-[80px]">Version</Th>
-              <Th>File</Th>
-              <Th className="w-[100px] text-right">Size</Th>
-              <Th className="w-[140px]">Uploaded</Th>
-              <Th className="w-[60px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((f, idx) => (
-              <TableRow key={f.id} className="border-border">
-                <Td>
-                  <span className="font-mono text-[11.5px] text-foreground">v{f.versionNumber}</span>
-                  {idx === 0 && (
-                    <span className="ml-2 rounded-[3px] border border-status-active-fg/30 bg-status-active-bg px-1.5 py-0 font-mono text-[10.5px] leading-[1.5] text-status-active-fg">
-                      latest
-                    </span>
-                  )}
-                </Td>
-                <Td>
-                  <span className="font-mono text-[11.5px] text-foreground">{f.fileName}</span>
-                </Td>
-                <Td className="text-right font-mono text-[11.5px] text-ink-muted">{formatFileSize(f.fileSizeBytes)}</Td>
-                <Td className="font-mono text-[11px] text-ink-muted">{formatRelative(f.uploadedAt)}</Td>
-                <Td>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    onClick={() => { void downloadRevision(f); }}
-                    aria-label={`Download v${f.versionNumber}`}
-                  >
-                    <Download className="size-3.5" aria-hidden />
-                  </Button>
-                </Td>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      {revisionsBody}
     </DetailCard>
   );
 }
 
 const LICENCES_PAGE_SIZE = 25;
 
-function ProductLicencesCard({ productId }: { productId: string }) {
+function ProductLicencesCard({ productId }: Readonly<{ productId: string }>) {
   const [offset, setOffset] = useState(0);
   const query = useQuery({
     queryKey: ['licences', 'list', { productId, offset }],
@@ -581,7 +592,7 @@ function ProductLicencesCard({ productId }: { productId: string }) {
                 </Td>
               </TableRow>
             ))}
-            {data && data.items.length === 0 && !query.isError && (
+            {data?.items.length === 0 && !query.isError && (
               <TableRow>
                 <TableCell colSpan={6} className="text-ink-muted">
                   No licences for this product yet.
@@ -625,7 +636,7 @@ function ProductLicencesCard({ productId }: { productId: string }) {
   );
 }
 
-function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Th({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return (
     <TableHead
       className={cn(
@@ -638,6 +649,6 @@ function Th({ children, className }: { children?: React.ReactNode; className?: s
   );
 }
 
-function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Td({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }

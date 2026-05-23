@@ -63,8 +63,8 @@ export function CommandPalette() {
         setOpen((prev) => !prev);
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
   }, []);
 
   const pages = isAdmin ? ADMIN_PAGES : PORTAL_PAGES;
@@ -97,7 +97,7 @@ export function CommandPalette() {
 
   const go = (path: string) => {
     setOpen(false);
-    void navigate({ to: path });
+    navigate({ to: path }).catch(() => undefined);
   };
 
   return (

@@ -19,14 +19,14 @@ function ProductPageEditRoute() {
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
-    window.addEventListener('beforeunload', handler);
-    return () => { window.removeEventListener('beforeunload', handler); };
+    globalThis.addEventListener('beforeunload', handler);
+    return () => { globalThis.removeEventListener('beforeunload', handler); };
   }, [dirty]);
 
   useBlocker({
     shouldBlockFn: () => {
       if (!dirty) return false;
-      return !window.confirm('You have unsaved changes. Leave this page anyway?');
+      return !globalThis.confirm('You have unsaved changes. Leave this page anyway?');
     },
   });
 
@@ -54,7 +54,7 @@ function ProductPageEditRoute() {
 
       <ProductPageEditor
         productId={id}
-        initialContent={(product.pageContent as JSONContent | null | undefined) ?? null}
+        initialContent={(product.pageContent ?? null) as JSONContent | null}
         onDirtyChange={setDirty}
       />
     </div>

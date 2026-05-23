@@ -43,7 +43,7 @@ function errorDetail(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function DownloadLatestButton({ licenceId, productSlug }: { licenceId: string; productSlug: string }) {
+function DownloadLatestButton({ licenceId, productSlug }: Readonly<{ licenceId: string; productSlug: string }>) {
   const [pending, setPending] = useState(false);
 
   const onClick = async () => {
@@ -91,10 +91,10 @@ function PortalLicenceDetail() {
 
   const addMember = useMutation({
     mutationFn: (email: string) => addMyLicenceMember(id, { email }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setMemberEmail('');
       setMemberError(null);
-      void queryClient.invalidateQueries({ queryKey: ['portal', 'licences', 'members', id] });
+      await queryClient.invalidateQueries({ queryKey: ['portal', 'licences', 'members', id] });
     },
     onError: (error: unknown) => {
       setMemberError(errorDetail(error, 'Could not add the member.'));
@@ -103,9 +103,9 @@ function PortalLicenceDetail() {
 
   const removeMember = useMutation({
     mutationFn: (memberId: string) => removeMyLicenceMember(id, memberId),
-    onSuccess: () => {
+    onSuccess: async () => {
       setMemberError(null);
-      void queryClient.invalidateQueries({ queryKey: ['portal', 'licences', 'members', id] });
+      await queryClient.invalidateQueries({ queryKey: ['portal', 'licences', 'members', id] });
     },
     onError: (error: unknown) => {
       setMemberError(errorDetail(error, 'Could not remove the member.'));
@@ -120,10 +120,19 @@ function PortalLicenceDetail() {
   const lic = query.data;
   const isOwner = lic.relationship === 'owner';
 
+  let ipAllowlistLabel: string;
+  if (lic.ipAllowlist == null) {
+    ipAllowlistLabel = 'None';
+  } else if (lic.ipAllowlist.length === 0) {
+    ipAllowlistLabel = 'Armed (binds the first verifying IP)';
+  } else {
+    ipAllowlistLabel = lic.ipAllowlist.join(', ');
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <Button variant="ghost" size="sm" onClick={() => { void navigate({ to: '/portal/licences' }); }}>
+        <Button variant="ghost" size="sm" onClick={() => { navigate({ to: '/portal/licences' }).catch(() => undefined); }}>
           {'< Back to my licences'}
         </Button>
       </div>
@@ -165,13 +174,7 @@ function PortalLicenceDetail() {
             <dt className="text-ink-muted">HWID</dt>
             <dd className="text-ink">{lic.hwidBound ? 'Bound' : 'Not bound'}</dd>
             <dt className="text-ink-muted">IP allowlist</dt>
-            <dd className="text-ink">
-              {lic.ipAllowlist == null
-                ? 'None'
-                : lic.ipAllowlist.length === 0
-                ? 'Armed (binds the first verifying IP)'
-                : lic.ipAllowlist.join(', ')}
-            </dd>
+            <dd className="text-ink">{ipAllowlistLabel}</dd>
             <dt className="text-ink-muted">Expires</dt>
             <dd className="text-ink">{formatDateTime(lic.expiresAt)}</dd>
             <dt className="text-ink-muted">Notes</dt>
@@ -245,7 +248,7 @@ function PortalLicenceDetail() {
             {membersQuery.isError && (
               <p className="text-sm text-status-revoked-fg">Failed to load members.</p>
             )}
-            {membersQuery.data && membersQuery.data.length === 0 && (
+            {membersQuery.data?.length === 0 && (
               <p className="text-sm text-ink-muted">No members yet.</p>
             )}
             {membersQuery.data && membersQuery.data.length > 0 && (

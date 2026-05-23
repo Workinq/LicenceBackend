@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, Copy, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function SecretRevealOnce({ label, value }: { label: string; value: string }) {
+export function SecretRevealOnce({ label, value }: Readonly<{ label: string; value: string }>) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {

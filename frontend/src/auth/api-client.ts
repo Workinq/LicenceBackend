@@ -42,7 +42,7 @@ export const authedFetch = async (url: string, init?: RequestInit): Promise<Resp
       response = await send();
     } else {
       useAccessTokenStore.getState().clear();
-      window.location.assign('/login');
+      globalThis.location.assign('/login');
       throw new ApiError(401, null);
     }
   }

@@ -29,7 +29,7 @@ export function Sidebar() {
   );
 }
 
-function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+function SectionLabel({ children, className }: Readonly<{ children: React.ReactNode; className?: string }>) {
   return (
     <div
       className={`px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-ink-subtle ${className ?? ''}`}

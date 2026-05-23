@@ -35,7 +35,7 @@ const TAG_LABELS: Record<string, string> = {
 
 const tagFor = (eventType: string): string => TAG_LABELS[eventType] ?? eventType.split('.')[0];
 
-export function ActivityFeed({ limit = 7, subjectType, subjectId }: ActivityFeedProps) {
+export function ActivityFeed({ limit = 7, subjectType, subjectId }: Readonly<ActivityFeedProps>) {
   const query = useQuery({
     queryKey: ['audit-events', { subjectType, subjectId, limit }],
     queryFn: () =>
@@ -83,7 +83,7 @@ export function ActivityFeed({ limit = 7, subjectType, subjectId }: ActivityFeed
             </li>
           );
         })}
-        {query.data && query.data.items.length === 0 && (
+        {query.data?.items.length === 0 && (
           <li className="p-4 text-[12.5px] text-ink-muted">No recent activity.</li>
         )}
       </ol>

@@ -21,7 +21,7 @@ async function doRefresh(): Promise<void> {
 
     if (!res.ok) {
       useAccessTokenStore.getState().clear();
-      window.location.assign('/login');
+      globalThis.location.assign('/login');
       return;
     }
 

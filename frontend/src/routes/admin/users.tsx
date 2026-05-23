@@ -71,8 +71,9 @@ function UsersPage() {
   };
 
   const data = query.data;
+  const rangeStart = data && data.total > 0 ? data.offset + 1 : 0;
   const rangeLabel = data
-    ? `${data.total === 0 ? 0 : data.offset + 1}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
+    ? `${rangeStart}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
     : '';
 
   return (
@@ -165,7 +166,7 @@ function UsersPage() {
                 </Td>
               </TableRow>
             ))}
-            {data && data.items.length === 0 && !query.isError && (
+            {data?.items.length === 0 && !query.isError && (
               <TableRow>
                 <TableCell colSpan={6} className="text-ink-muted">
                   No users match these filters.
@@ -201,7 +202,7 @@ function UsersPage() {
   );
 }
 
-function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Th({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return (
     <TableHead
       className={cn(
@@ -214,6 +215,6 @@ function Th({ children, className }: { children?: React.ReactNode; className?: s
   );
 }
 
-function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Td({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
   return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }

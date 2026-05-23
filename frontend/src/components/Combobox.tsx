@@ -46,7 +46,7 @@ export function Combobox({
   id,
   disabled = false,
   footerAction,
-}: ComboboxProps) {
+}: Readonly<ComboboxProps>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
 

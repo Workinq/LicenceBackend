@@ -29,9 +29,9 @@ function storageKey(userId: string): string {
 }
 
 function loadItems(userId: string | null): BasketItem[] {
-  if (!userId || typeof window === 'undefined') return [];
+  if (!userId || typeof globalThis.window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(storageKey(userId));
+    const raw = globalThis.localStorage.getItem(storageKey(userId));
     return raw ? (JSON.parse(raw) as BasketItem[]) : [];
   } catch {
     return [];
@@ -39,9 +39,9 @@ function loadItems(userId: string | null): BasketItem[] {
 }
 
 function saveItems(userId: string | null, items: BasketItem[]): void {
-  if (!userId || typeof window === 'undefined') return;
+  if (!userId || typeof globalThis.window === 'undefined') return;
   try {
-    window.localStorage.setItem(storageKey(userId), JSON.stringify(items));
+    globalThis.localStorage.setItem(storageKey(userId), JSON.stringify(items));
   } catch {
     // ignore quota / privacy errors
   }

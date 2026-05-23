@@ -13,10 +13,10 @@ import { startCheckout, fetchCheckoutStatus, fetchPaymentConfig } from '@/api/pa
 import type { CreateOrderRequest } from '@/api/generated/api.schemas';
 
 function readBasketFromStorage(): unknown[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof globalThis.window === 'undefined') return [];
   const uid = useAccessTokenStore.getState().user?.id;
   if (!uid) return [];
-  const raw = window.localStorage.getItem(`basket:${uid}`);
+  const raw = globalThis.localStorage.getItem(`basket:${uid}`);
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -76,13 +76,15 @@ function CheckoutPage() {
 
   const finishFree = async (orderId: string) => {
     clear();
-    void queryClient.invalidateQueries({ queryKey: ['portal', 'orders'] });
-    void queryClient.invalidateQueries({ queryKey: ['portal', 'licences'] });
-    void queryClient.invalidateQueries({ queryKey: ['portal', 'overview'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['portal', 'orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal', 'licences'] }),
+      queryClient.invalidateQueries({ queryKey: ['portal', 'overview'] }),
+    ]);
     await navigate({ to: '/portal/orders/$id', params: { id: orderId } });
   };
 
-  const onContinue = (e: React.FormEvent) => {
+  const onContinue = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (startingRef.current) return;
     startingRef.current = true;
@@ -152,7 +154,7 @@ function CheckoutPage() {
                   </div>
                   <div className="text-sm text-ink-muted">
                     {item.quantity} &times;{' '}
-                    {item.unitPrice != null ? formatPrice(item.unitPrice, item.currency) : 'Free'}
+                    {item.unitPrice == null ? 'Free' : formatPrice(item.unitPrice, item.currency)}
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
@@ -201,9 +203,11 @@ function CheckoutPage() {
             attemptId={attemptId}
             onPaid={async (orderId) => {
               clear();
-              void queryClient.invalidateQueries({ queryKey: ['portal', 'orders'] });
-              void queryClient.invalidateQueries({ queryKey: ['portal', 'licences'] });
-              void queryClient.invalidateQueries({ queryKey: ['portal', 'overview'] });
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['portal', 'orders'] }),
+                queryClient.invalidateQueries({ queryKey: ['portal', 'licences'] }),
+                queryClient.invalidateQueries({ queryKey: ['portal', 'overview'] }),
+              ]);
               await navigate({ to: '/portal/orders/$id', params: { id: orderId } });
             }}
           />
@@ -213,7 +217,7 @@ function CheckoutPage() {
   );
 }
 
-function PaymentStep({ attemptId, onPaid }: { attemptId: string; onPaid: (orderId: string) => Promise<void> }) {
+function PaymentStep({ attemptId, onPaid }: Readonly<{ attemptId: string; onPaid: (orderId: string) => Promise<void> }>) {
   const stripe = useStripe();
   const elements = useElements();
   const [busy, setBusy] = useState(false);

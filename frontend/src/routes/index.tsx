@@ -28,8 +28,16 @@ export const Route = createFileRoute('/')({
       }
     }
 
+    let destination: '/admin' | '/portal' | '/login';
+    if (role === 'admin') {
+      destination = '/admin';
+    } else if (role) {
+      destination = '/portal';
+    } else {
+      destination = '/login';
+    }
     // eslint-disable-next-line @typescript-eslint/only-throw-error
-    throw redirect({ to: role === 'admin' ? '/admin' : role ? '/portal' : '/login' });
+    throw redirect({ to: destination });
   },
   component: () => null,
 });

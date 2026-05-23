@@ -48,12 +48,13 @@ function PortalProductsPage() {
   const setView = (next: 'cards' | 'table') => {
     if (next === view) return;
     setOffset(0);
-    void navigate({ search: { view: next === 'cards' ? undefined : next } });
+    navigate({ search: { view: next === 'cards' ? undefined : next } }).catch(() => undefined);
   };
 
   const data = query.data;
+  const rangeStart = data && data.total > 0 ? data.offset + 1 : 0;
   const rangeLabel = data
-    ? `${data.total === 0 ? 0 : data.offset + 1}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
+    ? `${rangeStart}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
     : '';
 
   return (
@@ -136,7 +137,7 @@ interface ViewProps {
   total: number;
 }
 
-function CardsView({ isPending, items, total }: ViewProps) {
+function CardsView({ isPending, items, total }: Readonly<ViewProps>) {
   if (isPending) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -206,12 +207,10 @@ function CardsView({ isPending, items, total }: ViewProps) {
           </Link>
           <div className="flex items-center justify-between border-t border-border px-3 py-2.5">
             <span className="font-medium tabular-nums">
-              {p.price != null ? (
-                <>
-                  <span className="text-[13.5px]">{formatPrice(p.price, p.currency)}</span>
-                </>
-              ) : (
+              {p.price == null ? (
                 <span className="text-[12px] text-ink-subtle">Free</span>
+              ) : (
+                <span className="text-[13.5px]">{formatPrice(p.price, p.currency)}</span>
               )}
             </span>
             <AddToBasketButton product={p} variant="compact" />
@@ -222,7 +221,7 @@ function CardsView({ isPending, items, total }: ViewProps) {
   );
 }
 
-function TableView({ isPending, items, total }: ViewProps) {
+function TableView({ isPending, items, total }: Readonly<ViewProps>) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
       <Table>
@@ -269,7 +268,7 @@ function TableView({ isPending, items, total }: ViewProps) {
               </TableCell>
               <TableCell className="font-mono text-xs text-ink-muted">{p.slug}</TableCell>
               <TableCell className="text-ink-muted">
-                {p.price != null ? formatPrice(p.price, p.currency) : 'Free'}
+                {p.price == null ? 'Free' : formatPrice(p.price, p.currency)}
               </TableCell>
               <TableCell className="text-ink-muted">{formatDate(p.createdAt)}</TableCell>
               <TableCell className="text-right">

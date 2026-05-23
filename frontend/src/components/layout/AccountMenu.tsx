@@ -18,7 +18,7 @@ interface AccountMenuProps {
   profileHref: '/admin/me' | '/portal/me';
 }
 
-export function AccountMenu({ profileHref }: AccountMenuProps) {
+export function AccountMenu({ profileHref }: Readonly<AccountMenuProps>) {
   const navigate = useNavigate();
   const user = useAccessTokenStore((s) => s.user);
 
@@ -27,7 +27,7 @@ export function AccountMenu({ profileHref }: AccountMenuProps) {
       await apiClient<void>(path, { method: 'DELETE' });
     } finally {
       useAccessTokenStore.getState().clear();
-      window.location.assign('/login');
+      globalThis.location.assign('/login');
     }
   };
 
@@ -51,16 +51,16 @@ export function AccountMenu({ profileHref }: AccountMenuProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <ThemeMenu />
-        <DropdownMenuItem onSelect={() => void navigate({ to: profileHref })}>
+        <DropdownMenuItem onSelect={() => { navigate({ to: profileHref }).catch(() => undefined); }}>
           My profile
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void endSession('/sessions')}>
+        <DropdownMenuItem onSelect={() => { endSession('/sessions').catch(() => undefined); }}>
           Sign out
         </DropdownMenuItem>
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => void endSession('/sessions/all')}
+          onSelect={() => { endSession('/sessions/all').catch(() => undefined); }}
         >
           Sign out everywhere
         </DropdownMenuItem>

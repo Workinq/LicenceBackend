@@ -9,7 +9,7 @@ interface CurrencyComboboxProps {
   disabled?: boolean;
 }
 
-export function CurrencyCombobox({ value, onChange, id, disabled }: CurrencyComboboxProps) {
+export function CurrencyCombobox({ value, onChange, id, disabled }: Readonly<CurrencyComboboxProps>) {
   const query = useQuery({ queryKey: ['currencies'], queryFn: fetchCurrencyList, staleTime: Infinity });
 
   const base: ComboboxOption[] = query.data

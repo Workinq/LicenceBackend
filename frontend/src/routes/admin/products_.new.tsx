@@ -70,15 +70,15 @@ function NewProductPage() {
         try {
           await uploadProductImage(created.id, stagedImage);
         } catch {
-          void queryClient.invalidateQueries({ queryKey: ['products'] });
+          await queryClient.invalidateQueries({ queryKey: ['products'] });
           toast.error('Product created, but the image upload failed. You can add it from the product page.');
-          void navigate({ to: '/admin/products/$id', params: { id: created.id } });
+          await navigate({ to: '/admin/products/$id', params: { id: created.id } });
           return;
         }
       }
-      void queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created.');
-      void navigate({ to: '/admin/products' });
+      await navigate({ to: '/admin/products' });
     },
     onError: (error) => {
       setSubmitError(
@@ -187,7 +187,7 @@ function NewProductPage() {
           <Button type="submit" disabled={isSubmitting || mutation.isPending}>
             Create product
           </Button>
-          <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/admin/products' }); }}>
+          <Button type="button" variant="outline" onClick={() => { navigate({ to: '/admin/products' }).catch(() => undefined); }}>
             Cancel
           </Button>
         </div>

@@ -64,12 +64,13 @@ function ProductsPage() {
   const setView = (next: 'cards' | 'table') => {
     if (next === view) return;
     setOffset(0);
-    void navigate({ search: { view: next === 'table' ? undefined : next } });
+    navigate({ search: { view: next === 'table' ? undefined : next } }).catch(() => undefined);
   };
 
   const data = query.data;
+  const rangeStart = data && data.total > 0 ? data.offset + 1 : 0;
   const rangeLabel = data
-    ? `${data.total === 0 ? 0 : data.offset + 1}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
+    ? `${rangeStart}-${Math.min(data.offset + data.limit, data.total)} of ${data.total}`
     : '';
 
   return (
@@ -185,7 +186,7 @@ type ProductRow = {
   createdAt: string;
 };
 
-function CardsView({ isPending, items, total, searching }: ViewProps) {
+function CardsView({ isPending, items, total, searching }: Readonly<ViewProps>) {
   if (isPending) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -240,10 +241,10 @@ function CardsView({ isPending, items, total, searching }: ViewProps) {
               <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
             </CardHeader>
             <CardContent className="px-3 pb-3 text-xs">
-              {p.price != null ? (
-                formatPrice(p.price, p.currency)
-              ) : (
+              {p.price == null ? (
                 <span className="text-ink-subtle">No price</span>
+              ) : (
+                formatPrice(p.price, p.currency)
               )}
             </CardContent>
           </Card>
@@ -253,7 +254,7 @@ function CardsView({ isPending, items, total, searching }: ViewProps) {
   );
 }
 
-function TableView({ isPending, items, total, searching }: ViewProps) {
+function TableView({ isPending, items, total, searching }: Readonly<ViewProps>) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
       <Table className="text-[12.5px]">
@@ -289,7 +290,7 @@ function TableView({ isPending, items, total, searching }: ViewProps) {
   );
 }
 
-function ProductTableRow({ product }: { product: ProductRow }) {
+function ProductTableRow({ product }: Readonly<{ product: ProductRow }>) {
   const licenceCount = useQuery({
     queryKey: ['product-licence-count', product.id],
     queryFn: () => fetchLicences({ productId: product.id, limit: 1, offset: 0 }),
@@ -322,7 +323,7 @@ function ProductTableRow({ product }: { product: ProductRow }) {
         </Badge>
       </TableCell>
       <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-ink-muted">
-        {product.price != null ? formatPrice(product.price, product.currency) : '-'}
+        {product.price == null ? '-' : formatPrice(product.price, product.currency)}
       </TableCell>
       <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-foreground">
         {licenceCount.data?.total ?? '-'}

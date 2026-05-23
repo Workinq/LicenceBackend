@@ -13,7 +13,7 @@ const RANGES: { value: Range; label: string; days: number; buckets: number }[] =
   { value: '90d', label: '90d', days: 90, buckets: 30 },
 ];
 
-export function VerificationsChart({ licenceId }: { licenceId: string }) {
+export function VerificationsChart({ licenceId }: Readonly<{ licenceId: string }>) {
   const [range, setRange] = useState<Range>('30d');
   const config = RANGES.find((r) => r.value === range)!;
 
@@ -77,7 +77,7 @@ export function VerificationsChart({ licenceId }: { licenceId: string }) {
               const recent = i >= recencyCutoff;
               return (
                 <div
-                  key={i}
+                  key={`${range}-${i}`}
                   className="flex-1 rounded-sm"
                   style={{
                     height: `${Math.max(2, h)}%`,

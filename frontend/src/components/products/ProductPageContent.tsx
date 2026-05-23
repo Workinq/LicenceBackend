@@ -1,7 +1,7 @@
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react';
 import { productPageExtensions } from './tiptap-extensions';
 
-export function ProductPageContent({ content }: { content: JSONContent }) {
+export function ProductPageContent({ content }: Readonly<{ content: JSONContent }>) {
   const editor = useEditor({
     editable: false,
     extensions: productPageExtensions(),

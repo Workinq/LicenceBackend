@@ -11,7 +11,7 @@ interface LicenceLabelEditorProps {
   editable: boolean;
 }
 
-export function LicenceLabelEditor({ licenceId, label, editable }: LicenceLabelEditorProps) {
+export function LicenceLabelEditor({ licenceId, label, editable }: Readonly<LicenceLabelEditorProps>) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label ?? '');
@@ -20,12 +20,14 @@ export function LicenceLabelEditor({ licenceId, label, editable }: LicenceLabelE
   const mutation = useMutation({
     mutationFn: async (next: string | null) =>
       updateMyLicenceLabel(licenceId, { label: next }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setEditing(false);
       setError(null);
-      void queryClient.invalidateQueries({ queryKey: ['portal', 'licences'] });
-      void queryClient.invalidateQueries({ queryKey: ['portal', 'licence', licenceId] });
-      void queryClient.invalidateQueries({ queryKey: ['portal', 'orders'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['portal', 'licences'] }),
+        queryClient.invalidateQueries({ queryKey: ['portal', 'licence', licenceId] }),
+        queryClient.invalidateQueries({ queryKey: ['portal', 'orders'] }),
+      ]);
     },
     onError: (err: unknown) => {
       setError(err instanceof Error ? err.message : 'Failed to update label.');

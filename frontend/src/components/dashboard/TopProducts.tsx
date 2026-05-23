@@ -4,7 +4,7 @@ import { fetchProducts } from '@/api/products';
 import { fetchLicences } from '@/api/licences';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export function TopProducts({ limit = 5 }: { limit?: number }) {
+export function TopProducts({ limit = 5 }: Readonly<{ limit?: number }>) {
   const products = useQuery({
     queryKey: ['products-for-top'],
     queryFn: () => fetchProducts({ limit: 30, offset: 0 }),
@@ -41,11 +41,11 @@ function ProductRow({
   productId,
   slug,
   maxLicences,
-}: {
+}: Readonly<{
   productId: string;
   slug: string;
   maxLicences: number;
-}) {
+}>) {
   const licences = useQuery({
     queryKey: ['licences-count', productId],
     queryFn: () => fetchLicences({ productId, limit: 1, offset: 0 }),

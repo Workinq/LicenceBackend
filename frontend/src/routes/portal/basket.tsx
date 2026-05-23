@@ -27,16 +27,14 @@ function BasketPage() {
 
   const count = basketCount(items);
   const totals = basketTotalsByCurrency(items);
+  const unitWord = count === 1 ? 'unit' : 'units';
+  const subtitle = count === 0 ? 'Your basket is empty.' : `${count} ${unitWord} ready to check out.`;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       <div>
         <h1 className="text-[22px] font-semibold tracking-tight text-foreground">Your basket</h1>
-        <p className="text-[12.5px] text-ink-muted">
-          {count === 0
-            ? 'Your basket is empty.'
-            : `${count} unit${count === 1 ? '' : 's'} ready to check out.`}
-        </p>
+        <p className="text-[12.5px] text-ink-muted">{subtitle}</p>
       </div>
 
       {count === 0 ? (
@@ -80,7 +78,7 @@ function BasketPage() {
                         <div className="font-mono text-[11px] text-ink-muted">{item.slug}</div>
                       </TableCell>
                       <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-ink-muted">
-                        {item.unitPrice != null ? formatPrice(item.unitPrice, item.currency) : 'Free'}
+                        {item.unitPrice == null ? 'Free' : formatPrice(item.unitPrice, item.currency)}
                       </TableCell>
                       <TableCell className="px-3 py-2.5">
                         <div className="inline-flex h-7 items-center rounded-[4px] border border-border bg-card">
@@ -114,7 +112,7 @@ function BasketPage() {
                         </div>
                       </TableCell>
                       <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-foreground">
-                        {item.unitPrice != null ? formatPrice(unit * item.quantity, item.currency) : 'Free'}
+                        {item.unitPrice == null ? 'Free' : formatPrice(unit * item.quantity, item.currency)}
                       </TableCell>
                       <TableCell className="px-3 py-2.5">
                         <Button

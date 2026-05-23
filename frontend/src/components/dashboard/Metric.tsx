@@ -10,7 +10,7 @@ interface MetricProps {
   className?: string;
 }
 
-export function Metric({ label, value, delta, deltaSuffix = '%', children, className }: MetricProps) {
+export function Metric({ label, value, delta, deltaSuffix = '%', children, className }: Readonly<MetricProps>) {
   const positive = delta !== undefined && delta >= 0;
   const deltaColor = positive ? 'text-status-active-fg' : 'text-status-revoked-fg';
 

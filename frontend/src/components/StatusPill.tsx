@@ -6,7 +6,7 @@ const COLOR: Record<string, string> = {
   revoked: '#dc2626',
 };
 
-export function StatusPill({ status, className }: { status: string; className?: string }) {
+export function StatusPill({ status, className }: Readonly<{ status: string; className?: string }>) {
   const color = COLOR[status] ?? '#71717a';
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>

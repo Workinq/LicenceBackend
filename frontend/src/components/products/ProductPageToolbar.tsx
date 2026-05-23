@@ -17,13 +17,13 @@ import { PAGE_TEXT_COLORS, PAGE_HIGHLIGHT_COLORS } from './tiptap-extensions';
 export function ProductPageToolbar({
   editor,
   onImageClick,
-}: {
+}: Readonly<{
   editor: Editor;
   onImageClick: () => void;
-}) {
+}>) {
   const setLink = () => {
     const previous = (editor.getAttributes('link').href as string | undefined) ?? '';
-    const url = window.prompt('Link URL', previous);
+    const url = globalThis.prompt('Link URL', previous);
     if (url === null) return;
     if (url === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
@@ -150,12 +150,12 @@ function ToolbarButton({
   label,
   onClick,
   children,
-}: {
+}: Readonly<{
   active: boolean;
   label: string;
   onClick: () => void;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <button
       type="button"
@@ -183,13 +183,13 @@ function SwatchDropdown({
   colors,
   onPick,
   onClear,
-}: {
+}: Readonly<{
   label: string;
   icon: React.ReactNode;
   colors: { name: string; value: string }[];
   onPick: (value: string) => void;
   onClear: () => void;
-}) {
+}>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -228,7 +228,7 @@ function SwatchDropdown({
   );
 }
 
-function TableDropdown({ editor }: { editor: Editor }) {
+function TableDropdown({ editor }: Readonly<{ editor: Editor }>) {
   const items: { label: string; run: () => void }[] = [
     { label: 'Insert table', run: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
     { label: 'Add row above', run: () => editor.chain().focus().addRowBefore().run() },

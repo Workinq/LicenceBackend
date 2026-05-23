@@ -22,7 +22,7 @@ function PortalProductDetailPage() {
   }
 
   const product = query.data;
-  const pageContent = (product.pageContent as JSONContent | null | undefined) ?? null;
+  const pageContent = (product.pageContent ?? null) as JSONContent | null;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -43,7 +43,7 @@ function PortalProductDetailPage() {
         {product.tagline && <p className="text-ink-muted">{product.tagline}</p>}
         <div className="flex items-center justify-between gap-3">
           <span className="text-lg text-ink">
-            {product.price != null ? formatPrice(product.price, product.currency) : 'Free'}
+            {product.price == null ? 'Free' : formatPrice(product.price, product.currency)}
           </span>
           <AddToBasketButton product={product} />
         </div>

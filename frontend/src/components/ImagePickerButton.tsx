@@ -9,7 +9,7 @@ interface ImagePickerButtonProps {
   disabled?: boolean;
 }
 
-export function ImagePickerButton({ onSelect, label = 'Choose image', disabled = false }: ImagePickerButtonProps) {
+export function ImagePickerButton({ onSelect, label = 'Choose image', disabled = false }: Readonly<ImagePickerButtonProps>) {
   const inputId = useId();
   return (
     <>

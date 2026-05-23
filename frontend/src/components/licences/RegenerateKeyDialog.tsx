@@ -28,15 +28,15 @@ export function RegenerateKeyDialog({
   regenerate,
   invalidateQueryKey,
   hasKey = true,
-}: RegenerateKeyDialogProps) {
+}: Readonly<RegenerateKeyDialogProps>) {
   const queryClient = useQueryClient();
   const [newKey, setNewKey] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: () =>
       regenerate ? regenerate(licenceId) : regenerateLicenceKey(licenceId, { reason: null }),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({
         queryKey: invalidateQueryKey ?? ['licences', 'detail', licenceId],
       });
       setNewKey(data.licenceKey);

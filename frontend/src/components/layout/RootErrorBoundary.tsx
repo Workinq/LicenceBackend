@@ -9,7 +9,7 @@ export function RootErrorBoundary({ error, reset }: ErrorComponentProps) {
       <p className="max-w-md text-sm text-ink-muted">{message}</p>
       <div className="flex gap-3">
         <Button onClick={reset}>Try again</Button>
-        <Button variant="outline" onClick={() => window.location.assign('/')}>
+        <Button variant="outline" onClick={() => globalThis.location.assign('/')}>
           Go to overview
         </Button>
       </div>

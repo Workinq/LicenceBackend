@@ -20,9 +20,9 @@ function readStoredMode(): ThemeMode {
 }
 
 function prefersDark(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  if (typeof globalThis.window === 'undefined' || typeof globalThis.matchMedia !== 'function') return false;
   try {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return globalThis.matchMedia('(prefers-color-scheme: dark)').matches;
   } catch {
     return false;
   }
@@ -53,9 +53,9 @@ export const useThemeStore = create<ThemeState>((set) => ({
 
 apply(useThemeStore.getState().mode);
 
-if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+if (typeof globalThis.window !== 'undefined' && typeof globalThis.matchMedia === 'function') {
   try {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const mq = globalThis.matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', () => {
       if (useThemeStore.getState().mode === 'system') apply('system');
     });

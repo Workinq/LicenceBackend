@@ -22,7 +22,7 @@ function errorDetail(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function LicenceMembers({ licenceId }: { licenceId: string }) {
+export function LicenceMembers({ licenceId }: Readonly<{ licenceId: string }>) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
@@ -35,10 +35,10 @@ export function LicenceMembers({ licenceId }: { licenceId: string }) {
 
   const addMutation = useMutation({
     mutationFn: (memberEmail: string) => addLicenceMember(licenceId, { email: memberEmail }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setEmail('');
       setAddError(null);
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'members', licenceId] });
+      await queryClient.invalidateQueries({ queryKey: ['licences', 'members', licenceId] });
     },
     onError: (error: unknown) => {
       setAddError(errorDetail(error, 'Could not add the member.'));
@@ -47,16 +47,16 @@ export function LicenceMembers({ licenceId }: { licenceId: string }) {
 
   const removeMutation = useMutation({
     mutationFn: (memberId: string) => removeLicenceMember(licenceId, memberId),
-    onSuccess: () => {
+    onSuccess: async () => {
       setRemoveError(null);
-      void queryClient.invalidateQueries({ queryKey: ['licences', 'members', licenceId] });
+      await queryClient.invalidateQueries({ queryKey: ['licences', 'members', licenceId] });
     },
     onError: (error: unknown) => {
       setRemoveError(errorDetail(error, 'Could not remove the member.'));
     },
   });
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAddError(null);
     const trimmed = email.trim();
@@ -99,7 +99,7 @@ export function LicenceMembers({ licenceId }: { licenceId: string }) {
       {query.isError && (
         <p className="text-sm text-status-revoked-fg">Failed to load members.</p>
       )}
-      {query.data && query.data.length === 0 && (
+      {query.data?.length === 0 && (
         <p className="text-sm text-ink-muted">No members yet. Add one by email above.</p>
       )}
       {query.data && query.data.length > 0 && (

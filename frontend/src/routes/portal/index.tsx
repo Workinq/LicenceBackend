@@ -39,7 +39,7 @@ function PortalOverview() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Active licences" value={String(total)} />
         <Metric label="Devices bound" value={String(boundDevices)} />
-        <Metric label="Next renewal" value={nextRenewalDays !== undefined ? `${nextRenewalDays}d` : '-'} />
+        <Metric label="Next renewal" value={nextRenewalDays === undefined ? '-' : `${nextRenewalDays}d`} />
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
@@ -100,7 +100,7 @@ interface QuickActionProps {
   sub: string;
 }
 
-function QuickAction({ to, Icon, title, sub }: QuickActionProps) {
+function QuickAction({ to, Icon, title, sub }: Readonly<QuickActionProps>) {
   return (
     <li>
       <Link

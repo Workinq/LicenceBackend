@@ -30,12 +30,12 @@ function PagedAuditTab<T>({
   queryFn,
   mapEvent,
   emptyText,
-}: {
+}: Readonly<{
   queryKey: unknown[];
   queryFn: (params: { limit: number; offset: number }) => Promise<{ items: T[]; total: number; limit: number; offset: number }>;
   mapEvent: (item: T) => AuditEvent;
   emptyText: string;
-}) {
+}>) {
   const [offset, setOffset] = useState(0);
   const query = useQuery({
     queryKey: [...queryKey, offset],
@@ -84,7 +84,7 @@ function memberEventTitle(eventType: string, email: string): string {
   return `${eventType}: ${email}`;
 }
 
-export function LicenceHistory({ licenceId }: { licenceId: string }) {
+export function LicenceHistory({ licenceId }: Readonly<{ licenceId: string }>) {
   return (
     <Tabs defaultValue="status">
       <TabsList>

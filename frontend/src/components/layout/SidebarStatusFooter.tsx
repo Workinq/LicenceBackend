@@ -10,8 +10,18 @@ export function SidebarStatusFooter() {
   });
 
   const ok = data?.status === 'ok';
-  const color = ok ? '#16a34a' : data ? '#dc2626' : '#a1a1aa';
-  const label = ok ? 'API operational' : data ? 'API degraded' : 'Checking...';
+  let color: string;
+  let label: string;
+  if (ok) {
+    color = '#16a34a';
+    label = 'API operational';
+  } else if (data) {
+    color = '#dc2626';
+    label = 'API degraded';
+  } else {
+    color = '#a1a1aa';
+    label = 'Checking...';
+  }
 
   return (
     <div className="mt-auto border-t border-border px-3 py-2.5">

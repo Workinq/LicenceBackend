@@ -2,8 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
-import { fetchLicence, fetchLicenceVerificationAttempts } from '@/api/licences';
-import { fetchLicenceSeats } from '@/api/licences';
+import { fetchLicence, fetchLicenceSeats, fetchLicenceVerificationAttempts } from '@/api/licences';
 import { LicenceActions } from '@/components/licences/LicenceActions';
 import { LicenceBindings } from '@/components/licences/LicenceBindings';
 import { LicenceHistory } from '@/components/licences/LicenceHistory';
@@ -51,6 +50,26 @@ function LicenceDetailPage() {
     ? Math.max(0, Math.floor((new Date(lic.expiresAt).getTime() - Date.now()) / 86_400_000))
     : null;
 
+  let ipAllowlistNode: React.ReactNode;
+  if (lic.ipAllowlist == null) {
+    ipAllowlistNode = <span className="text-ink-subtle">None</span>;
+  } else if (lic.ipAllowlist.length === 0) {
+    ipAllowlistNode = <span className="text-ink-muted">Armed (binds first verifying IP)</span>;
+  } else {
+    ipAllowlistNode = (
+      <div className="flex flex-wrap gap-1.5">
+        {lic.ipAllowlist.map((cidr) => (
+          <span
+            key={cidr}
+            className="rounded-[3px] border border-border bg-surface-sunken px-1.5 font-mono text-[11px] text-foreground"
+          >
+            {cidr}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <header className="space-y-1.5">
@@ -83,14 +102,14 @@ function LicenceDetailPage() {
       </header>
 
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border text-[12.5px] sm:grid-cols-3 lg:grid-cols-5">
-        <StatCell label="Verifications (7d)" value={verifications7dCount !== undefined ? String(verifications7dCount) : '-'} />
+        <StatCell label="Verifications (7d)" value={verifications7dCount === undefined ? '-' : String(verifications7dCount)} />
         <StatCell label="Last verified" value={lastVerifiedAt ? formatRelative(lastVerifiedAt) : 'Never'} />
         <StatCell
           label="Seats"
           value={seats.data ? `${seats.data.live.length} / ${seats.data.maxSeats}` : '-'}
         />
         <StatCell label="HWID" value={lic.hwidBound ? 'Bound' : 'Not bound'} />
-        <StatCell label="Renews in" value={renewsInDays !== null ? `${renewsInDays}d` : '-'} />
+        <StatCell label="Renews in" value={renewsInDays === null ? '-' : `${renewsInDays}d`} />
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -113,24 +132,7 @@ function LicenceDetailPage() {
             <dt className="text-ink-muted">Customer</dt>
             <dd>{lic.userEmail}</dd>
             <dt className="text-ink-muted">IP allowlist</dt>
-            <dd>
-              {lic.ipAllowlist == null ? (
-                <span className="text-ink-subtle">None</span>
-              ) : lic.ipAllowlist.length === 0 ? (
-                <span className="text-ink-muted">Armed (binds first verifying IP)</span>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {lic.ipAllowlist.map((cidr) => (
-                    <span
-                      key={cidr}
-                      className="rounded-[3px] border border-border bg-surface-sunken px-1.5 font-mono text-[11px] text-foreground"
-                    >
-                      {cidr}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </dd>
+            <dd>{ipAllowlistNode}</dd>
             <dt className="text-ink-muted">Expires</dt>
             <dd className="font-mono text-[11.5px] text-ink-muted">{formatDateTime(lic.expiresAt)}</dd>
             <dt className="text-ink-muted">Created</dt>
@@ -174,7 +176,7 @@ function LicenceDetailPage() {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="bg-card px-3 py-3">
       <div className="text-[10.5px] font-medium uppercase tracking-wide text-ink-muted">{label}</div>
@@ -183,7 +185,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
+function DetailCard({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
       <div className="border-b border-border px-4 py-2.5">

@@ -72,7 +72,7 @@ function AdminOrderDetailPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-ink-muted">
-                      {item.unitPrice != null ? formatPrice(item.unitPrice, item.currency) : 'Free'}
+                      {item.unitPrice == null ? 'Free' : formatPrice(item.unitPrice, item.currency)}
                     </span>
                     <Button asChild variant="link" size="sm" className="px-0">
                       <Link to="/admin/licences/$id" params={{ id: item.licenceId }}>
@@ -90,7 +90,7 @@ function AdminOrderDetailPage() {
   );
 }
 
-function Field({ label, children, mono }: { label: string; children: React.ReactNode; mono?: boolean }) {
+function Field({ label, children, mono }: Readonly<{ label: string; children: React.ReactNode; mono?: boolean }>) {
   return (
     <div>
       <div className="text-xs uppercase tracking-wide text-ink-subtle">{label}</div>

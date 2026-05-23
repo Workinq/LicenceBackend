@@ -22,7 +22,10 @@ import { ApiError } from '@/auth/api-client';
 import type { UserResponse } from '@/api/generated/api.schemas';
 
 const schema = z.object({
-  email: z.string().min(1, 'Required').email('Enter a valid email'),
+  email: z
+    .string()
+    .min(1, 'Required')
+    .pipe(z.email('Enter a valid email')),
   displayName: z.string().optional(),
 });
 
@@ -39,7 +42,7 @@ interface Created {
   password: string;
 }
 
-export function QuickCreateUserDialog({ open, onOpenChange, onCreated }: QuickCreateUserDialogProps) {
+export function QuickCreateUserDialog({ open, onOpenChange, onCreated }: Readonly<QuickCreateUserDialogProps>) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
 

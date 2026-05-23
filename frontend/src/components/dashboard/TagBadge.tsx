@@ -5,7 +5,7 @@ interface TagBadgeProps {
   className?: string;
 }
 
-export function TagBadge({ children, className }: TagBadgeProps) {
+export function TagBadge({ children, className }: Readonly<TagBadgeProps>) {
   return (
     <span
       className={cn(

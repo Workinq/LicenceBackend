@@ -19,7 +19,10 @@ export const Route = createFileRoute('/admin/users_/new')({
 });
 
 const schema = z.object({
-  email: z.string().min(1, 'Required').email('Enter a valid email'),
+  email: z
+    .string()
+    .min(1, 'Required')
+    .pipe(z.email('Enter a valid email')),
   displayName: z.string().optional(),
 });
 
@@ -55,8 +58,8 @@ function NewUserPage() {
       });
       return { user, password };
     },
-    onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: ['users'] });
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
       setCreated(result);
       setSubmitError(null);
     },
@@ -85,14 +88,14 @@ function NewUserPage() {
         <div className="flex gap-3">
           <Button
             type="button"
-            onClick={() => { void navigate({ to: '/admin/users/$id', params: { id: created.user.id } }); }}
+            onClick={() => { navigate({ to: '/admin/users/$id', params: { id: created.user.id } }).catch(() => undefined); }}
           >
             Open user
           </Button>
           <Button
             type="button"
             variant="outline"
-            onClick={() => { void navigate({ to: '/admin/users' }); }}
+            onClick={() => { navigate({ to: '/admin/users' }).catch(() => undefined); }}
           >
             Back to users
           </Button>
@@ -130,7 +133,7 @@ function NewUserPage() {
           <Button type="submit" disabled={isSubmitting || mutation.isPending}>
             Create user
           </Button>
-          <Button type="button" variant="outline" onClick={() => { void navigate({ to: '/admin/users' }); }}>
+          <Button type="button" variant="outline" onClick={() => { navigate({ to: '/admin/users' }).catch(() => undefined); }}>
             Cancel
           </Button>
         </div>
