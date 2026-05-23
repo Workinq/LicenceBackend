@@ -91,7 +91,7 @@ export function VerificationsChart({ licenceId }: { licenceId: string }) {
           </div>
         )}
         <div className="mt-2 flex items-center justify-between text-[11px] text-ink-subtle">
-          <span className="font-mono">{config.days}{config.days === 1 ? 'd' : 'd'} ago</span>
+          <span className="font-mono">{config.days}d ago</span>
           <span className="font-mono">now</span>
         </div>
       </div>
