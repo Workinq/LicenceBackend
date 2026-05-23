@@ -16,6 +16,9 @@ public sealed class OrderFulfillmentService(
     IOrderItemRepository orderItems,
     IInvoiceRepository invoices,
     ILicenceRepository licences,
+    ILicenceKeyRepository licenceKeys,
+    ILicenceKeyGenerator keyGenerator,
+    ILicenceKeyHasher keyHasher,
     IAuditEventRepository auditEvents,
     IProductRepository products,
     TimeProvider time) : IOrderFulfillmentService
@@ -81,6 +84,22 @@ public sealed class OrderFulfillmentService(
                         CreatedAt: now,
                         UpdatedAt: now);
                     await licences.CreateInTxAsync(connection, transaction, licence, cancellationToken);
+
+                    var rawKey = keyGenerator.Generate();
+                    var pepperedHmac = keyHasher.HashWithActive(rawKey);
+                    var keyPrefix = BuildKeyPrefix(rawKey);
+                    var mintOutcome = await licenceKeys.MintInTxAsync(
+                        connection,
+                        transaction,
+                        licence.Id,
+                        pepperedHmac,
+                        keyPrefix,
+                        label: null,
+                        createdByUserId: null,
+                        activeCap: 5,
+                        cancellationToken);
+                    if (mintOutcome is not MintKeyOutcome.Minted)
+                        throw new InvalidOperationException($"Failed to mint initial licence key for licence '{licence.Id}'.");
 
                     orderItemEntities.Add(new OrderItem(
                         Guid.NewGuid(),
@@ -171,4 +190,7 @@ public sealed class OrderFulfillmentService(
             throw;
         }
     }
+
+    private static string BuildKeyPrefix(string rawKey)
+        => rawKey.Length > 12 ? $"{rawKey[..12]}..." : $"{rawKey}...";
 }

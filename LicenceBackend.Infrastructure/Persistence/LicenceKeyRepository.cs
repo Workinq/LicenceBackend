@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using LicenceBackend.Core.Licences;
 using Npgsql;
@@ -77,6 +78,48 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
         int activeCap,
         CancellationToken cancellationToken)
     {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var outcome = await MintCoreAsync(
+                connection, transaction, licenceId, pepperedHmac, keyPrefix, label, createdByUserId, activeCap, cancellationToken);
+            if (outcome is MintKeyOutcome.Minted)
+                await transaction.CommitAsync(cancellationToken);
+            else
+                await transaction.RollbackAsync(cancellationToken);
+            return outcome;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public Task<MintKeyOutcome> MintInTxAsync(
+        IDbConnection connection,
+        IDbTransaction transaction,
+        Guid licenceId,
+        PepperedHmac pepperedHmac,
+        string keyPrefix,
+        string? label,
+        Guid? createdByUserId,
+        int activeCap,
+        CancellationToken cancellationToken)
+        => MintCoreAsync(connection, transaction, licenceId, pepperedHmac, keyPrefix, label, createdByUserId, activeCap, cancellationToken);
+
+    private static async Task<MintKeyOutcome> MintCoreAsync(
+        IDbConnection connection,
+        IDbTransaction transaction,
+        Guid licenceId,
+        PepperedHmac pepperedHmac,
+        string keyPrefix,
+        string? label,
+        Guid? createdByUserId,
+        int activeCap,
+        CancellationToken cancellationToken)
+    {
         const string licenceExistsSql = "SELECT 1 FROM licences WHERE id = @LicenceId LIMIT 1;";
         const string countSql = "SELECT COUNT(*) FROM licence_keys WHERE licence_id = @LicenceId AND revoked_at IS NULL;";
         const string advisoryLockSql = "SELECT pg_advisory_xact_lock(hashtextextended('licence_keys_mint:' || @LicenceId::text, 0));";
@@ -86,53 +129,34 @@ public sealed class LicenceKeyRepository(NpgsqlDataSource dataSource) : ILicence
                                   RETURNING {Columns};
                                   """;
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            await connection.ExecuteAsync(
-                new CommandDefinition(advisoryLockSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(
+            new CommandDefinition(advisoryLockSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
 
-            var licenceExists = await connection.QuerySingleOrDefaultAsync<int?>(
-                new CommandDefinition(licenceExistsSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
-            if (licenceExists is null)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return new MintKeyOutcome.LicenceNotFound();
-            }
+        var licenceExists = await connection.QuerySingleOrDefaultAsync<int?>(
+            new CommandDefinition(licenceExistsSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
+        if (licenceExists is null) return new MintKeyOutcome.LicenceNotFound();
 
-            var activeCount = await connection.QuerySingleAsync<int>(
-                new CommandDefinition(countSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
-            if (activeCount >= activeCap)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return new MintKeyOutcome.CapExceeded(activeCount, activeCap);
-            }
+        var activeCount = await connection.QuerySingleAsync<int>(
+            new CommandDefinition(countSql, new { LicenceId = licenceId }, transaction, cancellationToken: cancellationToken));
+        if (activeCount >= activeCap) return new MintKeyOutcome.CapExceeded(activeCount, activeCap);
 
-            var inserted = await connection.QuerySingleAsync<Row>(
-                new CommandDefinition(
-                    insertSql,
-                    new
-                    {
-                        Id = Guid.NewGuid(),
-                        LicenceId = licenceId,
-                        KeyHmac = pepperedHmac.Hmac,
-                        PepperVersion = pepperedHmac.PepperVersion,
-                        KeyPrefix = keyPrefix,
-                        Label = label,
-                        CreatedByUserId = createdByUserId
-                    },
-                    transaction,
-                    cancellationToken: cancellationToken));
+        var inserted = await connection.QuerySingleAsync<Row>(
+            new CommandDefinition(
+                insertSql,
+                new
+                {
+                    Id = Guid.NewGuid(),
+                    LicenceId = licenceId,
+                    KeyHmac = pepperedHmac.Hmac,
+                    PepperVersion = pepperedHmac.PepperVersion,
+                    KeyPrefix = keyPrefix,
+                    Label = label,
+                    CreatedByUserId = createdByUserId
+                },
+                transaction,
+                cancellationToken: cancellationToken));
 
-            await transaction.CommitAsync(cancellationToken);
-            return new MintKeyOutcome.Minted(inserted.ToDomain());
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        return new MintKeyOutcome.Minted(inserted.ToDomain());
     }
 
     public async Task<RevokeKeyOutcome> RevokeAsync(

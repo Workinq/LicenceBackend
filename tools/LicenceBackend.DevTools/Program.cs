@@ -372,6 +372,7 @@ async Task<int> SeedDevAsync()
             new { Id = productId, Slug = productSlug, DisplayName = "Test Product" });
 
     if (!existingLicenceId.HasValue)
+    {
         await connection.ExecuteAsync(
             """
             INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status)
@@ -385,6 +386,22 @@ async Task<int> SeedDevAsync()
                 KeyHmac = pepperedHmac.Hmac,
                 KeyHmacPepperVersion = pepperedHmac.PepperVersion
             });
+
+        var keyPrefix = licenceKey.Length > 12 ? $"{licenceKey[..12]}..." : $"{licenceKey}...";
+        await connection.ExecuteAsync(
+            """
+            INSERT INTO licence_keys (id, licence_id, key_hmac, key_hmac_pepper_version, key_prefix, created_at)
+            VALUES (@Id, @LicenceId, @KeyHmac, @KeyHmacPepperVersion, @KeyPrefix, NOW());
+            """,
+            new
+            {
+                Id = Guid.NewGuid(),
+                LicenceId = licenceId,
+                KeyHmac = pepperedHmac.Hmac,
+                KeyHmacPepperVersion = pepperedHmac.PepperVersion,
+                KeyPrefix = keyPrefix
+            });
+    }
 
     Console.WriteLine($"Seeded user:     id={userId}  email={userEmail}  role=user  status=active");
     Console.WriteLine($"Seeded product:  id={productId}  slug={productSlug}");

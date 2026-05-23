@@ -1,3 +1,5 @@
+using System.Data;
+
 namespace LicenceBackend.Core.Licences;
 
 public interface ILicenceKeyRepository
@@ -11,6 +13,18 @@ public interface ILicenceKeyRepository
     Task<int> CountActiveForLicenceAsync(Guid licenceId, CancellationToken cancellationToken);
 
     Task<MintKeyOutcome> MintAsync(
+        Guid licenceId,
+        PepperedHmac pepperedHmac,
+        string keyPrefix,
+        string? label,
+        Guid? createdByUserId,
+        int activeCap,
+        CancellationToken cancellationToken
+    );
+
+    Task<MintKeyOutcome> MintInTxAsync(
+        IDbConnection connection,
+        IDbTransaction transaction,
         Guid licenceId,
         PepperedHmac pepperedHmac,
         string keyPrefix,
