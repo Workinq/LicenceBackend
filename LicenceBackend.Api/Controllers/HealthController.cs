@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -9,6 +10,8 @@ namespace LicenceBackend.Api.Controllers;
 [AllowAnonymous]
 public sealed class HealthController(NpgsqlDataSource dataSource, ILogger<HealthController> logger) : ControllerBase
 {
+    private static readonly string Version = ResolveVersion();
+
     [HttpGet]
     [ProducesResponseType(typeof(HealthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(HealthResponse), StatusCodes.Status503ServiceUnavailable)]
@@ -20,14 +23,22 @@ public sealed class HealthController(NpgsqlDataSource dataSource, ILogger<Health
             await using var command = connection.CreateCommand();
             command.CommandText = "SELECT 1;";
             await command.ExecuteScalarAsync(cancellationToken);
-            return Ok(new HealthResponse("ok", "ok"));
+            return Ok(new HealthResponse("ok", "ok", Version));
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Health check DB probe failed");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new HealthResponse("degraded", ex.GetType().Name));
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new HealthResponse("degraded", ex.GetType().Name, Version));
         }
     }
 
-    public sealed record HealthResponse(string Status, string Db);
+    private static string ResolveVersion()
+    {
+        var info = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (string.IsNullOrEmpty(info)) return "0.0.0";
+        var plus = info.IndexOf('+');
+        return plus >= 0 ? info[..plus] : info;
+    }
+
+    public sealed record HealthResponse(string Status, string Db, string Version);
 }
