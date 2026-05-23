@@ -180,7 +180,7 @@ try
 catch (Exception ex) when (ex is not HostAbortedException)
 {
     Log.Fatal(ex, "LicenceBackend.Api terminated unexpectedly");
-    throw;
+    throw new HostStartupException("LicenceBackend.Api terminated unexpectedly", ex);
 }
 finally
 {
@@ -207,4 +207,9 @@ public abstract partial class Program
             AutoReplenishment = true
         };
     }
+}
+
+internal sealed class HostStartupException : Exception
+{
+    public HostStartupException(string message, Exception inner) : base(message, inner) { }
 }

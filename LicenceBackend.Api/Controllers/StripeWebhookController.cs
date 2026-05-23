@@ -55,12 +55,15 @@ public sealed class StripeWebhookController(
         }
         catch (Exception ex)
         {
-            // Transient: let the 500 stand so Stripe retries this event later.
-            logger.LogError(ex, "Stripe webhook {EventType} for intent {PaymentIntentId} failed transiently",
-                evt.Type, evt.PaymentIntentId);
-            throw;
+            throw new StripeWebhookProcessingException(
+                $"Stripe webhook {evt.Type} for intent {evt.PaymentIntentId} failed transiently", ex);
         }
 
         return Ok();
     }
+}
+
+internal sealed class StripeWebhookProcessingException : Exception
+{
+    public StripeWebhookProcessingException(string message, Exception inner) : base(message, inner) { }
 }
