@@ -3,78 +3,95 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * LicenceBackend — v2 theme
+ * Slate neutrals · single accent · Inter throughout · JetBrains Mono for IDs.
+ * Drop-in replacement for src/index.css. All shadcn semantic slots and the
+ * legacy warm-aliases (--surface-*, --ink-*, --status-*) are preserved so
+ * existing components keep working without JSX changes.
+ */
+
 :root {
-  --radius: 0.5rem;
+  --radius: 0.375rem;       /* 6px — tighter than the old 8px */
 
-  /* Warm palette mapped onto shadcn's semantic slots (light only) */
-  --background: #fdf8f3;
-  --foreground: #2a1f17;
+  /* ── shadcn semantic slots ──────────────────────────────────────────── */
+  --background: #fafafa;
+  --foreground: #18181b;
   --card: #ffffff;
-  --card-foreground: #2a1f17;
+  --card-foreground: #18181b;
   --popover: #ffffff;
-  --popover-foreground: #2a1f17;
-  --primary: #b85c3a;
-  --primary-foreground: #fdf8f3;
-  --secondary: #f7efe5;
-  --secondary-foreground: #2a1f17;
-  --muted: #f7efe5;
-  --muted-foreground: #5d4d3e;
-  --accent: #f4d8cc;
-  --accent-foreground: #2a1f17;
-  --destructive: #8a2828;
-  --border: #efe5d8;
-  --input: #d8c8b0;
-  --ring: #b85c3a;
+  --popover-foreground: #18181b;
+  --primary: #18181b;                 /* near-black primary buttons */
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #2563eb;                  /* single brand accent */
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #2563eb;
 
-  /* Extra warm tokens carried over from the old tailwind.config.ts */
+  /* ── Legacy warm aliases — remapped to the slate scale ──────────────── */
   --surface-elevated: #ffffff;
-  --surface-sunken: #f7efe5;
-  --ink-muted: #5d4d3e;
-  --ink-subtle: #8a7a68;
-  --border-strong: #d8c8b0;
-  --accent-soft: #f4d8cc;
-  --status-active-bg: #e8f3e8;
-  --status-active-fg: #2d5a2d;
-  --status-suspended-bg: #fef0d4;
-  --status-suspended-fg: #8a5a00;
-  --status-revoked-bg: #fce0e0;
-  --status-revoked-fg: #8a2828;
-  --shadow-card-value: 0 1px 2px rgba(42, 31, 23, 0.04), 0 1px 3px rgba(42, 31, 23, 0.05);
+  --surface-sunken:   #f4f4f5;
+  --ink-muted:        #52525b;
+  --ink-subtle:       #a1a1aa;
+  --border-strong:    #d4d4d8;
+  --accent-soft:      color-mix(in oklab, var(--accent) 12%, transparent);
+
+  /* Status: dot-style indicators — subtle backgrounds, real foreground */
+  --status-active-bg:    color-mix(in oklab, #16a34a 12%, transparent);
+  --status-active-fg:    #15803d;
+  --status-suspended-bg: color-mix(in oklab, #d97706 12%, transparent);
+  --status-suspended-fg: #b45309;
+  --status-revoked-bg:   color-mix(in oklab, #dc2626 12%, transparent);
+  --status-revoked-fg:   #b91c1c;
+
+  --shadow-card-value:
+    0 1px 0 rgba(24, 24, 27, 0.04),
+    0 1px 2px rgba(24, 24, 27, 0.04);
 }
 
 .dark {
-  --shadow-card-value: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
-  --background: #1a1410;
-  --foreground: #ece4d4;
-  --card: #231c16;
-  --card-foreground: #ece4d4;
-  --popover: #231c16;
-  --popover-foreground: #ece4d4;
-  --primary: #d07a58;
-  --primary-foreground: #1a1410;
-  --secondary: #2e251d;
-  --secondary-foreground: #ece4d4;
-  --muted: #2e251d;
-  --muted-foreground: #a89888;
-  --accent: #3d2c24;
-  --accent-foreground: #ece4d4;
-  --destructive: #c44545;
-  --border: #2e251d;
-  --input: #43372c;
-  --ring: #d07a58;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #0f0f12;
+  --card-foreground: #fafafa;
+  --popover: #0f0f12;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --secondary: #18181b;
+  --secondary-foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #3b82f6;
 
-  --surface-elevated: #231c16;
-  --surface-sunken: #13110d;
-  --ink-muted: #a89888;
-  --ink-subtle: #736353;
-  --border-strong: #43372c;
-  --accent-soft: #3d2c24;
-  --status-active-bg: #1d3a1d;
-  --status-active-fg: #86c886;
-  --status-suspended-bg: #3a2f0e;
-  --status-suspended-fg: #e0b070;
-  --status-revoked-bg: #3a1818;
-  --status-revoked-fg: #e08080;
+  --surface-elevated: #0f0f12;
+  --surface-sunken:   #18181b;
+  --ink-muted:        #a1a1aa;
+  --ink-subtle:       #71717a;
+  --border-strong:    #3f3f46;
+  --accent-soft:      color-mix(in oklab, var(--accent) 18%, transparent);
+
+  --status-active-bg:    color-mix(in oklab, #22c55e 18%, transparent);
+  --status-active-fg:    #86efac;
+  --status-suspended-bg: color-mix(in oklab, #f59e0b 18%, transparent);
+  --status-suspended-fg: #fcd34d;
+  --status-revoked-bg:   color-mix(in oklab, #ef4444 18%, transparent);
+  --status-revoked-fg:   #fca5a5;
+
+  --shadow-card-value:
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -113,13 +130,17 @@
   --color-status-revoked-bg: var(--status-revoked-bg);
   --color-status-revoked-fg: var(--status-revoked-fg);
 
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* ── Typography ──────────────────────────────────────────────────────
+     Inter for everything. JetBrains Mono for IDs / keys / HWIDs / versions.
+     `--font-display` kept as an alias of --font-sans so any existing
+     `font-display` class still works (just renders as Inter now). */
+  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-pill: 99px;
 
@@ -132,19 +153,22 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
+  /* Tighter, more "data-dashboard" headings */
+  h1, h2, h3 { letter-spacing: -0.015em; }
 }
 
 @layer utilities {
-  @keyframes shimmer-wave {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
+  /* Tabular numerics for any class that needs to align numbers */
+  .tabular { font-variant-numeric: tabular-nums; }
 
+  @keyframes shimmer-wave {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+  }
   .animate-shimmer {
     background-image: linear-gradient(
       90deg,
@@ -159,7 +183,6 @@
     background-color: var(--surface-sunken);
     animation: shimmer-wave 1.6s ease-in-out infinite;
   }
-
   @media (prefers-reduced-motion: reduce) {
     .animate-shimmer {
       animation: none;
@@ -168,54 +191,37 @@
     }
   }
 
+  /* Tiptap content — display rules re-point to the sans stack since
+     --font-display now equals --font-sans. */
   .tiptap-content :is(h2, h3) {
-    font-family: var(--font-display);
+    font-family: var(--font-sans);
     font-weight: 600;
     color: var(--foreground);
     line-height: 1.3;
+    letter-spacing: -0.015em;
   }
-  .tiptap-content h2 {
-    font-size: 1.25rem;
-    margin: 1.5rem 0 0.5rem;
-  }
-  .tiptap-content h3 {
-    font-size: 1.05rem;
-    margin: 1.25rem 0 0.5rem;
-  }
-  .tiptap-content p {
-    margin: 0.75rem 0;
-    line-height: 1.6;
-  }
-  .tiptap-content :is(ul, ol) {
-    margin: 0.75rem 0;
-    padding-left: 1.5rem;
-  }
-  .tiptap-content ul { list-style: disc; }
-  .tiptap-content ol { list-style: decimal; }
-  .tiptap-content a {
-    color: var(--primary);
-    text-decoration: underline;
-  }
-  .tiptap-content img {
-    max-width: 100%;
-    height: auto;
-    border-radius: var(--radius);
-    margin: 1rem 0;
-  }
-  .tiptap-content .ProseMirror:focus {
-    outline: none;
-  }
+  .tiptap-content h2 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
+  .tiptap-content h3 { font-size: 1.05rem; margin: 1.25rem 0 0.5rem; }
   .tiptap-content h4 {
-    font-family: var(--font-display);
+    font-family: var(--font-sans);
     font-weight: 600;
     color: var(--foreground);
     font-size: 0.95rem;
     margin: 1rem 0 0.5rem;
   }
+  .tiptap-content p { margin: 0.75rem 0; line-height: 1.6; }
+  .tiptap-content :is(ul, ol) { margin: 0.75rem 0; padding-left: 1.5rem; }
+  .tiptap-content ul { list-style: disc; }
+  .tiptap-content ol { list-style: decimal; }
+  .tiptap-content a { color: var(--accent); text-decoration: underline; }
+  .tiptap-content img {
+    max-width: 100%; height: auto;
+    border-radius: var(--radius); margin: 1rem 0;
+  }
+  .tiptap-content .ProseMirror:focus { outline: none; }
   .tiptap-content blockquote {
     border-left: 3px solid var(--border-strong);
-    padding-left: 1rem;
-    margin: 0.75rem 0;
+    padding-left: 1rem; margin: 0.75rem 0;
     color: var(--ink-muted);
   }
   .tiptap-content hr {
@@ -223,11 +229,7 @@
     border-top: 1px solid var(--border);
     margin: 1.5rem 0;
   }
-  .tiptap-content mark {
-    border-radius: 2px;
-    padding: 0 2px;
-    color: inherit;
-  }
+  .tiptap-content mark { border-radius: 2px; padding: 0 2px; color: inherit; }
   .tiptap-content :not(pre) > code {
     font-family: var(--font-mono);
     font-size: 0.85em;
@@ -247,84 +249,52 @@
     overflow-x: auto;
   }
   .tiptap-content pre code {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: inherit;
+    background: none; border: none; padding: 0; font-size: inherit;
   }
   .tiptap-content table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 0.75rem 0;
-    table-layout: fixed;
+    border-collapse: collapse; width: 100%;
+    margin: 0.75rem 0; table-layout: fixed;
   }
   .tiptap-content :is(th, td) {
     border: 1px solid var(--border);
     padding: 0.4rem 0.6rem;
-    text-align: left;
-    vertical-align: top;
+    text-align: left; vertical-align: top;
   }
   .tiptap-content th {
     background: var(--surface-sunken);
     font-weight: 600;
   }
   .tiptap-content ul[data-type="taskList"] {
-    list-style: none;
-    padding-left: 0;
+    list-style: none; padding-left: 0;
   }
   .tiptap-content ul[data-type="taskList"] li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    display: flex; align-items: flex-start; gap: 0.5rem;
   }
-  .tiptap-content ul[data-type="taskList"] li > label {
-    margin-top: 0.25rem;
-  }
+  .tiptap-content ul[data-type="taskList"] li > label { margin-top: 0.25rem; }
+
+  /* highlight.js colors retuned for the cool palette */
   .tiptap-content .hljs-comment,
-  .tiptap-content .hljs-quote {
-    color: var(--ink-subtle);
-    font-style: italic;
-  }
+  .tiptap-content .hljs-quote { color: var(--ink-subtle); font-style: italic; }
   .tiptap-content .hljs-keyword,
   .tiptap-content .hljs-selector-tag,
-  .tiptap-content .hljs-meta {
-    color: #6a3da8;
-  }
+  .tiptap-content .hljs-meta { color: #7c3aed; }
   .tiptap-content .hljs-string,
   .tiptap-content .hljs-attr,
-  .tiptap-content .hljs-regexp {
-    color: #2d6a2d;
-  }
+  .tiptap-content .hljs-regexp { color: #15803d; }
   .tiptap-content .hljs-number,
-  .tiptap-content .hljs-literal {
-    color: #b3591e;
-  }
-  .tiptap-content :is(.hljs-title, .hljs-name, .hljs-built_in) {
-    color: #1e5fb3;
-  }
+  .tiptap-content .hljs-literal { color: #b45309; }
+  .tiptap-content :is(.hljs-title, .hljs-name, .hljs-built_in) { color: #2563eb; }
   .tiptap-content .hljs-type,
-  .tiptap-content .hljs-symbol {
-    color: #b3261e;
-  }
+  .tiptap-content .hljs-symbol { color: #dc2626; }
   .dark .tiptap-content .hljs-keyword,
   .dark .tiptap-content .hljs-selector-tag,
-  .dark .tiptap-content .hljs-meta {
-    color: #c9a8e8;
-  }
+  .dark .tiptap-content .hljs-meta { color: #c4b5fd; }
   .dark .tiptap-content .hljs-string,
   .dark .tiptap-content .hljs-attr,
-  .dark .tiptap-content .hljs-regexp {
-    color: #8fcf8f;
-  }
+  .dark .tiptap-content .hljs-regexp { color: #86efac; }
   .dark .tiptap-content .hljs-number,
-  .dark .tiptap-content .hljs-literal {
-    color: #e0aa78;
-  }
-  .dark .tiptap-content :is(.hljs-title, .hljs-name, .hljs-built_in) {
-    color: #87b4e8;
-  }
+  .dark .tiptap-content .hljs-literal { color: #fcd34d; }
+  .dark .tiptap-content :is(.hljs-title, .hljs-name, .hljs-built_in) { color: #93c5fd; }
   .dark .tiptap-content .hljs-type,
-  .dark .tiptap-content .hljs-symbol {
-    color: #e89898;
-  }
+  .dark .tiptap-content .hljs-symbol { color: #fca5a5; }
 }
