@@ -16,11 +16,9 @@ import {
   downloadMyLicenceFile,
   fetchMyLicence,
   fetchMyLicenceMembers,
-  regenerateMyLicenceKey,
   removeMyLicenceMember,
 } from '@/api/me-licences';
 import { triggerBlobDownload } from '@/api/product-files';
-import { RegenerateKeyDialog } from '@/components/licences/RegenerateKeyDialog';
 import { LicenceKeys } from '@/components/licences/LicenceKeys';
 import { LicenceLabelEditor } from '@/components/licences/LicenceLabelEditor';
 import { PortalLicenceSessions } from '@/components/licences/PortalLicenceSessions';
@@ -195,41 +193,6 @@ function PortalLicenceDetail() {
           </CardContent>
         </Card>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Licence key</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-ink-muted">
-            {lic.hasKey
-              ? 'The licence key is shown only once at creation. Only the licence owner can perform actions on it.'
-              : 'This licence has no key yet. Generate one to use the licence. The key is shown only once. Only the licence owner can perform actions on it.'}
-          </p>
-          {isOwner && lic.status === 'active' && (
-            <RegenerateKeyDialog
-              licenceId={lic.id}
-              regenerate={(id) => regenerateMyLicenceKey(id, { reason: null })}
-              invalidateQueryKey={['portal', 'licences', 'detail', lic.id]}
-              hasKey={lic.hasKey}
-            />
-          )}
-          {isOwner && lic.status !== 'active' && (
-            <span title={`The key cannot be ${lic.hasKey ? 'regenerated' : 'generated'} for a ${lic.status} licence.`} className="inline-block">
-              <Button variant="outline" disabled className="pointer-events-none">
-                {lic.hasKey ? 'Regenerate key' : 'Generate key'}
-              </Button>
-            </span>
-          )}
-          {!isOwner && (
-            <span title={`Only the owner can ${lic.hasKey ? 'regenerate' : 'generate'} the key.`} className="inline-block">
-              <Button variant="outline" disabled className="pointer-events-none">
-                {lic.hasKey ? 'Regenerate key' : 'Generate key'}
-              </Button>
-            </span>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

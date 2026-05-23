@@ -112,26 +112,20 @@ describe('PortalLicenceDetailRoute', () => {
     expect(screen.getAllByText(/active/i).length).toBeGreaterThan(0);
   });
 
-  it('shows the regenerate-key copy when the licence already has a key', async () => {
+  it('renders the Licence keys card when the licence has a key', async () => {
     vi.mocked(fetchMyLicence).mockResolvedValue(licence({ hasKey: true }));
     vi.mocked(fetchMyLicenceMembers).mockResolvedValue([]);
     renderDetail();
     await screen.findByRole('heading', { name: /acme-pro/i });
-    expect(
-      screen.getByText(/the licence key is shown only once at creation/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /regenerate key/i })).toBeInTheDocument();
+    expect(screen.getByText(/^licence keys$/i)).toBeInTheDocument();
   });
 
-  it('shows the generate-key copy when the licence has no key yet', async () => {
+  it('renders the Licence keys card when the licence has no key yet', async () => {
     vi.mocked(fetchMyLicence).mockResolvedValue(licence({ hasKey: false }));
     vi.mocked(fetchMyLicenceMembers).mockResolvedValue([]);
     renderDetail();
     await screen.findByRole('heading', { name: /acme-pro/i });
-    expect(
-      screen.getByText(/this licence has no key yet/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^generate key$/i })).toBeInTheDocument();
+    expect(screen.getByText(/^licence keys$/i)).toBeInTheDocument();
   });
 
   it('renders the Members section with empty state for the owner', async () => {
@@ -160,7 +154,6 @@ describe('PortalLicenceDetailRoute', () => {
     renderDetail();
     await screen.findByRole('heading', { name: /acme-pro/i });
     expect(screen.queryByLabelText(/add member by email/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^generate key$|^regenerate key$/i })).toBeDisabled();
   });
 
   it('disables the Add member submit button until an email is typed', async () => {
