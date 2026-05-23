@@ -113,13 +113,6 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
         PageContent = product.PageContent is { } element ? JsonSerializer.Serialize(element) : null,
     };
 
-    private static JsonElement? ParsePageContent(string? json)
-    {
-        if (string.IsNullOrEmpty(json)) return null;
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.Clone();
-    }
-
     private sealed record ProductRow(
         Guid Id,
         string Slug,
@@ -151,6 +144,13 @@ public sealed class ProductRepository(NpgsqlDataSource dataSource) : IProductRep
                 ImageContentType,
                 TimestampConversion.ToUtcOffset(CreatedAt),
                 ParsePageContent(PageContent));
+        }
+
+        private static JsonElement? ParsePageContent(string? json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.Clone();
         }
     }
 }
