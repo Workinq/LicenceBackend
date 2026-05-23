@@ -24,6 +24,9 @@ vi.mock('../api/product-files', () => ({
   downloadProductFileRevision: vi.fn(),
   triggerBlobDownload: vi.fn(),
 }));
+vi.mock('../api/licences', () => ({
+  fetchLicences: vi.fn(),
+}));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import {
@@ -38,6 +41,7 @@ import {
   downloadProductFileRevision,
   triggerBlobDownload,
 } from '../api/product-files';
+import { fetchLicences } from '../api/licences';
 import { ApiError } from '../auth/api-client';
 import { toast } from 'sonner';
 import { Route as ProductDetailRoute } from '../routes/admin/products_.$id';
@@ -77,8 +81,13 @@ function renderDetail() {
     path: '/admin/products/$id/page',
     component: () => null,
   });
+  const licenceRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/admin/licences/$id',
+    component: () => null,
+  });
   const router = createRouter({
-    routeTree: rootRoute.addChildren([detailRoute, listRoute, pageRoute]),
+    routeTree: rootRoute.addChildren([detailRoute, listRoute, pageRoute, licenceRoute]),
     history: createMemoryHistory({ initialEntries: ['/admin/products/p1'] }),
   });
   render(
@@ -102,6 +111,8 @@ beforeEach(() => {
   vi.mocked(toast.success).mockReset();
   vi.mocked(toast.error).mockReset();
   vi.mocked(fetchProductFiles).mockResolvedValue([]);
+  vi.mocked(fetchLicences).mockReset();
+  vi.mocked(fetchLicences).mockResolvedValue({ items: [], total: 0, limit: 25, offset: 0 });
   process.on('unhandledRejection', swallow);
   if (typeof window !== 'undefined') {
     window.addEventListener('unhandledrejection', swallow);
@@ -175,7 +186,7 @@ describe('AdminProductDetailRoute', () => {
     renderDetail();
     await screen.findByText('Acme Pro');
 
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"][accept^="image/"]') as HTMLInputElement;
     const file = new File(['x'], 'cover.png', { type: 'image/png' });
     await userEvent.upload(input, file);
 
@@ -188,7 +199,7 @@ describe('AdminProductDetailRoute', () => {
     renderDetail();
     await screen.findByText('Acme Pro');
 
-    await userEvent.click(screen.getByRole('button', { name: /remove image/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /remove image/i }));
     expect(vi.mocked(deleteProductImage)).toHaveBeenCalledWith('p1');
   });
 
@@ -207,10 +218,8 @@ describe('AdminProductDetailRoute', () => {
     });
     renderDetail();
     await screen.findByText('Acme Pro');
-
     await screen.findByText(/no revisions uploaded yet/i);
-    const inputs = document.querySelectorAll('input[type="file"]');
-    const fileInput = inputs[inputs.length - 1] as HTMLInputElement;
+    const fileInput = document.querySelector('input[type="file"]:not([accept^="image/"])') as HTMLInputElement;
     const file = new File(['x'], 'build.zip', { type: 'application/zip' });
     await userEvent.upload(fileInput, file);
 
@@ -247,10 +256,8 @@ describe('AdminProductDetailRoute', () => {
     vi.mocked(uploadProductFile).mockRejectedValue(new ApiError(413, { detail: 'Too big.' }));
     renderDetail();
     await screen.findByText('Acme Pro');
-
     await screen.findByText(/no revisions uploaded yet/i);
-    const inputs = document.querySelectorAll('input[type="file"]');
-    const fileInput = inputs[inputs.length - 1] as HTMLInputElement;
+    const fileInput = document.querySelector('input[type="file"]:not([accept^="image/"])') as HTMLInputElement;
     const file = new File(['x'], 'build.zip', { type: 'application/zip' });
     await userEvent.upload(fileInput, file);
 
@@ -273,8 +280,48 @@ describe('AdminProductDetailRoute', () => {
     vi.mocked(fetchProduct).mockResolvedValue(makeProduct());
     renderDetail();
     await screen.findByText('Acme Pro');
-    const link = screen.getByRole('link', { name: /edit product page/i });
+    const link = await screen.findByRole('link', { name: /edit product page/i });
     expect(link.getAttribute('href')).toBe('/admin/products/p1/page');
+  });
+
+  it('lists licences for the product and links each row to the licence detail page', async () => {
+    vi.mocked(fetchProduct).mockResolvedValue(makeProduct());
+    vi.mocked(fetchLicences).mockResolvedValue({
+      items: [
+        {
+          id: 'lic-1',
+          productId: 'p1',
+          productSlug: 'acme-pro',
+          userId: 'u1',
+          userEmail: 'alice@example.com',
+          status: 'active',
+          expiresAt: null,
+          notes: null,
+          hwidBound: true,
+          hasKey: true,
+          ipAllowlist: null,
+          label: null,
+          createdAt: '2026-04-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+      limit: 25,
+      offset: 0,
+    });
+    renderDetail();
+    await screen.findByText('Acme Pro');
+
+    await screen.findByText('alice@example.com');
+    const viewLink = screen.getByRole('link', { name: /^view$/i });
+    expect(vi.mocked(fetchLicences)).toHaveBeenCalledWith({ productId: 'p1', limit: 25, offset: 0 });
+    expect(viewLink.getAttribute('href')).toBe('/admin/licences/lic-1');
+  });
+
+  it('shows an empty-state message when the product has no licences', async () => {
+    vi.mocked(fetchProduct).mockResolvedValue(makeProduct());
+    renderDetail();
+    await screen.findByText('Acme Pro');
+    expect(await screen.findByText(/no licences for this product/i)).toBeInTheDocument();
   });
 
 });

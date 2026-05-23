@@ -18,6 +18,9 @@ vi.mock('../api/products', () => ({
   uploadProductImage: vi.fn(),
   deleteProductImage: vi.fn(),
 }));
+vi.mock('../api/licences', () => ({
+  fetchLicences: vi.fn().mockResolvedValue({ items: [], total: 0, limit: 1, offset: 0 }),
+}));
 import { fetchProducts } from '../api/products';
 import { Route as ProductsRoute } from '../routes/admin/products';
 
@@ -86,7 +89,7 @@ beforeEach(() => {
 });
 
 describe('ProductsPage', () => {
-  it('renders a card per product with its name, slug, and visibility', async () => {
+  it('renders a row per product with its name, slug, and visibility', async () => {
     vi.mocked(fetchProducts).mockResolvedValue({
       items: [
         product(),
@@ -101,8 +104,8 @@ describe('ProductsPage', () => {
     expect(screen.getByText('acme-pro')).toBeInTheDocument();
     expect(screen.getByText('Acme Lite')).toBeInTheDocument();
     expect(screen.getByText('acme-lite')).toBeInTheDocument();
-    expect(screen.getByText('Public')).toBeInTheDocument();
-    expect(screen.getByText('Private')).toBeInTheDocument();
+    expect(screen.getByText('public')).toBeInTheDocument();
+    expect(screen.getByText('private')).toBeInTheDocument();
   });
 
   it('has a New product link pointing at /products/new', async () => {
@@ -129,7 +132,7 @@ describe('ProductsPage', () => {
     expect(await screen.findByText('Acme Pro')).toBeInTheDocument();
     expect(screen.queryByText('Acme Lite')).not.toBeInTheDocument();
     const calls = vi.mocked(fetchProducts).mock.calls;
-    expect(calls.at(-1)?.[0]).toEqual({ q: 'pro', limit: 6, offset: 0 });
+    expect(calls.at(-1)?.[0]).toEqual({ q: 'pro', limit: 25, offset: 0 });
   });
 
   it('shows an empty-state message when there are no products', async () => {

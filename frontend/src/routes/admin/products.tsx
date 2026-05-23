@@ -18,6 +18,7 @@ import {
 import { ImageOff, LayoutGrid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchProducts } from '@/api/products';
+import { fetchLicences } from '@/api/licences';
 
 const searchSchema = z.object({
   view: z.enum(['cards', 'table']).optional(),
@@ -39,14 +40,10 @@ function formatPrice(amount: number, currency: string): string {
   }
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString();
-}
-
 function ProductsPage() {
   const navigate = Route.useNavigate();
   const { view: viewParam } = Route.useSearch();
-  const view = viewParam ?? 'cards';
+  const view = viewParam ?? 'table';
   const pageSize = view === 'cards' ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
 
   const [search, setSearch] = useState('');
@@ -67,7 +64,7 @@ function ProductsPage() {
   const setView = (next: 'cards' | 'table') => {
     if (next === view) return;
     setOffset(0);
-    void navigate({ search: { view: next === 'cards' ? undefined : next } });
+    void navigate({ search: { view: next === 'table' ? undefined : next } });
   };
 
   const data = query.data;
@@ -258,16 +255,16 @@ function CardsView({ isPending, items, total, searching }: ViewProps) {
 
 function TableView({ isPending, items, total, searching }: ViewProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
-      <Table>
+    <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+      <Table className="text-[12.5px]">
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-14"></TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Slug</TableHead>
-            <TableHead>Visibility</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Created</TableHead>
+          <TableRow className="border-border">
+            <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Slug</TableHead>
+            <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Display name</TableHead>
+            <TableHead className="h-9 w-[110px] px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Visibility</TableHead>
+            <TableHead className="h-9 w-[100px] px-3 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Price</TableHead>
+            <TableHead className="h-9 w-[90px] px-3 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Licences</TableHead>
+            <TableHead className="h-9 w-[90px] px-3 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">MRR</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -280,45 +277,59 @@ function TableView({ isPending, items, total, searching }: ViewProps) {
           )}
           {!isPending && total === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-sm text-ink-muted">
+              <TableCell colSpan={6} className="text-ink-muted">
                 {searching ? 'No products match your search.' : 'No products yet. Create one to get started.'}
               </TableCell>
             </TableRow>
           )}
-          {!isPending && items.map((p) => (
-            <TableRow key={p.id}>
-              <TableCell>
-                {p.imageUrl ? (
-                  <img src={`/api${p.imageUrl}`} alt="" className="size-10 rounded object-cover" />
-                ) : (
-                  <div className="flex size-10 items-center justify-center rounded bg-surface-sunken text-ink-subtle">
-                    <ImageOff className="size-4" aria-hidden="true" />
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>
-                <Link
-                  to="/admin/products/$id"
-                  params={{ id: p.id }}
-                  className="font-medium text-ink underline-offset-2 hover:underline"
-                >
-                  {p.displayName}
-                </Link>
-              </TableCell>
-              <TableCell className="font-mono text-xs text-ink-muted">{p.slug}</TableCell>
-              <TableCell>
-                <Badge variant={p.isPublic ? 'default' : 'secondary'}>
-                  {p.isPublic ? 'Public' : 'Private'}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-ink-muted">
-                {p.price != null ? formatPrice(p.price, p.currency) : '-'}
-              </TableCell>
-              <TableCell className="text-ink-muted">{formatDate(p.createdAt)}</TableCell>
-            </TableRow>
-          ))}
+          {!isPending && items.map((p) => <ProductTableRow key={p.id} product={p} />)}
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function ProductTableRow({ product }: { product: ProductRow }) {
+  const licenceCount = useQuery({
+    queryKey: ['product-licence-count', product.id],
+    queryFn: () => fetchLicences({ productId: product.id, limit: 1, offset: 0 }),
+    staleTime: 60_000,
+  });
+
+  return (
+    <TableRow className="border-border hover:bg-surface-sunken">
+      <TableCell className="px-3 py-2.5">
+        <Link
+          to="/admin/products/$id"
+          params={{ id: product.id }}
+          className="font-mono text-[11.5px] text-foreground hover:underline"
+        >
+          {product.slug}
+        </Link>
+      </TableCell>
+      <TableCell className="px-3 py-2.5">{product.displayName}</TableCell>
+      <TableCell className="px-3 py-2.5">
+        <Badge
+          variant={product.isPublic ? 'default' : 'secondary'}
+          className={cn(
+            'h-5 rounded-[3px] px-1.5 text-[10.5px] font-medium',
+            product.isPublic
+              ? 'border border-status-active-fg/30 bg-status-active-bg text-status-active-fg'
+              : 'bg-surface-sunken text-ink-muted',
+          )}
+        >
+          {product.isPublic ? 'public' : 'private'}
+        </Badge>
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-ink-muted">
+        {product.price != null ? formatPrice(product.price, product.currency) : '-'}
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-foreground">
+        {licenceCount.data?.total ?? '-'}
+      </TableCell>
+      <TableCell className="px-3 py-2.5 text-right font-mono font-medium tabular-nums text-foreground">
+        -
+      </TableCell>
+    </TableRow>
   );
 }
