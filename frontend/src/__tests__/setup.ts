@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom';
 
 class ResizeObserverMock {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe() { return undefined; }
+  unobserve() { return undefined; }
+  disconnect() { return undefined; }
 }
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
 globalThis.ResizeObserver = globalThis.ResizeObserver ?? (ResizeObserverMock as typeof ResizeObserver);
@@ -11,9 +11,9 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
-if (typeof window !== 'undefined' && typeof window.localStorage?.clear !== 'function') {
+if (typeof globalThis.window !== 'undefined' && typeof globalThis.window.localStorage?.clear !== 'function') {
   const store = new Map<string, string>();
-  Object.defineProperty(window, 'localStorage', {
+  Object.defineProperty(globalThis.window, 'localStorage', {
     configurable: true,
     value: {
       getItem: (k: string) => store.get(k) ?? null,
