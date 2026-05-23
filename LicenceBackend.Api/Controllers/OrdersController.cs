@@ -174,7 +174,7 @@ public sealed class OrdersController(
         return Ok(response);
     }
 
-    private IActionResult InvoiceNotFound(Guid id) => Problem(
+    private ObjectResult InvoiceNotFound(Guid id) => Problem(
         statusCode: StatusCodes.Status404NotFound,
         title: ProblemTitles.InvoiceNotFound,
         detail: $"No invoice for order '{id}'.");
@@ -230,7 +230,7 @@ public sealed class OrdersController(
         }).ToList();
     }
 
-    private static IReadOnlyList<CurrencyTotal> ComputeTotals(IReadOnlyList<OrderItem> items)
+    private static List<CurrencyTotal> ComputeTotals(IReadOnlyList<OrderItem> items)
     {
         return items
             .GroupBy(i => i.Currency)

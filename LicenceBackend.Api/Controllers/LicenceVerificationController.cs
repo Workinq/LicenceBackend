@@ -306,7 +306,7 @@ public sealed class LicenceVerificationController(
         return FormattableString.Invariant($"{address}/{prefix}");
     }
 
-    private IActionResult InvalidLicence()
+    private ObjectResult InvalidLicence()
     {
         return Problem(
             statusCode: StatusCodes.Status400BadRequest,

@@ -88,7 +88,7 @@ public sealed class LicenceSeatsController(
         return NoContent();
     }
 
-    private IActionResult SeatNotFound(Guid seatId) =>
+    private ObjectResult SeatNotFound(Guid seatId) =>
         Problem(
             statusCode: StatusCodes.Status404NotFound,
             title: ProblemTitles.SeatNotFound,
@@ -125,7 +125,7 @@ public sealed class LicenceSeatsController(
         return Guid.TryParse(subClaim, out userId);
     }
 
-    private IActionResult LicenceNotFound(Guid id) =>
+    private ObjectResult LicenceNotFound(Guid id) =>
         Problem(
             statusCode: StatusCodes.Status404NotFound,
             title: ProblemTitles.LicenceNotFound,

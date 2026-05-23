@@ -187,19 +187,19 @@ public sealed class LicenceCheckoutController(
         return new SignedLicenceCheckoutResponse(signer.Sign(claims));
     }
 
-    private IActionResult InvalidLicence() =>
+    private ObjectResult InvalidLicence() =>
         Problem(
             statusCode: StatusCodes.Status400BadRequest,
             title: ProblemTitles.InvalidLicence,
             detail: "The licence key is not valid for this request.");
 
-    private IActionResult SeatGone() =>
+    private ObjectResult SeatGone() =>
         Problem(
             statusCode: StatusCodes.Status410Gone,
             title: ProblemTitles.SeatGone,
             detail: "Seat does not exist or has expired. Re-checkout to obtain a new seat.");
 
-    private IActionResult NoSeatsAvailable(DeniedNoSeatsResult detail) =>
+    private ObjectResult NoSeatsAvailable(DeniedNoSeatsResult detail) =>
         StatusCode(StatusCodes.Status409Conflict, new NoSeatsAvailableResponse(
             ProblemTitles.NoSeatsAvailable,
             detail.MaxSeats,

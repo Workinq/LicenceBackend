@@ -739,7 +739,7 @@ public sealed class UsersController(
         }).ToList();
     }
 
-    private IActionResult LicenceNotFound(Guid id) => Problem(
+    private ObjectResult LicenceNotFound(Guid id) => Problem(
         statusCode: StatusCodes.Status404NotFound,
         title: ProblemTitles.LicenceNotFound,
         detail: $"No licence with id '{id}'."

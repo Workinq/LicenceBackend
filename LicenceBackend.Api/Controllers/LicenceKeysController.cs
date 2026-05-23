@@ -259,13 +259,13 @@ public sealed class LicenceKeysController(
         return Guid.TryParse(subClaim, out userId);
     }
 
-    private IActionResult LicenceNotFound(Guid id) =>
+    private ObjectResult LicenceNotFound(Guid id) =>
         Problem(
             statusCode: StatusCodes.Status404NotFound,
             title: ProblemTitles.LicenceNotFound,
             detail: $"No licence with id '{id}'.");
 
-    private IActionResult KeyNotFound(Guid keyId) =>
+    private ObjectResult KeyNotFound(Guid keyId) =>
         Problem(
             statusCode: StatusCodes.Status404NotFound,
             title: ProblemTitles.LicenceKeyNotFound,
