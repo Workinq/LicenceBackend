@@ -111,6 +111,40 @@ public sealed class LicenceKeyRegenerationTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task Regenerate_revokes_all_active_keys_and_only_the_new_one_verifies()
+    {
+        Skip.If(Factory is null, "Fixture was not initialised.");
+        var product = await CreateProductAsync("regen-multi", "Regen Multi");
+        var created = await CreateLicenceAsync(product.Id);
+
+        var extraResp = await AuthedClient.PostAsJsonAsync($"/licences/{created.Id}/keys", new { label = "extra", reason = (string?)null });
+        extraResp.EnsureSuccessStatusCode();
+        var extra = await extraResp.Content.ReadFromJsonAsync<MintedKeyPayload>();
+        Assert.NotNull(extra);
+
+        var regen = await AuthedClient.PostAsJsonAsync($"/licences/{created.Id}/regenerate-key", new { reason = "rotation" });
+        Assert.Equal(HttpStatusCode.OK, regen.StatusCode);
+        var newBody = await regen.Content.ReadFromJsonAsync<LicenceKeyRegeneratedPayload>();
+        Assert.NotNull(newBody);
+
+        foreach (var old in new[] { created.LicenceKey, extra!.LicenceKey })
+        {
+            var resp = await UnauthedClient.PostAsJsonAsync(
+                "/licences/verify",
+                new { licenceKey = old, productId = product.Id, clientNonce = GenerateClientNonce() });
+            Assert.NotEqual(HttpStatusCode.OK, resp.StatusCode);
+        }
+
+        var ok = await UnauthedClient.PostAsJsonAsync(
+            "/licences/verify",
+            new { licenceKey = newBody!.LicenceKey, productId = product.Id, clientNonce = GenerateClientNonce() });
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+    }
+
+    private sealed record MintedKeyPayload(KeyDto Key, string LicenceKey);
+    private sealed record KeyDto(Guid Id, Guid LicenceId, string KeyPrefix, string? Label, Guid? CreatedByUserId, DateTimeOffset CreatedAt, DateTimeOffset? LastSeenAt, DateTimeOffset? RevokedAt, Guid? RevokedByUserId, string? RevokeReason);
+
+    [SkippableFact]
     public async Task Regenerate_as_non_admin_is_forbidden()
     {
         Skip.If(Factory is null, "Fixture was not initialised.");
