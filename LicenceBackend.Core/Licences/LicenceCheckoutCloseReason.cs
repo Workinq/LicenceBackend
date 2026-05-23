@@ -5,5 +5,6 @@ public enum LicenceCheckoutCloseReason
     Checkin,
     Expired,
     AdminRevoked,
-    OwnerRevoked
+    OwnerRevoked,
+    KeyRevoked
 }

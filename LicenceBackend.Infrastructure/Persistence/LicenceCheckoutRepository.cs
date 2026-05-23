@@ -23,6 +23,7 @@ public sealed class LicenceCheckoutRepository(
         byte[]? hwidHmac,
         short? hwidHmacPepperVersion,
         string sourceIp,
+        Guid? issuedWithLicenceKeyId,
         TimeSpan leaseDuration,
         CancellationToken cancellationToken)
     {
@@ -47,8 +48,8 @@ public sealed class LicenceCheckoutRepository(
         const string countSql = "SELECT COUNT(*) FROM licence_checkouts WHERE licence_id = @LicenceId;";
         const string oldestExpirySql = "SELECT MIN(expires_at) FROM licence_checkouts WHERE licence_id = @LicenceId;";
         const string insertSql = """
-                                  INSERT INTO licence_checkouts (id, licence_id, instance_id_hash, member_user_id, hwid_hmac, hwid_hmac_pepper_version, source_ip, issued_at, last_heartbeat_at, expires_at)
-                                  VALUES (@Id, @LicenceId, @Hash, @MemberUserId, @HwidHmac, @HwidHmacPepperVersion, @SourceIp::inet, @Now, @Now, @ExpiresAt);
+                                  INSERT INTO licence_checkouts (id, licence_id, instance_id_hash, member_user_id, hwid_hmac, hwid_hmac_pepper_version, source_ip, issued_with_licence_key_id, issued_at, last_heartbeat_at, expires_at)
+                                  VALUES (@Id, @LicenceId, @Hash, @MemberUserId, @HwidHmac, @HwidHmacPepperVersion, @SourceIp::inet, @IssuedWithLicenceKeyId, @Now, @Now, @ExpiresAt);
                                   """;
         const string advisoryLockSql = "SELECT pg_advisory_xact_lock(hashtextextended(@Key, 0));";
 
@@ -128,6 +129,7 @@ public sealed class LicenceCheckoutRepository(
                     HwidHmac = hwidHmac,
                     HwidHmacPepperVersion = hwidHmacPepperVersion,
                     SourceIp = sourceIp,
+                    IssuedWithLicenceKeyId = issuedWithLicenceKeyId,
                     Now = now,
                     ExpiresAt = expiresAt
                 },
@@ -217,6 +219,96 @@ public sealed class LicenceCheckoutRepository(
             actor: actorUserId,
             actorReason,
             cancellationToken);
+    }
+
+    public async Task<int> ForceRevokeByLicenceKeyAsync(
+        Guid licenceKeyId,
+        Guid actorUserId,
+        string? actorReason,
+        CancellationToken cancellationToken)
+    {
+        const string selectSql = $"""
+                                  SELECT {CheckoutColumns}
+                                  FROM licence_checkouts
+                                  WHERE issued_with_licence_key_id = @KeyId;
+                                  """;
+        const string deleteSql = "DELETE FROM licence_checkouts WHERE id = @Id;";
+        const string archiveSql = """
+                                   INSERT INTO licence_checkout_history
+                                       (id, licence_id, checkout_id, instance_id_hash, member_user_id, hwid_hmac, source_ip, issued_at, closed_at, close_reason)
+                                   VALUES (@Id, @LicenceId, @CheckoutId, @InstanceIdHash, @MemberUserId, @HwidHmac, @SourceIp::inet, @IssuedAt, @ClosedAt, @CloseReason);
+                                   """;
+        const string countSql = "SELECT COUNT(*) FROM licence_checkouts WHERE licence_id = @LicenceId;";
+        const string maxSeatsSql = "SELECT max_seats FROM licences WHERE id = @LicenceId;";
+
+        var now = time.GetUtcNow();
+        var reasonText = LicenceCheckoutCloseReasonNames.KeyRevoked;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var rows = (await connection.QueryAsync<CheckoutRow>(
+                           new CommandDefinition(selectSql, new { KeyId = licenceKeyId }, transaction, cancellationToken: cancellationToken))).ToList();
+
+            foreach (var row in rows)
+            {
+                await connection.ExecuteAsync(new CommandDefinition(
+                    deleteSql, new { Id = row.Id }, transaction, cancellationToken: cancellationToken));
+
+                await connection.ExecuteAsync(new CommandDefinition(
+                    archiveSql,
+                    new
+                    {
+                        Id = Guid.NewGuid(),
+                        row.LicenceId,
+                        CheckoutId = row.Id,
+                        row.InstanceIdHash,
+                        row.MemberUserId,
+                        row.HwidHmac,
+                        row.SourceIp,
+                        IssuedAt = TimestampConversion.ToUtcOffset(row.IssuedAt),
+                        ClosedAt = now,
+                        CloseReason = reasonText
+                    },
+                    transaction,
+                    cancellationToken: cancellationToken));
+
+                var seatsAfter = await connection.QuerySingleAsync<int>(
+                                     new CommandDefinition(countSql, new { row.LicenceId }, transaction, cancellationToken: cancellationToken));
+                var maxSeats = await connection.QuerySingleAsync<int>(
+                                   new CommandDefinition(maxSeatsSql, new { row.LicenceId }, transaction, cancellationToken: cancellationToken));
+
+                var evt = AuditEvent.Create(
+                    AuditEventTypes.LicenceCheckoutClosed,
+                    AuditSubjectTypes.Licence,
+                    row.LicenceId,
+                    AuditActorTypes.Admin,
+                    actorUserId,
+                    actorReason,
+                    new LicenceCheckoutClosedPayload(
+                        row.Id,
+                        InstanceHashPrefix(row.InstanceIdHash),
+                        row.MemberUserId,
+                        row.HwidHmac is null ? null : Convert.ToBase64String(row.HwidHmac),
+                        row.SourceIp,
+                        reasonText,
+                        seatsAfter,
+                        maxSeats
+                    ),
+                    now
+                );
+                await auditEvents.RecordInTxAsync(connection, transaction, evt, cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+            return rows.Count;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private async Task<bool> ArchiveAndDeleteAsync(

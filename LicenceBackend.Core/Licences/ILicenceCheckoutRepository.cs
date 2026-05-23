@@ -33,6 +33,7 @@ public interface ILicenceCheckoutRepository
         byte[]? hwidHmac,
         short? hwidHmacPepperVersion,
         string sourceIp,
+        Guid? issuedWithLicenceKeyId,
         TimeSpan leaseDuration,
         CancellationToken cancellationToken
     );
@@ -51,6 +52,13 @@ public interface ILicenceCheckoutRepository
     Task<bool> ForceRevokeAsync(
         Guid checkoutId,
         LicenceCheckoutCloseReason reason,
+        Guid actorUserId,
+        string? actorReason,
+        CancellationToken cancellationToken
+    );
+
+    Task<int> ForceRevokeByLicenceKeyAsync(
+        Guid licenceKeyId,
         Guid actorUserId,
         string? actorReason,
         CancellationToken cancellationToken

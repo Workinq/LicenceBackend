@@ -113,6 +113,7 @@ public sealed class LicenceCheckoutController(
             hwidHmac: hwidPepperedHmac?.Hmac,
             hwidHmacPepperVersion: hwidPepperedHmac?.PepperVersion,
             sourceIp: remote.ToString(),
+            issuedWithLicenceKeyId: null,
             leaseDuration: TimeSpan.FromSeconds(_options.LeaseSeconds),
             cancellationToken);
 
