@@ -20,6 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\LicenceBackend.Api\LicenceBackend.Api.csproj" />
         <ProjectReference Include="..\LicenceBackend.Core\LicenceBackend.Core.csproj" />
         <ProjectReference Include="..\LicenceBackend.Infrastructure\LicenceBackend.Infrastructure.csproj" />
     </ItemGroup>
