@@ -9,6 +9,8 @@ namespace LicenceBackend.Tests.Api;
 
 public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
 {
+    private static readonly string[] IpAllowlistRestrictedCidrs = ["192.168.0.0/24"];
+
     [SkippableFact]
     public async Task Checkout_returns_signed_payload_on_success()
     {
@@ -142,7 +144,7 @@ public sealed class LicenceCheckoutEndpointTests : IntegrationTestBase
         var (licenceKey, licenceId, productId, _) = await CreateLicenceAsync();
         var ipResponse = await AuthedClient.PutAsJsonAsync($"/licences/{licenceId}/ip-allowlist", new
         {
-            cidrs = new[] { "192.168.0.0/24" },
+            cidrs = IpAllowlistRestrictedCidrs,
             reason = "test"
         });
         ipResponse.EnsureSuccessStatusCode();

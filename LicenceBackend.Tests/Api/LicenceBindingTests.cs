@@ -6,6 +6,11 @@ namespace LicenceBackend.Tests.Api;
 
 public sealed class LicenceBindingTests : IntegrationTestBase
 {
+    private static readonly string[] LoopbackV4Cidr = ["127.0.0.1/32"];
+    private static readonly string[] LoopbackV6Cidr = ["::1/128"];
+    private static readonly string[] PrivateRangeCidr = ["10.0.0.0/24"];
+    private static readonly string[] InvalidCidr = ["not-a-cidr"];
+
     [SkippableFact]
     public async Task First_use_pin_sets_hwid_and_records_binding_history()
     {
@@ -134,7 +139,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var set = await AuthedClient.PutAsJsonAsync(
                       $"/licences/{licenceId}/ip-allowlist",
-                      new { cidrs = new[] { "127.0.0.1/32" } });
+                      new { cidrs = LoopbackV4Cidr });
         Assert.Equal(HttpStatusCode.NoContent, set.StatusCode);
 
         var ok = await ClientFromIp("127.0.0.1").PostAsJsonAsync(
@@ -152,7 +157,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var set = await AuthedClient.PutAsJsonAsync(
                       $"/licences/{licenceId}/ip-allowlist",
-                      new { cidrs = new[] { "10.0.0.0/24" } });
+                      new { cidrs = PrivateRangeCidr });
         Assert.Equal(HttpStatusCode.NoContent, set.StatusCode);
 
         var deny = await ClientFromIp("203.0.113.9").PostAsJsonAsync(
@@ -170,7 +175,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var set = await AuthedClient.PutAsJsonAsync(
                       $"/licences/{licenceId}/ip-allowlist",
-                      new { cidrs = new[] { "::1/128" } });
+                      new { cidrs = LoopbackV6Cidr });
         Assert.Equal(HttpStatusCode.NoContent, set.StatusCode);
 
         var ok = await ClientFromIp("::1").PostAsJsonAsync(
@@ -188,7 +193,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var response = await AuthedClient.PutAsJsonAsync(
                            $"/licences/{licenceId}/ip-allowlist",
-                           new { cidrs = new[] { "not-a-cidr" } });
+                           new { cidrs = InvalidCidr });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -300,7 +305,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var createResponse = await AuthedClient.PostAsJsonAsync(
                                  "/licences",
-                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = new[] { "10.0.0.0/24" } });
+                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = PrivateRangeCidr });
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var licence = await createResponse.Content.ReadFromJsonAsync<LicencePayload>();
         Assert.NotNull(licence);
@@ -327,7 +332,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         var createResponse = await AuthedClient.PostAsJsonAsync(
                                  "/licences",
-                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = new[] { "not-a-cidr" } });
+                                 new { productId = product.Id, userId = AdminUserId, ipAllowlist = InvalidCidr });
         Assert.Equal(HttpStatusCode.BadRequest, createResponse.StatusCode);
         var body = await createResponse.Content.ReadAsStringAsync();
         Assert.Contains("invalid_ip_allowlist", body);
@@ -387,7 +392,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         await AuthedClient.PutAsJsonAsync(
             $"/licences/{licenceId}/ip-allowlist",
-            new { cidrs = new[] { "10.0.0.0/24" } });
+            new { cidrs = PrivateRangeCidr });
 
         var clear = await AuthedClient.PutAsJsonAsync(
                         $"/licences/{licenceId}/ip-allowlist",
@@ -399,8 +404,6 @@ public sealed class LicenceBindingTests : IntegrationTestBase
                      new { licenceKey, productId, clientNonce = GenerateClientNonce() });
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
     }
-
-    private static readonly string[] Value = ["127.0.0.1/32"];
 
     [SkippableFact]
     public async Task Binding_history_paginates_newest_first()
@@ -419,7 +422,7 @@ public sealed class LicenceBindingTests : IntegrationTestBase
 
         await AuthedClient.PutAsJsonAsync(
             $"/licences/{licenceId}/ip-allowlist",
-            new { cidrs = Value });
+            new { cidrs = LoopbackV4Cidr });
 
         var response = await AuthedClient.GetAsync($"/licences/{licenceId}/binding-history");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

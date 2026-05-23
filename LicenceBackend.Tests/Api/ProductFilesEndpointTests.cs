@@ -6,6 +6,9 @@ namespace LicenceBackend.Tests.Api;
 
 public sealed class ProductFilesEndpointTests : IntegrationTestBase
 {
+    private static readonly int[] ExpectedDescendingVersions = [3, 2, 1];
+    private static readonly string[] ExpectedDescendingFileNames = ["c.bin", "b.bin", "a.bin"];
+
     [SkippableFact]
     public async Task Admin_upload_returns_201_with_version_1_metadata()
     {
@@ -64,8 +67,8 @@ public sealed class ProductFilesEndpointTests : IntegrationTestBase
         var list = await response.Content.ReadFromJsonAsync<IReadOnlyList<ProductFilePayload>>();
         Assert.NotNull(list);
         Assert.Equal(3, list.Count);
-        Assert.Equal(new[] { 3, 2, 1 }, list.Select(f => f.VersionNumber).ToArray());
-        Assert.Equal(new[] { "c.bin", "b.bin", "a.bin" }, list.Select(f => f.FileName).ToArray());
+        Assert.Equal(ExpectedDescendingVersions, list.Select(f => f.VersionNumber).ToArray());
+        Assert.Equal(ExpectedDescendingFileNames, list.Select(f => f.FileName).ToArray());
     }
 
     [SkippableFact]
