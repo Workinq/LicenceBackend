@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { useMemo, useState } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { History, Shield, UserCog } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChevronLeft, ChevronRight, History, Shield, UserCog } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -11,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,10 +18,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { StatusPill } from '@/components/StatusPill';
 import { ConfirmDestructive } from '@/components/ConfirmDestructive';
 import { AuditTimeline, type AuditEvent } from '@/components/AuditTimeline';
+import { KeyChip } from '@/components/dashboard/KeyChip';
 import { fetchUser, fetchUserLicences, updateUserStatus } from '@/api/users';
 import { fetchAuditEvents } from '@/api/audit-events';
 import { useAccessTokenStore } from '@/auth/access-token-store';
 import { ApiError } from '@/auth/api-client';
+import { cn } from '@/lib/utils';
+import { formatDate, formatRelative } from '@/lib/format';
 import type { AuditEventResponse } from '@/api/generated/api.schemas';
 
 export const Route = createFileRoute('/admin/users_/$id')({
@@ -32,14 +33,6 @@ export const Route = createFileRoute('/admin/users_/$id')({
 
 const LICENCE_PAGE = 10;
 const AUDIT_PAGE = 20;
-
-function formatDateTime(value: string | null): string {
-  return value ? new Date(value).toLocaleString() : 'Never';
-}
-
-function formatDate(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString() : '-';
-}
 
 function payloadString(payload: Record<string, unknown> | null, key: string): string {
   const v = payload?.[key];
@@ -75,6 +68,7 @@ function UserDetailPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
   const isSelf = useAccessTokenStore((state) => state.user?.id === id);
+  const navigate = useNavigate();
   const [actionError, setActionError] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState('');
   const [licenceOffset, setLicenceOffset] = useState(0);
@@ -86,6 +80,12 @@ function UserDetailPage() {
     queryKey: ['users', 'licences', id, licenceOffset],
     queryFn: () => fetchUserLicences(id, { limit: LICENCE_PAGE, offset: licenceOffset }),
     placeholderData: keepPreviousData,
+  });
+
+  const allLicencesQuery = useQuery({
+    queryKey: ['users', 'licences-all', id],
+    queryFn: () => fetchUserLicences(id, { limit: 1, offset: 0 }),
+    staleTime: 30_000,
   });
 
   const auditQuery = useQuery({
@@ -114,229 +114,351 @@ function UserDetailPage() {
     },
   });
 
-  if (userQuery.isPending) return <Skeleton className="h-64 w-full max-w-3xl" />;
+  const auditEvents = useMemo<AuditEvent[]>(
+    () =>
+      (auditQuery.data?.items ?? []).map((e) => {
+        const described = describeAuditEvent(e);
+        return {
+          id: e.id,
+          icon: iconFor(e.eventType),
+          title: described.title,
+          meta: described.meta,
+          timestamp: e.occurredAt,
+        };
+      }),
+    [auditQuery.data],
+  );
+
+  if (userQuery.isPending) return <Skeleton className="h-64 w-full" />;
   if (userQuery.isError || !userQuery.data) {
-    return <p className="text-sm text-status-revoked-fg">Failed to load this user.</p>;
+    return <p className="text-[12.5px] text-status-revoked-fg">Failed to load this user.</p>;
   }
   const user = userQuery.data;
 
-  const auditEvents: AuditEvent[] = (auditQuery.data?.items ?? []).map((e) => {
-    const described = describeAuditEvent(e);
-    return {
-      id: e.id,
-      icon: iconFor(e.eventType),
-      title: described.title,
-      meta: described.meta,
-      timestamp: e.occurredAt,
-    };
-  });
-
   const auditData = auditQuery.data;
   const licenceData = licencesQuery.data;
+  const totalLicences = allLicencesQuery.data?.total ?? licenceData?.total ?? 0;
+  const lastActivity = auditData?.items[0]?.occurredAt;
+
+  const initial = (user.displayName ?? user.email).charAt(0).toUpperCase();
+  const suspendButton =
+    user.status === 'active' ? (
+      isSelf ? (
+        <span title="You cannot suspend your own account." className="inline-block">
+          <Button variant="destructive" size="sm" disabled className="pointer-events-none">
+            Suspend
+          </Button>
+        </span>
+      ) : (
+        <ConfirmDestructive
+          trigger={
+            <Button variant="destructive" size="sm" disabled={mutation.isPending}>
+              Suspend
+            </Button>
+          }
+          title="Suspend user"
+          description={`This will block ${user.email} from logging in and revoke all of their refresh tokens.`}
+          confirmLabel="Suspend user"
+          onConfirm={() => { mutation.mutate({ status: 'suspended', reason: suspendReason.trim() || null }); }}
+        >
+          <div className="space-y-1">
+            <Label htmlFor="suspend-reason">Reason (optional)</Label>
+            <Textarea
+              id="suspend-reason"
+              rows={2}
+              value={suspendReason}
+              onChange={(e) => { setSuspendReason(e.target.value); }}
+            />
+          </div>
+        </ConfirmDestructive>
+      )
+    ) : (
+      <Button
+        size="sm"
+        disabled={mutation.isPending}
+        onClick={() => { mutation.mutate({ status: 'active', reason: null }); }}
+      >
+        Reactivate
+      </Button>
+    );
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex items-center gap-3">
-        <h1 className="font-display text-2xl font-semibold text-ink">{user.email}</h1>
-        <StatusPill status={user.status} />
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-[10rem_1fr] items-baseline gap-y-3 text-sm">
-            <dt className="text-ink-muted">ID</dt>
-            <dd className="font-mono text-xs text-ink">{user.id}</dd>
-            <dt className="text-ink-muted">Display name</dt>
-            <dd className="text-ink">{user.displayName ?? '-'}</dd>
-            <dt className="text-ink-muted">Role</dt>
-            <dd className="capitalize text-ink">{user.role}</dd>
-            <dt className="text-ink-muted">Status</dt>
-            <dd><StatusPill status={user.status} /></dd>
-            <dt className="text-ink-muted">Created</dt>
-            <dd className="text-ink">{formatDateTime(user.createdAt)}</dd>
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {actionError && (
-            <Alert variant="destructive">
-              <AlertDescription>{actionError}</AlertDescription>
-            </Alert>
-          )}
-          <div className="flex flex-wrap gap-3">
-            {user.status === 'active' ? (
-              isSelf ? (
-                <span title="You cannot suspend your own account." className="inline-block">
-                  <Button variant="destructive" disabled className="pointer-events-none">
-                    Suspend
-                  </Button>
-                </span>
-              ) : (
-                <ConfirmDestructive
-                  trigger={
-                    <Button variant="destructive" disabled={mutation.isPending}>
-                      Suspend
-                    </Button>
-                  }
-                  title="Suspend user"
-                  description={`This will block ${user.email} from logging in and revoke all of their refresh tokens.`}
-                  confirmLabel="Suspend user"
-                  onConfirm={() => { mutation.mutate({ status: 'suspended', reason: suspendReason.trim() || null }); }}
-                >
-                  <div className="space-y-1">
-                    <Label htmlFor="suspend-reason">Reason (optional)</Label>
-                    <Textarea
-                      id="suspend-reason"
-                      rows={2}
-                      value={suspendReason}
-                      onChange={(e) => { setSuspendReason(e.target.value); }}
-                    />
-                  </div>
-                </ConfirmDestructive>
-              )
-            ) : (
-              <Button
-                disabled={mutation.isPending}
-                onClick={() => { mutation.mutate({ status: 'active', reason: null }); }}
-              >
-                Reactivate
-              </Button>
-            )}
+    <div className="space-y-5">
+      <header className="space-y-1.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface-sunken font-mono text-[14px] font-semibold text-foreground">
+            {initial}
+          </span>
+          <h1 className="text-[20px] font-semibold tracking-tight text-foreground">{user.email}</h1>
+          <StatusPill status={user.status} />
+          <RoleBadge role={user.role} />
+          <div className="ml-auto flex items-center gap-2">
+            {suspendButton}
             <span title="Coming in Chunk J - password reset infrastructure" className="inline-block">
-              <Button variant="outline" disabled className="pointer-events-none">
+              <Button variant="outline" size="sm" disabled className="pointer-events-none">
                 Reset password
               </Button>
             </span>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Licences</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {licencesQuery.isPending && <Skeleton className="h-12 w-full" />}
-          {licencesQuery.isError && (
-            <p className="text-sm text-status-revoked-fg">Failed to load licences.</p>
-          )}
-          {licenceData && licenceData.items.length === 0 && (
-            <p className="text-sm text-ink-muted">This user has no licences.</p>
-          )}
-          {licenceData && licenceData.items.length > 0 && (
+        </div>
+        <p className="text-[12px] text-ink-muted">
+          User ID <KeyChip value={user.id} display={user.id.slice(0, 20)} className="ml-1" />
+          {user.displayName && (
             <>
-              <div className="overflow-hidden rounded-lg border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Relationship</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Expires</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {licenceData.items.map((lic) => (
-                      <TableRow key={lic.id}>
-                        <TableCell>
-                          <Link
-                            to="/admin/licences/$id"
-                            params={{ id: lic.id }}
-                            className="font-medium text-ink underline-offset-2 hover:underline"
-                          >
-                            {lic.productSlug}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={lic.relationship === 'owner' ? 'default' : 'secondary'} className="capitalize">
-                            {lic.relationship ?? 'owner'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell><StatusPill status={lic.status} /></TableCell>
-                        <TableCell className="text-ink-muted">{formatDate(lic.expiresAt)}</TableCell>
-                        <TableCell className="text-ink-muted">{formatDate(lic.createdAt)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {licenceData.total > LICENCE_PAGE && (
-                <div className="flex items-center justify-between text-sm text-ink-muted">
-                  <span>
-                    {licenceData.offset + 1}-{Math.min(licenceData.offset + licenceData.limit, licenceData.total)} of {licenceData.total}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={licenceOffset === 0}
-                      onClick={() => { setLicenceOffset(Math.max(0, licenceOffset - LICENCE_PAGE)); }}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={licenceOffset + LICENCE_PAGE >= licenceData.total}
-                      onClick={() => { setLicenceOffset(licenceOffset + LICENCE_PAGE); }}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <span aria-hidden className="mx-1.5 text-ink-subtle">·</span>
+              <span className="text-foreground">{user.displayName}</span>
             </>
           )}
-        </CardContent>
-      </Card>
+        </p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>History</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <AuditTimeline
-            events={auditEvents}
-            isLoading={auditQuery.isPending}
-            isError={auditQuery.isError}
-            emptyText="No activity yet."
-          />
-          {auditData && auditData.total > AUDIT_PAGE && (
-            <div className="flex items-center justify-between text-sm text-ink-muted">
-              <span>
-                {auditData.offset + 1}-{Math.min(auditData.offset + auditData.limit, auditData.total)} of {auditData.total}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={auditOffset === 0}
-                  onClick={() => { setAuditOffset(Math.max(0, auditOffset - AUDIT_PAGE)); }}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={auditOffset + AUDIT_PAGE >= auditData.total}
-                  onClick={() => { setAuditOffset(auditOffset + AUDIT_PAGE); }}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border text-[12.5px] sm:grid-cols-3 lg:grid-cols-5">
+        <StatCell label="Licences" value={totalLicences.toLocaleString()} />
+        <StatCell label="Role" value={user.role} />
+        <StatCell label="Status" value={user.status} />
+        <StatCell label="Last activity" value={lastActivity ? formatRelative(lastActivity) : 'None'} />
+        <StatCell label="Created" value={formatDate(user.createdAt)} />
+      </div>
+
+      {actionError && (
+        <Alert variant="destructive">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[360px_1fr]">
+        <DetailCard title="Profile">
+          <dl className="grid grid-cols-[80px_1fr] gap-y-2.5 text-[12.5px]">
+            <dt className="text-ink-muted">ID</dt>
+            <dd>
+              <KeyChip value={user.id} display={user.id.slice(0, 14)} />
+            </dd>
+            <dt className="text-ink-muted">Email</dt>
+            <dd className="truncate">{user.email}</dd>
+            <dt className="text-ink-muted">Name</dt>
+            <dd>{user.displayName ?? <span className="text-ink-subtle">-</span>}</dd>
+            <dt className="text-ink-muted">Role</dt>
+            <dd>
+              <RoleBadge role={user.role} />
+            </dd>
+            <dt className="text-ink-muted">Status</dt>
+            <dd>
+              <StatusPill status={user.status} />
+            </dd>
+            <dt className="text-ink-muted">Created</dt>
+            <dd className="font-mono text-[11.5px] text-ink-muted">{formatDate(user.createdAt)}</dd>
+          </dl>
+        </DetailCard>
+
+        <DetailCard title="Licences">
+          <div className="-mx-4 -mt-4 overflow-hidden">
+            <Table className="text-[12.5px]">
+              <TableHeader>
+                <TableRow className="border-border">
+                  <Th>Product</Th>
+                  <Th className="w-[110px]">Relationship</Th>
+                  <Th className="w-[100px]">Status</Th>
+                  <Th className="w-[110px]">Expires</Th>
+                  <Th className="w-[110px]">Created</Th>
+                  <Th className="w-[36px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {licencesQuery.isPending && (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  </TableRow>
+                )}
+                {licencesQuery.isError && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-status-revoked-fg">
+                      Failed to load licences.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {licenceData?.items.map((lic) => {
+                  const go = () => { void navigate({ to: '/admin/licences/$id', params: { id: lic.id } }); };
+                  return (
+                    <TableRow
+                      key={lic.id}
+                      role="link"
+                      tabIndex={0}
+                      onClick={go}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          go();
+                        }
+                      }}
+                      aria-label={`View licence ${lic.productSlug}`}
+                      className="group cursor-pointer border-border transition-colors hover:bg-accent-soft focus:bg-accent-soft focus:outline-none"
+                    >
+                      <Td>
+                        <span className="font-mono text-[11.5px] font-medium text-accent group-hover:underline">
+                          {lic.productSlug}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="text-ink-muted">{lic.relationship ?? 'owner'}</span>
+                      </Td>
+                      <Td>
+                        <StatusPill status={lic.status} />
+                      </Td>
+                      <Td className="font-mono text-[11.5px] text-ink-muted">
+                        {lic.expiresAt ? formatDate(lic.expiresAt) : '-'}
+                      </Td>
+                      <Td className="font-mono text-[11.5px] text-ink-muted">{formatDate(lic.createdAt)}</Td>
+                      <Td className="text-right">
+                        <ChevronRight
+                          className="size-3.5 text-ink-subtle transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
+                          aria-hidden
+                        />
+                      </Td>
+                    </TableRow>
+                  );
+                })}
+                {licenceData && licenceData.items.length === 0 && !licencesQuery.isError && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-ink-muted">
+                      This user has no licences.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {licenceData && licenceData.total > LICENCE_PAGE && (
+            <Pager
+              offset={licenceOffset}
+              limit={licenceData.limit}
+              total={licenceData.total}
+              pageSize={LICENCE_PAGE}
+              onChange={setLicenceOffset}
+            />
           )}
-        </CardContent>
-      </Card>
+        </DetailCard>
+      </div>
+
+      <DetailCard title="History">
+        <AuditTimeline
+          events={auditEvents}
+          isLoading={auditQuery.isPending}
+          isError={auditQuery.isError}
+          emptyText="No activity yet."
+        />
+        {auditData && auditData.total > AUDIT_PAGE && (
+          <Pager
+            offset={auditOffset}
+            limit={auditData.limit}
+            total={auditData.total}
+            pageSize={AUDIT_PAGE}
+            onChange={setAuditOffset}
+          />
+        )}
+      </DetailCard>
     </div>
   );
+}
+
+function StatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card px-3 py-3">
+      <div className="text-[10.5px] font-medium uppercase tracking-wide text-ink-muted">{label}</div>
+      <div className="mt-1 text-[16px] font-semibold capitalize tabular-nums text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+      <div className="border-b border-border px-4 py-2.5">
+        <h2 className="text-[13px] font-semibold text-foreground">{title}</h2>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const isAdmin = role === 'admin';
+  return (
+    <span
+      className={cn(
+        'inline-flex h-5 items-center rounded-[3px] border px-1.5 font-mono text-[10.5px] leading-none',
+        isAdmin
+          ? 'border-accent/30 bg-accent-soft text-accent'
+          : 'border-border bg-surface-sunken text-ink-muted',
+      )}
+    >
+      {role}
+    </span>
+  );
+}
+
+interface PagerProps {
+  offset: number;
+  limit: number;
+  total: number;
+  pageSize: number;
+  onChange: (next: number) => void;
+}
+
+function Pager({ offset, limit, total, pageSize, onChange }: PagerProps) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.floor(offset / pageSize) + 1;
+  const rangeStart = total > 0 ? offset + 1 : 0;
+  const rangeEnd = Math.min(offset + limit, total);
+
+  return (
+    <div className="flex items-center justify-between border-t border-border pt-3 text-[12px] text-ink-muted">
+      <span className="font-mono tabular-nums">
+        {rangeStart}-{rangeEnd} of {total}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-7"
+          disabled={offset === 0}
+          onClick={() => { onChange(Math.max(0, offset - pageSize)); }}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="size-3.5" />
+        </Button>
+        <span className="font-mono text-[11.5px] tabular-nums">
+          {currentPage} / {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-7"
+          disabled={offset + pageSize >= total}
+          onClick={() => { onChange(offset + pageSize); }}
+          aria-label="Next page"
+        >
+          <ChevronRight className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <TableHead
+      className={cn(
+        'h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted',
+        className,
+      )}
+    >
+      {children}
+    </TableHead>
+  );
+}
+
+function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }

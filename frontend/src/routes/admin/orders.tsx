@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { fetchAdminOrders } from '@/api/orders';
 import { formatDateTime, formatPrice } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/admin/orders')({
   component: AdminOrdersPage,
@@ -55,16 +56,16 @@ function AdminOrdersPage() {
 
       {query.isError && <p className="text-sm text-status-revoked-fg">Failed to load orders.</p>}
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
-        <Table>
+      <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+        <Table className="text-[12.5px]">
           <TableHeader>
-            <TableRow>
-              <TableHead>Placed</TableHead>
-              <TableHead>Buyer</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-24"></TableHead>
+            <TableRow className="border-border">
+              <Th className="w-[160px]">Placed</Th>
+              <Th>Buyer</Th>
+              <Th className="w-[70px] text-right">Items</Th>
+              <Th className="w-[120px] text-right">Total</Th>
+              <Th className="w-[100px]">Status</Th>
+              <Th className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -77,31 +78,33 @@ function AdminOrdersPage() {
             )}
             {!query.isPending && (data?.total ?? 0) === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-sm text-ink-muted">
+                <TableCell colSpan={6} className="text-ink-muted">
                   No orders match.
                 </TableCell>
               </TableRow>
             )}
             {!query.isPending && data?.items.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="text-ink-muted">{formatDateTime(order.createdAt)}</TableCell>
-                <TableCell className="font-mono text-xs text-ink-muted">{order.userId}</TableCell>
-                <TableCell>{order.items.length}</TableCell>
-                <TableCell>
+              <TableRow key={order.id} className="border-border hover:bg-surface-sunken">
+                <Td className="font-mono text-[11.5px] text-ink-muted">{formatDateTime(order.createdAt)}</Td>
+                <Td className="font-mono text-[11.5px] text-ink-muted">{order.userId}</Td>
+                <Td className="text-right font-mono tabular-nums">{order.items.length}</Td>
+                <Td className="text-right font-mono tabular-nums">
                   <div className="flex flex-col">
                     {order.totals.map((t) => (
-                      <span key={t.currency} className="tabular-nums">{formatPrice(t.amount, t.currency)}</span>
+                      <span key={t.currency}>{formatPrice(t.amount, t.currency)}</span>
                     ))}
                   </div>
-                </TableCell>
-                <TableCell className="capitalize text-ink-muted">{order.status}</TableCell>
-                <TableCell>
-                  <Button asChild variant="link" size="sm" className="px-0">
-                    <Link to="/admin/orders/$id" params={{ id: order.id }}>
-                      View
-                    </Link>
-                  </Button>
-                </TableCell>
+                </Td>
+                <Td className="capitalize text-ink-muted">{order.status}</Td>
+                <Td>
+                  <Link
+                    to="/admin/orders/$id"
+                    params={{ id: order.id }}
+                    className="text-[12px] text-accent hover:underline"
+                  >
+                    View
+                  </Link>
+                </Td>
               </TableRow>
             ))}
           </TableBody>
@@ -121,4 +124,21 @@ function AdminOrdersPage() {
       </div>
     </div>
   );
+}
+
+function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <TableHead
+      className={cn(
+        'h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted',
+        className,
+      )}
+    >
+      {children}
+    </TableHead>
+  );
+}
+
+function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }

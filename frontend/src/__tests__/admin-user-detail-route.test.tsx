@@ -106,8 +106,8 @@ describe('AdminUserDetailRoute', () => {
     renderDetail();
     expect(await screen.findByRole('heading', { name: 'alice@example.com' })).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('admin')).toBeInTheDocument();
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('admin').length).toBeGreaterThan(0);
   });
 
   it('shows the empty licences message when the user has no licences', async () => {
@@ -128,8 +128,8 @@ describe('AdminUserDetailRoute', () => {
     });
     renderDetail();
     await screen.findByRole('heading', { name: 'alice@example.com' });
-    expect(await screen.findByRole('link', { name: 'acme-pro' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'acme-lite' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /view licence acme-pro/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view licence acme-lite/i })).toBeInTheDocument();
     expect(screen.getByText('revoked')).toBeInTheDocument();
     expect(screen.getByText('member')).toBeInTheDocument();
   });

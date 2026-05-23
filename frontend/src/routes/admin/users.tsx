@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/StatusPill';
 import { fetchUsers } from '@/api/users';
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/admin/users')({
   component: UsersPage,
@@ -117,54 +118,56 @@ function UsersPage() {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
-        <Table>
+      <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+        <Table className="text-[12.5px]">
           <TableHeader>
-            <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+            <TableRow className="border-border">
+              <Th>Email</Th>
+              <Th>Name</Th>
+              <Th className="w-[80px]">Role</Th>
+              <Th className="w-[100px]">Status</Th>
+              <Th className="w-[110px]">Created</Th>
+              <Th className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {query.isPending && (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <Skeleton className="h-6 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {query.isError && (
               <TableRow>
-                <TableCell colSpan={5} className="text-sm text-status-revoked-fg">
+                <TableCell colSpan={6} className="text-status-revoked-fg">
                   Failed to load users.
                 </TableCell>
               </TableRow>
             )}
             {data?.items.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell>
+              <TableRow key={u.id} className="border-border hover:bg-surface-sunken">
+                <Td className="font-medium text-foreground">{u.email}</Td>
+                <Td className="text-ink-muted">{u.displayName ?? '-'}</Td>
+                <Td className="capitalize text-ink-muted">{u.role}</Td>
+                <Td>
+                  <StatusPill status={u.status} />
+                </Td>
+                <Td className="font-mono text-[11.5px] text-ink-muted">{formatDate(u.createdAt)}</Td>
+                <Td>
                   <Link
                     to="/admin/users/$id"
                     params={{ id: u.id }}
-                    className="font-medium text-ink underline-offset-2 hover:underline"
+                    className="text-[12px] text-accent hover:underline"
                   >
-                    {u.email}
+                    View
                   </Link>
-                </TableCell>
-                <TableCell className="text-ink-muted">{u.displayName ?? '-'}</TableCell>
-                <TableCell className="capitalize text-ink-muted">{u.role}</TableCell>
-                <TableCell>
-                  <StatusPill status={u.status} />
-                </TableCell>
-                <TableCell className="text-ink-muted">{formatDate(u.createdAt)}</TableCell>
+                </Td>
               </TableRow>
             ))}
             {data && data.items.length === 0 && !query.isError && (
               <TableRow>
-                <TableCell colSpan={5} className="text-sm text-ink-muted">
+                <TableCell colSpan={6} className="text-ink-muted">
                   No users match these filters.
                 </TableCell>
               </TableRow>
@@ -196,4 +199,21 @@ function UsersPage() {
       </div>
     </div>
   );
+}
+
+function Th({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <TableHead
+      className={cn(
+        'h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted',
+        className,
+      )}
+    >
+      {children}
+    </TableHead>
+  );
+}
+
+function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return <TableCell className={cn('px-3 py-2.5', className)}>{children}</TableCell>;
 }
