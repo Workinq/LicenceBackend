@@ -9,7 +9,9 @@ import type {
   UserResponse,
 } from './generated/api.schemas';
 
-export async function fetchUsers(params: GetUsersParams = { limit: 200, offset: 0 }): Promise<PagedResponseOfUserResponse> {
+const DEFAULT_USERS_PARAMS: GetUsersParams = { limit: 200, offset: 0 };
+
+export async function fetchUsers(params: GetUsersParams = DEFAULT_USERS_PARAMS): Promise<PagedResponseOfUserResponse> {
   return (await getUsers(params)).data as PagedResponseOfUserResponse;
 }
 

@@ -24,9 +24,9 @@ const doc = await res.json();
 function readString(schemaName, propertyName) {
   const schema = doc?.components?.schemas?.[schemaName];
   const prop = schema?.properties?.[propertyName];
-  if (!prop) throw new Error(`Missing ${schemaName}.${propertyName} in OpenAPI doc`);
+  if (!prop) throw new TypeError(`Missing ${schemaName}.${propertyName} in OpenAPI doc`);
   if (typeof prop.minLength !== 'number' || typeof prop.maxLength !== 'number') {
-    throw new Error(`Missing min/max length on ${schemaName}.${propertyName}`);
+    throw new TypeError(`Missing min/max length on ${schemaName}.${propertyName}`);
   }
   return { minLength: prop.minLength, maxLength: prop.maxLength };
 }
