@@ -7,6 +7,7 @@ import { fetchLicenceSeats } from '@/api/licences';
 import { LicenceActions } from '@/components/licences/LicenceActions';
 import { LicenceBindings } from '@/components/licences/LicenceBindings';
 import { LicenceHistory } from '@/components/licences/LicenceHistory';
+import { LicenceKeys } from '@/components/licences/LicenceKeys';
 import { LicenceMembers } from '@/components/licences/LicenceMembers';
 import { LicenceSeats } from '@/components/licences/LicenceSeats';
 import { VerificationsChart } from '@/components/licences/VerificationsChart';
@@ -149,6 +150,10 @@ function LicenceDetailPage() {
       </div>
 
       <VerificationsChart licenceId={lic.id} />
+
+      <DetailCard title="Licence keys">
+        <LicenceKeys licenceId={lic.id} canMutate={true} />
+      </DetailCard>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <DetailCard title="Seats">

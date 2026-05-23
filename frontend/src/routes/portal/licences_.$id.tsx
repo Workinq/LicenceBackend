@@ -21,6 +21,7 @@ import {
 } from '@/api/me-licences';
 import { triggerBlobDownload } from '@/api/product-files';
 import { RegenerateKeyDialog } from '@/components/licences/RegenerateKeyDialog';
+import { LicenceKeys } from '@/components/licences/LicenceKeys';
 import { LicenceLabelEditor } from '@/components/licences/LicenceLabelEditor';
 import { PortalLicenceSessions } from '@/components/licences/PortalLicenceSessions';
 import { ApiError } from '@/auth/api-client';
@@ -227,6 +228,15 @@ function PortalLicenceDetail() {
               </Button>
             </span>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Licence keys</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LicenceKeys licenceId={lic.id} canMutate={isOwner} />
         </CardContent>
       </Card>
 
