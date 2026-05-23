@@ -116,8 +116,6 @@ public sealed class LicencesController(
             Guid.NewGuid(),
             product.Id,
             owner.Id,
-            pepperedHmac.Hmac,
-            pepperedHmac.PepperVersion,
             LicenceStatus.Active,
             request.ExpiresAt,
             string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
@@ -427,23 +425,10 @@ public sealed class LicencesController(
 
         var rawKey = keyGenerator.Generate();
         var pepperedHmac = keyHasher.HashWithActive(rawKey);
-
-        var updated = await licences.RegenerateKeyAsync(
-                          id,
-                          pepperedHmac,
-                          currentUserId,
-                          string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
-                          cancellationToken
-                      );
-
-        if (updated is null)
-            return Problem(
-                statusCode: StatusCodes.Status404NotFound,
-                title: ProblemTitles.LicenceNotFound,
-                detail: $"No licence with id '{id}'."
-            );
+        var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
 
         var existingActiveKeys = await licenceKeys.ListForLicenceAsync(id, includeRevoked: false, cancellationToken);
+        var previousKey = existingActiveKeys.OrderByDescending(k => k.CreatedAt).FirstOrDefault();
         foreach (var existingKey in existingActiveKeys)
         {
             await licenceKeys.RevokeAsync(existingKey.Id, currentUserId, "regenerate", cancellationToken);
@@ -460,22 +445,39 @@ public sealed class LicencesController(
         if (regenMint is not MintKeyOutcome.Minted)
             throw new InvalidOperationException("Failed to mint regenerated licence key");
 
-        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
-        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+        var regenEvent = AuditEvent.Create(
+            AuditEventTypes.LicenceKeyRegenerated,
+            AuditSubjectTypes.Licence,
+            id,
+            AuditActorTypes.Admin,
+            currentUserId,
+            reason,
+            new LicenceKeyRegeneratedPayload(
+                previousKey is null ? null : Convert.ToBase64String(previousKey.KeyHmac),
+                previousKey?.KeyHmacPepperVersion,
+                Convert.ToBase64String(pepperedHmac.Hmac),
+                pepperedHmac.PepperVersion
+            ),
+            time.GetUtcNow()
+        );
+        await auditEvents.RecordAsync(regenEvent, cancellationToken);
+
+        var product = await products.FindByIdAsync(existing.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(existing.UserId, cancellationToken);
 
         return Ok(new LicenceKeyRegeneratedResponse(
-            updated.Id,
-            updated.ProductId,
+            existing.Id,
+            existing.ProductId,
             product?.Slug ?? string.Empty,
-            updated.UserId,
+            existing.UserId,
             owner?.Email ?? string.Empty,
-            updated.Status.ToString().ToLowerInvariant(),
-            updated.ExpiresAt,
-            updated.Notes,
-            updated.HwidHmac is not null,
-            updated.IpAllowlist,
-            updated.Label,
-            updated.CreatedAt,
+            existing.Status.ToString().ToLowerInvariant(),
+            existing.ExpiresAt,
+            existing.Notes,
+            existing.HwidHmac is not null,
+            existing.IpAllowlist,
+            existing.Label,
+            existing.CreatedAt,
             rawKey
         ));
     }
@@ -772,7 +774,6 @@ public sealed class LicencesController(
             licence.ExpiresAt,
             licence.Notes,
             licence.HwidHmac is not null,
-            licence.KeyHmac is not null,
             licence.IpAllowlist,
             licence.Label,
             licence.CreatedAt,

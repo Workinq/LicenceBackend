@@ -24,7 +24,6 @@ public sealed class KeylessLicenceTests : IntegrationTestBase
         var now = DateTimeOffset.UtcNow;
         var licence = new Licence(
             Guid.NewGuid(), productId, AdminUserId,
-            KeyHmac: null, KeyHmacPepperVersion: null,
             LicenceStatus.Active, ExpiresAt: null, Notes: null,
             HwidHmac: null, HwidHmacPepperVersion: null, IpAllowlist: null,
             Label: null, MaxSeats: 1, CreatedAt: now, UpdatedAt: now);
@@ -33,7 +32,6 @@ public sealed class KeylessLicenceTests : IntegrationTestBase
 
         var loaded = await repo.FindByIdAsync(licence.Id, CancellationToken.None);
         Assert.NotNull(loaded);
-        Assert.Null(loaded.KeyHmac);
-        Assert.Null(loaded.KeyHmacPepperVersion);
+        Assert.Equal(licence.Id, loaded.Id);
     }
 }

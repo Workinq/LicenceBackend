@@ -375,16 +375,14 @@ async Task<int> SeedDevAsync()
     {
         await connection.ExecuteAsync(
             """
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status)
-            VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, 'active');
+            INSERT INTO licences (id, product_id, user_id, status)
+            VALUES (@Id, @ProductId, @UserId, 'active');
             """,
             new
             {
                 Id = licenceId,
                 ProductId = productId,
-                UserId = userId,
-                KeyHmac = pepperedHmac.Hmac,
-                KeyHmacPepperVersion = pepperedHmac.PepperVersion
+                UserId = userId
             });
 
         var keyPrefix = licenceKey.Length > 12 ? $"{licenceKey[..12]}..." : $"{licenceKey}...";

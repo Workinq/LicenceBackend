@@ -71,8 +71,6 @@ public sealed class OrderFulfillmentService(
                         Guid.NewGuid(),
                         item.ProductId,
                         attempt.UserId,
-                        KeyHmac: null,
-                        KeyHmacPepperVersion: null,
                         LicenceStatus.Active,
                         ExpiresAt: null,
                         Notes: null,

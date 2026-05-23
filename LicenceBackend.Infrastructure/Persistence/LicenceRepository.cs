@@ -12,26 +12,7 @@ namespace LicenceBackend.Infrastructure.Persistence;
 public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRepository auditEvents, TimeProvider time) : ILicenceRepository
 {
     private const string LicenceColumns =
-        "id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, label, max_seats, created_at, updated_at";
-
-    public async Task<Licence?> FindByKeyHmacAsync(IReadOnlyList<byte[]> keyHmacCandidates, CancellationToken cancellationToken)
-    {
-        if (keyHmacCandidates.Count == 0) return null;
-
-        const string sql = $"""
-                            SELECT {LicenceColumns}
-                            FROM licences
-                            WHERE key_hmac = ANY(@KeyHmacs)
-                            LIMIT 1;
-                            """;
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var command = new CommandDefinition(
-            sql,
-            new { KeyHmacs = keyHmacCandidates.ToArray() },
-            cancellationToken: cancellationToken);
-        var row = await connection.QuerySingleOrDefaultAsync<LicenceRow>(command);
-        return row?.ToDomain();
-    }
+        "id, product_id, user_id, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, label, max_seats, created_at, updated_at";
 
     public async Task<Licence?> FindByIdAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -79,8 +60,8 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
     }
 
     private const string InsertLicenceSql = """
-                                             INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, ip_allowlist, label, max_seats, created_at, updated_at)
-                                             VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @Label, @MaxSeats, @CreatedAt, @UpdatedAt);
+                                             INSERT INTO licences (id, product_id, user_id, status, expires_at, notes, ip_allowlist, label, max_seats, created_at, updated_at)
+                                             VALUES (@Id, @ProductId, @UserId, @Status, @ExpiresAt, @Notes, @IpAllowlist::jsonb, @Label, @MaxSeats, @CreatedAt, @UpdatedAt);
                                              """;
 
     private static object BuildInsertParameters(Licence licence) => new
@@ -88,8 +69,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         licence.Id,
         licence.ProductId,
         licence.UserId,
-        licence.KeyHmac,
-        licence.KeyHmacPepperVersion,
         Status = licence.Status.ToString().ToLowerInvariant(),
         licence.ExpiresAt,
         licence.Notes,
@@ -515,46 +494,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         }
     }
 
-    public async Task<Licence?> RegenerateKeyAsync(
-        Guid licenceId,
-        PepperedHmac newKey,
-        Guid changedBy,
-        string? reason,
-        CancellationToken cancellationToken)
-    {
-        const string updateSql = $"""
-                                  UPDATE licences
-                                  SET key_hmac = @KeyHmac, key_hmac_pepper_version = @KeyHmacPepperVersion, updated_at = NOW()
-                                  WHERE id = @Id
-                                  RETURNING {LicenceColumns};
-                                  """;
-
-        return await UpdateLicenceWithAuditAsync(
-            licenceId,
-            updateSql,
-            new { Id = licenceId, KeyHmac = newKey.Hmac, KeyHmacPepperVersion = newKey.PepperVersion },
-            async (conn, tx, currentRow) =>
-            {
-                var evt = AuditEvent.Create(
-                    AuditEventTypes.LicenceKeyRegenerated,
-                    AuditSubjectTypes.Licence,
-                    licenceId,
-                    AuditActorTypes.Admin,
-                    changedBy,
-                    reason,
-                    new LicenceKeyRegeneratedPayload(
-                        currentRow.KeyHmac is null ? null : Convert.ToBase64String(currentRow.KeyHmac),
-                        currentRow.KeyHmacPepperVersion,
-                        Convert.ToBase64String(newKey.Hmac),
-                        newKey.PepperVersion
-                    ),
-                    time.GetUtcNow()
-                );
-                await auditEvents.RecordInTxAsync(conn, tx, evt, cancellationToken);
-            },
-            cancellationToken);
-    }
-
     public async Task<IpBindResult> BindFirstUseIpAsync(
         Guid licenceId,
         string hostRoute,
@@ -706,8 +645,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         Guid Id,
         Guid ProductId,
         Guid UserId,
-        byte[]? KeyHmac,
-        short? KeyHmacPepperVersion,
         string Status,
         DateTime? ExpiresAt,
         string? Notes,
@@ -722,7 +659,7 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
     )
     {
         public LicenceRow ToLicenceRow() => new(
-            Id, ProductId, UserId, KeyHmac, KeyHmacPepperVersion, Status,
+            Id, ProductId, UserId, Status,
             ExpiresAt, Notes, HwidHmac, HwidHmacPepperVersion, IpAllowlist,
             Label, MaxSeats, CreatedAt, UpdatedAt
         );
@@ -732,8 +669,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
         Guid Id,
         Guid ProductId,
         Guid UserId,
-        byte[]? KeyHmac,
-        short? KeyHmacPepperVersion,
         string Status,
         DateTime? ExpiresAt,
         string? Notes,
@@ -755,8 +690,6 @@ public sealed class LicenceRepository(NpgsqlDataSource dataSource, IAuditEventRe
                 Id,
                 ProductId,
                 UserId,
-                KeyHmac,
-                KeyHmacPepperVersion,
                 Enum.Parse<LicenceStatus>(Status, true),
                 TimestampConversion.ToUtcOffset(ExpiresAt),
                 Notes,

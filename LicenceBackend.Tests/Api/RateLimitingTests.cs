@@ -399,16 +399,14 @@ public sealed class RateLimitingTests : IntegrationTestBase
             new { ProductId = productId, Slug = slug });
         await conn.ExecuteAsync(
             """
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, max_seats, created_at, updated_at)
-            VALUES (@LicenceId, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, 'active', NULL, NULL, NULL, NULL, NULL, 5, NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, status, expires_at, notes, hwid_hmac, hwid_hmac_pepper_version, ip_allowlist, max_seats, created_at, updated_at)
+            VALUES (@LicenceId, @ProductId, @UserId, 'active', NULL, NULL, NULL, NULL, NULL, 5, NOW(), NOW());
             """,
             new
             {
                 LicenceId = licenceId,
                 ProductId = productId,
-                UserId = AdminUserId,
-                KeyHmac = pepperedHmac.Hmac,
-                KeyHmacPepperVersion = pepperedHmac.PepperVersion
+                UserId = AdminUserId
             });
         await conn.ExecuteAsync(
             """

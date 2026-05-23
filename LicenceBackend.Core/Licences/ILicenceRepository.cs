@@ -5,8 +5,6 @@ namespace LicenceBackend.Core.Licences;
 
 public interface ILicenceRepository
 {
-    Task<Licence?> FindByKeyHmacAsync(IReadOnlyList<byte[]> keyHmacCandidates, CancellationToken cancellationToken);
-
     Task<Licence?> FindByIdAsync(Guid id, CancellationToken cancellationToken);
 
     Task CreateAsync(Licence licence, CancellationToken cancellationToken);
@@ -69,14 +67,6 @@ public interface ILicenceRepository
         Guid licenceId,
         IReadOnlyList<string>? cidrs,
         Guid changedByUserId,
-        string? reason,
-        CancellationToken cancellationToken
-    );
-
-    Task<Licence?> RegenerateKeyAsync(
-        Guid licenceId,
-        PepperedHmac newKey,
-        Guid changedBy,
         string? reason,
         CancellationToken cancellationToken
     );

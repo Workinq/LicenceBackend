@@ -63,8 +63,6 @@ public sealed class IpAllowlistTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
-            new byte[32],
-            1,
             LicenceStatus.Active,
             null,
             null,

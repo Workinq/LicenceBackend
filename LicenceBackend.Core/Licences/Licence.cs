@@ -7,8 +7,6 @@ public sealed record Licence(
     Guid Id,
     Guid ProductId,
     Guid UserId,
-    byte[]? KeyHmac,
-    short? KeyHmacPepperVersion,
     LicenceStatus Status,
     DateTimeOffset? ExpiresAt,
     string? Notes,

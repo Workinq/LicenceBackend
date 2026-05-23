@@ -413,8 +413,8 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
             INSERT INTO products (id, slug, display_name) VALUES (@ProductId, @Slug, 'Test');
             INSERT INTO users (id, email, email_lower, password_hash, role, status, created_at, updated_at)
               VALUES (@OwnerId, @Email, @EmailLower, 'placeholder', 'user', 'active', NOW(), NOW());
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, max_seats, created_at, updated_at)
-              VALUES (@LicenceId, @ProductId, @OwnerId, NULL, NULL, 'active', 5, NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, status, max_seats, created_at, updated_at)
+              VALUES (@LicenceId, @ProductId, @OwnerId, 'active', 5, NOW(), NOW());
             INSERT INTO licence_keys (id, licence_id, key_hmac, key_hmac_pepper_version, key_prefix, created_at)
               VALUES (@KeyId, @LicenceId, @SeedHmac, @PepperVersion, 'LIC-SEED-...', NOW());
             """,
@@ -452,8 +452,8 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
             INSERT INTO products (id, slug, display_name) VALUES (@ProductId, @Slug, 'Test');
             INSERT INTO users (id, email, email_lower, password_hash, role, status, created_at, updated_at)
               VALUES (@OwnerId, @Email, @EmailLower, 'placeholder', 'user', 'active', NOW(), NOW());
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, max_seats, created_at, updated_at)
-              VALUES (@LicenceId, @ProductId, @OwnerId, @KeyHmac, @KeyHmacPepperVersion, 'active', @MaxSeats, NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, status, max_seats, created_at, updated_at)
+              VALUES (@LicenceId, @ProductId, @OwnerId, 'active', @MaxSeats, NOW(), NOW());
             """,
             new
             {
@@ -463,8 +463,6 @@ public sealed class LicenceCheckoutRepositoryTests : IntegrationTestBase
                 Email = $"u-{ownerId:N}@test.local",
                 EmailLower = $"u-{ownerId:N}@test.local",
                 LicenceId = licenceId,
-                KeyHmac = RandomNumberGenerator.GetBytes(32),
-                KeyHmacPepperVersion = (short)1,
                 MaxSeats = maxSeats
             });
         return (licenceId, productId, ownerId);

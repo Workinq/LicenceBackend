@@ -654,17 +654,10 @@ public sealed class UsersController(
 
         var rawKey = keyGenerator.Generate();
         var pepperedHmac = keyHasher.HashWithActive(rawKey);
-
-        var updated = await licences.RegenerateKeyAsync(
-            id,
-            pepperedHmac,
-            userId,
-            string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
-            cancellationToken
-        );
-        if (updated is null) return LicenceNotFound(id);
+        var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
 
         var existingActiveKeys = await licenceKeys.ListForLicenceAsync(id, includeRevoked: false, cancellationToken);
+        var previousKey = existingActiveKeys.OrderByDescending(k => k.CreatedAt).FirstOrDefault();
         foreach (var existingKey in existingActiveKeys)
         {
             await licenceKeys.RevokeAsync(existingKey.Id, userId, "regenerate", cancellationToken);
@@ -681,22 +674,39 @@ public sealed class UsersController(
         if (mint is not MintKeyOutcome.Minted)
             throw new InvalidOperationException("Failed to mint regenerated licence key");
 
-        var product = await products.FindByIdAsync(updated.ProductId, cancellationToken);
-        var owner = await users.FindByIdAsync(updated.UserId, cancellationToken);
+        var regenEvent = AuditEvent.Create(
+            AuditEventTypes.LicenceKeyRegenerated,
+            AuditSubjectTypes.Licence,
+            id,
+            AuditActorTypes.User,
+            userId,
+            reason,
+            new LicenceKeyRegeneratedPayload(
+                previousKey is null ? null : Convert.ToBase64String(previousKey.KeyHmac),
+                previousKey?.KeyHmacPepperVersion,
+                Convert.ToBase64String(pepperedHmac.Hmac),
+                pepperedHmac.PepperVersion
+            ),
+            time.GetUtcNow()
+        );
+        await auditEvents.RecordAsync(regenEvent, cancellationToken);
+
+        var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
+        var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
 
         return Ok(new LicenceKeyRegeneratedResponse(
-            updated.Id,
-            updated.ProductId,
+            licence.Id,
+            licence.ProductId,
             product?.Slug ?? string.Empty,
-            updated.UserId,
+            licence.UserId,
             owner?.Email ?? string.Empty,
-            updated.Status.ToString().ToLowerInvariant(),
-            updated.ExpiresAt,
-            updated.Notes,
-            updated.HwidHmac is not null,
-            updated.IpAllowlist,
-            updated.Label,
-            updated.CreatedAt,
+            licence.Status.ToString().ToLowerInvariant(),
+            licence.ExpiresAt,
+            licence.Notes,
+            licence.HwidHmac is not null,
+            licence.IpAllowlist,
+            licence.Label,
+            licence.CreatedAt,
             rawKey
         ));
     }

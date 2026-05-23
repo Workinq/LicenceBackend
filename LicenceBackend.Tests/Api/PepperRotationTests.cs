@@ -61,7 +61,9 @@ public sealed class PepperRotationTests : IntegrationTestBase
         var created = await licenceResponse.Content.ReadFromJsonAsync<LicenceCreatedPayload>();
 
         await using var conn = await OpenDbAsync();
-        var row = await conn.QuerySingleAsync<short>("SELECT key_hmac_pepper_version FROM licences WHERE id = @Id;", new { created!.Id });
+        var row = await conn.QuerySingleAsync<short>(
+            "SELECT key_hmac_pepper_version FROM licence_keys WHERE licence_id = @Id AND revoked_at IS NULL;",
+            new { created!.Id });
         Assert.Equal((short)2, row);
     }
 
@@ -227,9 +229,9 @@ public sealed class PepperRotationTests : IntegrationTestBase
             new { Id = productId, Slug = slug });
         await conn.ExecuteAsync(
             """
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status,
+            INSERT INTO licences (id, product_id, user_id, status,
                                   hwid_hmac, hwid_hmac_pepper_version, created_at, updated_at)
-            VALUES (@Id, @ProductId, @UserId, @KeyHmac, @KeyHmacPepperVersion, 'active',
+            VALUES (@Id, @ProductId, @UserId, 'active',
                     @HwidHmac, @HwidHmacPepperVersion, NOW(), NOW());
             """,
             new
@@ -237,8 +239,6 @@ public sealed class PepperRotationTests : IntegrationTestBase
                 Id = licenceId,
                 ProductId = productId,
                 UserId = AdminUserId,
-                KeyHmac = hashed.Hmac,
-                KeyHmacPepperVersion = hashed.PepperVersion,
                 HwidHmac = hwidHmac,
                 HwidHmacPepperVersion = hwidVersion
             });

@@ -10,7 +10,6 @@ public record LicenceResponse(
     DateTimeOffset? ExpiresAt,
     string? Notes,
     bool HwidBound,
-    bool HasKey,
     IReadOnlyList<string>? IpAllowlist,
     string? Label,
     DateTimeOffset CreatedAt,
@@ -32,4 +31,4 @@ public sealed record LicenceCreatedResponse(
     string? Label,
     DateTimeOffset CreatedAt,
     string LicenceKey
-) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, true, IpAllowlist, Label, CreatedAt, null, null);
+) : LicenceResponse(Id, ProductId, ProductSlug, UserId, UserEmail, Status, ExpiresAt, Notes, HwidBound, IpAllowlist, Label, CreatedAt, null, null);

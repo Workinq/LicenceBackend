@@ -49,14 +49,14 @@ public sealed class OrderFulfillmentTests : IntegrationTestBase
                 "SELECT COUNT(*) FROM order_items WHERE order_id = @Id;", new { Id = orderId1 });
             Assert.Equal(2, licenceCount);
 
-            var keyless = await conn.ExecuteScalarAsync<int>(
+            var mintedKeys = await conn.ExecuteScalarAsync<int>(
                 """
-                SELECT COUNT(*) FROM licences l
-                JOIN order_items oi ON oi.licence_id = l.id
-                WHERE oi.order_id = @Id AND l.key_hmac IS NULL;
+                SELECT COUNT(*) FROM licence_keys lk
+                JOIN order_items oi ON oi.licence_id = lk.licence_id
+                WHERE oi.order_id = @Id AND lk.revoked_at IS NULL;
                 """,
                 new { Id = orderId1 });
-            Assert.Equal(2, keyless);
+            Assert.Equal(2, mintedKeys);
 
             var invoiceCount = await conn.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM invoices WHERE order_id = @Id;", new { Id = orderId1 });

@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Dapper;
 using LicenceBackend.Core.Licences;
 using LicenceBackend.Tests.Api;
@@ -78,8 +77,8 @@ public sealed class LicenceRepositoryMaxSeatsTests : IntegrationTestBase
             INSERT INTO products (id, slug, display_name) VALUES (@Id, @Slug, @Name);
             INSERT INTO users (id, email, email_lower, password_hash, display_name, role, status, created_at, updated_at)
               VALUES (@OwnerId, @Email, @EmailLower, 'placeholder-hash', NULL, 'user', 'active', NOW(), NOW());
-            INSERT INTO licences (id, product_id, user_id, key_hmac, key_hmac_pepper_version, status, created_at, updated_at)
-              VALUES (@LicenceId, @ProductId, @OwnerId, @KeyHmac, @KeyHmacPepperVersion, 'active', NOW(), NOW());
+            INSERT INTO licences (id, product_id, user_id, status, created_at, updated_at)
+              VALUES (@LicenceId, @ProductId, @OwnerId, 'active', NOW(), NOW());
             """,
             new
             {
@@ -90,9 +89,7 @@ public sealed class LicenceRepositoryMaxSeatsTests : IntegrationTestBase
                 Email = $"owner-{ownerId:N}@test.local",
                 EmailLower = $"owner-{ownerId:N}@test.local",
                 LicenceId = licenceId,
-                ProductId = productId,
-                KeyHmac = RandomNumberGenerator.GetBytes(32),
-                KeyHmacPepperVersion = (short)1
+                ProductId = productId
             });
         return (licenceId, productId, ownerId);
     }
