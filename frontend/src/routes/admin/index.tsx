@@ -14,7 +14,7 @@ const placeholderSpark = (seed: number): number[] => {
   const out: number[] = [];
   let v = seed;
   for (let i = 0; i < 24; i++) {
-    v += Math.sin(i * 0.7 + seed) * 6 + (Math.random() - 0.4) * 4;
+    v += Math.sin(i * 0.7 + seed) * 6 + Math.sin(i * 2.3 + seed * 1.7) * 2;
     out.push(Math.max(0, v));
   }
   return out;

@@ -17,7 +17,7 @@ const trend = (seed: number): number[] => {
   const out: number[] = [];
   let v = seed;
   for (let i = 0; i < 18; i++) {
-    v += Math.sin(i * 0.5 + seed) * 4 + (Math.random() - 0.4) * 3;
+    v += Math.sin(i * 0.5 + seed) * 4 + Math.sin(i * 2.1 + seed * 1.7) * 1.5;
     out.push(Math.max(0, v));
   }
   return out;
