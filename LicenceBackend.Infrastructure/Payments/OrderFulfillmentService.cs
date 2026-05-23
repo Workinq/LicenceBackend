@@ -76,7 +76,7 @@ public sealed class OrderFulfillmentService(
         if (attempt.Status == CheckoutAttemptStatus.Failed)
             throw new InvalidOperationException($"Checkout attempt '{checkoutAttemptId}' is marked failed.");
 
-        orderId = default;
+        orderId = Guid.Empty;
         return false;
     }
 
