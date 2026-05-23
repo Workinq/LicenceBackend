@@ -32,6 +32,8 @@ internal static class ProblemTitles
     public const string OrderNotFound = "order_not_found";
     public const string LicenceNotOwned = "licence_not_owned";
     public const string LicenceNotFound = "licence_not_found";
+    public const string LicenceKeyNotFound = "licence_key_not_found";
+    public const string LicenceKeyCapExceeded = "licence_key_cap_exceeded";
     public const string MemberAlreadyExists = "member_already_exists";
     public const string MemberIsOwner = "member_is_owner";
     public const string MissingOwner = "missing_owner";
