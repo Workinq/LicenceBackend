@@ -62,7 +62,7 @@ public sealed class LicenceKeysEndpointTests : IntegrationTestBase
         Skip.If(Factory is null, "Fixture was not initialised.");
         var product = await CreateProductAsync("keys-owner");
         var ownerEmail = "keys-owner@test.local";
-        var ownerPassword = "keys-owner-pw-12345";
+        var ownerPassword = "keys-owner-pw-12345"; // gitleaks:allow
         var (ownerId, _) = await CreateUserAndLoginAsync(ownerEmail, ownerPassword);
         var licence = await CreateLicenceForUserAsync(product.Id, ownerId);
 
@@ -86,7 +86,7 @@ public sealed class LicenceKeysEndpointTests : IntegrationTestBase
         var ownerEmail = "keys-mem-owner@test.local";
         var (ownerId, _) = await CreateUserAndLoginAsync(ownerEmail, "keys-mem-owner-pw-12345");
         var memberEmail = "keys-mem@test.local";
-        var memberPassword = "keys-mem-pw-12345";
+        var memberPassword = "keys-mem-pw-12345"; // gitleaks:allow
         await CreateUserAndLoginAsync(memberEmail, memberPassword);
         var licence = await CreateLicenceForUserAsync(product.Id, ownerId);
 
