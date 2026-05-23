@@ -41,7 +41,7 @@ public sealed class StripeWebhookController(
                             logger.LogWarning("Stripe payment_intent.succeeded for unknown intent {PaymentIntentId}", evt.PaymentIntentId);
                         break;
                     }
-                case "payment_intent.payment_failed" when evt.PaymentIntentId is not null:
+                case "payment_intent.canceled" when evt.PaymentIntentId is not null:
                     await checkoutAttempts.MarkFailedByPaymentIntentIdAsync(evt.PaymentIntentId, cancellationToken);
                     break;
             }
