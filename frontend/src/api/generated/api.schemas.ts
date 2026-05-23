@@ -161,6 +161,7 @@ export interface CurrencyTotalResponse {
 export interface HealthResponse {
   status: string;
   db: string;
+  version: string;
 }
 
 export type IFormFile = Blob;
@@ -243,7 +244,6 @@ export interface LicenceCreatedResponse {
   /** @nullable */
   notes: string | null;
   hwidBound: boolean;
-  hasKey?: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
   /** @nullable */
@@ -253,6 +253,30 @@ export interface LicenceCreatedResponse {
   orderId?: string | null;
   /** @nullable */
   relationship?: string | null;
+}
+
+export interface LicenceKeyResponse {
+  id: string;
+  licenceId: string;
+  keyPrefix: string;
+  /** @nullable */
+  label: string | null;
+  /** @nullable */
+  createdByUserId: string | null;
+  createdAt: string;
+  /** @nullable */
+  lastSeenAt: string | null;
+  /** @nullable */
+  revokedAt: string | null;
+  /** @nullable */
+  revokedByUserId: string | null;
+  /** @nullable */
+  revokeReason: string | null;
+}
+
+export interface LicenceKeyMintedResponse {
+  key: LicenceKeyResponse;
+  licenceKey: string;
 }
 
 export interface LicenceKeyRegeneratedResponse {
@@ -268,7 +292,6 @@ export interface LicenceKeyRegeneratedResponse {
   /** @nullable */
   notes: string | null;
   hwidBound: boolean;
-  hasKey?: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
   /** @nullable */
@@ -278,6 +301,12 @@ export interface LicenceKeyRegeneratedResponse {
   orderId?: string | null;
   /** @nullable */
   relationship?: string | null;
+}
+
+export interface LicenceKeysResponse {
+  activeCount: number;
+  activeCap: number;
+  keys: LicenceKeyResponse[];
 }
 
 export interface LicenceMemberResponse {
@@ -303,7 +332,6 @@ export interface LicenceResponse {
   /** @nullable */
   notes: string | null;
   hwidBound: boolean;
-  hasKey: boolean;
   /** @nullable */
   ipAllowlist: string[] | null;
   /** @nullable */
@@ -370,6 +398,13 @@ export interface LicenceStatusHistoryResponse {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface MintLicenceKeyRequest {
+  /** @nullable */
+  label: string | null;
+  /** @nullable */
+  reason: string | null;
 }
 
 export interface NoSeatsAvailableResponse {
@@ -558,6 +593,14 @@ export interface RegenerateLicenceKeyRequest {
   reason: string | null;
 }
 
+/**
+ * @nullable
+ */
+export type RevokeLicenceKeyRequest = {
+  /** @nullable */
+  reason: string | null;
+} | null;
+
 export interface SessionResponse {
   accessToken: string;
   accessTokenExpiresAt: string;
@@ -582,6 +625,13 @@ export interface UpdateLicenceHwidRequest {
 export interface UpdateLicenceIpAllowlistRequest {
   /** @nullable */
   cidrs: string[] | null;
+  /** @nullable */
+  reason: string | null;
+}
+
+export interface UpdateLicenceKeyLabelRequest {
+  /** @nullable */
+  label: string | null;
   /** @nullable */
   reason: string | null;
 }
@@ -649,6 +699,10 @@ subject_id?: string;
 event_type?: string[];
 limit?: number;
 offset?: number;
+};
+
+export type GetLicencesIdKeysParams = {
+includeRevoked?: boolean;
 };
 
 export type GetLicencesParams = {

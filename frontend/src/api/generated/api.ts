@@ -18,6 +18,7 @@ import type {
   GetAdminOrdersParams,
   GetAuditEventsParams,
   GetLicencesIdBindingHistoryParams,
+  GetLicencesIdKeysParams,
   GetLicencesIdSeatsParams,
   GetLicencesIdStatusHistoryParams,
   GetLicencesIdVerificationAttemptsParams,
@@ -35,11 +36,15 @@ import type {
   InvoiceResponse,
   JwksResponse,
   LicenceCreatedResponse,
+  LicenceKeyMintedResponse,
   LicenceKeyRegeneratedResponse,
+  LicenceKeyResponse,
+  LicenceKeysResponse,
   LicenceMemberResponse,
   LicenceResponse,
   LicenceSeatsResponse,
   LoginRequest,
+  MintLicenceKeyRequest,
   NoSeatsAvailableResponse,
   OrderResponse,
   PagedResponseOfAuditEventResponse,
@@ -60,11 +65,13 @@ import type {
   ProductFileResponse,
   ProductResponse,
   RegenerateLicenceKeyRequest,
+  RevokeLicenceKeyRequest,
   SessionResponse,
   SignedLicenceCheckoutResponse,
   SignedLicenceVerificationResponse,
   UpdateLicenceHwidRequest,
   UpdateLicenceIpAllowlistRequest,
+  UpdateLicenceKeyLabelRequest,
   UpdateLicenceLabelRequest,
   UpdateLicenceMaxSeatsRequest,
   UpdateLicenceStatusRequest,
@@ -288,6 +295,230 @@ export const postLicencesCheckoutsSeatIdHeartbeat = async (seatId: string,
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
       checkoutHeartbeatRequest,)
+  }
+);}
+
+
+
+export type getLicencesIdKeysResponse200 = {
+  data: LicenceKeysResponse
+  status: 200
+}
+
+export type getLicencesIdKeysResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getLicencesIdKeysResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type getLicencesIdKeysResponseSuccess = (getLicencesIdKeysResponse200) & {
+  headers: Headers;
+};
+export type getLicencesIdKeysResponseError = (getLicencesIdKeysResponse401 | getLicencesIdKeysResponse404) & {
+  headers: Headers;
+};
+
+export type getLicencesIdKeysResponse = (getLicencesIdKeysResponseSuccess | getLicencesIdKeysResponseError)
+
+export const getGetLicencesIdKeysUrl = (id: string,
+    params?: GetLicencesIdKeysParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/licences/${id}/keys?${stringifiedParams}` : `/licences/${id}/keys`
+}
+
+export const getLicencesIdKeys = async (id: string,
+    params?: GetLicencesIdKeysParams, options?: RequestInit): Promise<getLicencesIdKeysResponse> => {
+
+  return apiClient<getLicencesIdKeysResponse>(getGetLicencesIdKeysUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type postLicencesIdKeysResponse201 = {
+  data: LicenceKeyMintedResponse
+  status: 201
+}
+
+export type postLicencesIdKeysResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type postLicencesIdKeysResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type postLicencesIdKeysResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type postLicencesIdKeysResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type postLicencesIdKeysResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type postLicencesIdKeysResponseSuccess = (postLicencesIdKeysResponse201) & {
+  headers: Headers;
+};
+export type postLicencesIdKeysResponseError = (postLicencesIdKeysResponse400 | postLicencesIdKeysResponse401 | postLicencesIdKeysResponse403 | postLicencesIdKeysResponse404 | postLicencesIdKeysResponse409) & {
+  headers: Headers;
+};
+
+export type postLicencesIdKeysResponse = (postLicencesIdKeysResponseSuccess | postLicencesIdKeysResponseError)
+
+export const getPostLicencesIdKeysUrl = (id: string,) => {
+
+
+
+
+  return `/licences/${id}/keys`
+}
+
+export const postLicencesIdKeys = async (id: string,
+    mintLicenceKeyRequest: MintLicenceKeyRequest, options?: RequestInit): Promise<postLicencesIdKeysResponse> => {
+
+  return apiClient<postLicencesIdKeysResponse>(getPostLicencesIdKeysUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mintLicenceKeyRequest,)
+  }
+);}
+
+
+
+export type deleteLicencesIdKeysKeyIdResponse200 = {
+  data: LicenceKeyResponse
+  status: 200
+}
+
+export type deleteLicencesIdKeysKeyIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type deleteLicencesIdKeysKeyIdResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteLicencesIdKeysKeyIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type deleteLicencesIdKeysKeyIdResponseSuccess = (deleteLicencesIdKeysKeyIdResponse200) & {
+  headers: Headers;
+};
+export type deleteLicencesIdKeysKeyIdResponseError = (deleteLicencesIdKeysKeyIdResponse401 | deleteLicencesIdKeysKeyIdResponse403 | deleteLicencesIdKeysKeyIdResponse404) & {
+  headers: Headers;
+};
+
+export type deleteLicencesIdKeysKeyIdResponse = (deleteLicencesIdKeysKeyIdResponseSuccess | deleteLicencesIdKeysKeyIdResponseError)
+
+export const getDeleteLicencesIdKeysKeyIdUrl = (id: string,
+    keyId: string,) => {
+
+
+
+
+  return `/licences/${id}/keys/${keyId}`
+}
+
+export const deleteLicencesIdKeysKeyId = async (id: string,
+    keyId: string,
+    revokeLicenceKeyRequestNull?: RevokeLicenceKeyRequest | null, options?: RequestInit): Promise<deleteLicencesIdKeysKeyIdResponse> => {
+
+  return apiClient<deleteLicencesIdKeysKeyIdResponse>(getDeleteLicencesIdKeysKeyIdUrl(id,keyId),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      revokeLicenceKeyRequestNull,)
+  }
+);}
+
+
+
+export type patchLicencesIdKeysKeyIdResponse200 = {
+  data: LicenceKeyResponse
+  status: 200
+}
+
+export type patchLicencesIdKeysKeyIdResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type patchLicencesIdKeysKeyIdResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type patchLicencesIdKeysKeyIdResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type patchLicencesIdKeysKeyIdResponseSuccess = (patchLicencesIdKeysKeyIdResponse200) & {
+  headers: Headers;
+};
+export type patchLicencesIdKeysKeyIdResponseError = (patchLicencesIdKeysKeyIdResponse401 | patchLicencesIdKeysKeyIdResponse403 | patchLicencesIdKeysKeyIdResponse404) & {
+  headers: Headers;
+};
+
+export type patchLicencesIdKeysKeyIdResponse = (patchLicencesIdKeysKeyIdResponseSuccess | patchLicencesIdKeysKeyIdResponseError)
+
+export const getPatchLicencesIdKeysKeyIdUrl = (id: string,
+    keyId: string,) => {
+
+
+
+
+  return `/licences/${id}/keys/${keyId}`
+}
+
+export const patchLicencesIdKeysKeyId = async (id: string,
+    keyId: string,
+    updateLicenceKeyLabelRequest: UpdateLicenceKeyLabelRequest, options?: RequestInit): Promise<patchLicencesIdKeysKeyIdResponse> => {
+
+  return apiClient<patchLicencesIdKeysKeyIdResponse>(getPatchLicencesIdKeysKeyIdUrl(id,keyId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLicenceKeyLabelRequest,)
   }
 );}
 
