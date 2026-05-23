@@ -83,7 +83,7 @@ public sealed class LicenceCheckoutController(
 
     private bool IsCheckoutRequestShapeValid(CheckoutLicenceRequest request, out Guid productId)
     {
-        productId = default;
+        productId = Guid.Empty;
         if (string.IsNullOrWhiteSpace(request.LicenceKey)) return false;
         if (request.ProductId is not { } pid) return false;
         if (string.IsNullOrWhiteSpace(request.ClientNonce)) return false;
