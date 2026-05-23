@@ -21,6 +21,7 @@ namespace LicenceBackend.Api.Controllers;
 [AllowAnonymous]
 public sealed class LicenceCheckoutController(
     ILicenceRepository licences,
+    ILicenceKeyRepository licenceKeys,
     IProductRepository products,
     IUserRepository users,
     ILicenceKeyHasher keyHasher,
@@ -69,7 +70,9 @@ public sealed class LicenceCheckoutController(
             return InvalidLicence();
         }
 
-        var licence = await licences.FindByKeyHmacAsync(keyHmacCandidates, cancellationToken);
+        var key = await licenceKeys.FindActiveByKeyHmacAsync(keyHmacCandidates, cancellationToken);
+        if (key is null) return InvalidLicence();
+        var licence = await licences.FindByIdAsync(key.LicenceId, cancellationToken);
         if (licence is null) return InvalidLicence();
         if (licence.ProductId != productId) return InvalidLicence();
 
@@ -113,7 +116,7 @@ public sealed class LicenceCheckoutController(
             hwidHmac: hwidPepperedHmac?.Hmac,
             hwidHmacPepperVersion: hwidPepperedHmac?.PepperVersion,
             sourceIp: remote.ToString(),
-            issuedWithLicenceKeyId: null,
+            issuedWithLicenceKeyId: key.Id,
             leaseDuration: TimeSpan.FromSeconds(_options.LeaseSeconds),
             cancellationToken);
 
