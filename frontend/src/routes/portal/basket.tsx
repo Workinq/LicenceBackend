@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ImageOff, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { ArrowRight, ImageOff, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -29,10 +29,10 @@ function BasketPage() {
   const totals = basketTotalsByCurrency(items);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="mx-auto max-w-6xl space-y-4">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">Your basket</h1>
-        <p className="text-sm text-ink-muted">
+        <h1 className="text-[22px] font-semibold tracking-tight text-foreground">Your basket</h1>
+        <p className="text-[12.5px] text-ink-muted">
           {count === 0
             ? 'Your basket is empty.'
             : `${count} unit${count === 1 ? '' : 's'} ready to check out.`}
@@ -40,56 +40,56 @@ function BasketPage() {
       </div>
 
       {count === 0 ? (
-        <div className="rounded-lg border border-dashed border-border bg-surface-elevated p-8 text-center">
+        <div className="rounded-md border border-dashed border-border bg-card p-8 text-center">
           <ShoppingCart className="mx-auto mb-3 size-8 text-ink-subtle" aria-hidden="true" />
-          <p className="text-sm text-ink-muted">Nothing here yet.</p>
+          <p className="text-[12.5px] text-ink-muted">Nothing here yet.</p>
           <Button asChild variant="link" className="mt-2">
             <Link to="/portal/products">Browse the catalog</Link>
           </Button>
         </div>
       ) : (
-        <>
-          <div className="overflow-hidden rounded-lg border border-border bg-surface-elevated">
-            <Table>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="overflow-hidden rounded-md border border-border bg-card shadow-card">
+            <Table className="text-[12.5px]">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16"></TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="w-32">Unit price</TableHead>
-                  <TableHead className="w-40">Quantity</TableHead>
-                  <TableHead className="w-32">Line total</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                <TableRow className="border-border">
+                  <TableHead className="h-9 w-16 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted"></TableHead>
+                  <TableHead className="h-9 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Product</TableHead>
+                  <TableHead className="h-9 w-32 px-3 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Unit</TableHead>
+                  <TableHead className="h-9 w-40 px-3 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Quantity</TableHead>
+                  <TableHead className="h-9 w-32 px-3 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-muted">Total</TableHead>
+                  <TableHead className="h-9 w-12 px-3"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item) => {
                   const unit = item.unitPrice ?? 0;
                   return (
-                    <TableRow key={item.productId}>
-                      <TableCell>
+                    <TableRow key={item.productId} className="border-border">
+                      <TableCell className="px-3 py-2.5">
                         {item.imageUrl ? (
-                          <img src={`/api${item.imageUrl}`} alt="" className="size-10 rounded object-cover" />
+                          <img src={`/api${item.imageUrl}`} alt="" className="size-9 rounded object-cover" />
                         ) : (
-                          <div className="flex size-10 items-center justify-center rounded bg-surface-sunken text-ink-subtle">
+                          <div className="flex size-9 items-center justify-center rounded bg-surface-sunken text-ink-subtle">
                             <ImageOff className="size-4" aria-hidden="true" />
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-ink">{item.displayName}</div>
+                      <TableCell className="px-3 py-2.5">
+                        <div className="font-medium text-foreground">{item.displayName}</div>
                         <div className="font-mono text-[11px] text-ink-muted">{item.slug}</div>
                       </TableCell>
-                      <TableCell className="text-ink-muted">
+                      <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-ink-muted">
                         {item.unitPrice != null ? formatPrice(item.unitPrice, item.currency) : 'Free'}
                       </TableCell>
-                      <TableCell>
-                        <div className="inline-flex h-8 items-center rounded-md border border-border bg-surface">
+                      <TableCell className="px-3 py-2.5">
+                        <div className="inline-flex h-7 items-center rounded-[4px] border border-border bg-card">
                           <button
                             type="button"
                             onClick={() => setQuantity(item.productId, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                             aria-label="Decrease quantity"
-                            className="flex h-8 w-8 items-center justify-center text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center text-ink-muted transition-colors hover:bg-surface-sunken hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <Minus className="size-3.5" aria-hidden="true" />
                           </button>
@@ -101,29 +101,30 @@ function BasketPage() {
                               const n = Number(e.target.value);
                               if (Number.isFinite(n) && n >= 1) setQuantity(item.productId, Math.floor(n));
                             }}
-                            className="h-8 w-14 border-x border-border bg-transparent text-center text-sm tabular-nums focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="h-7 w-12 border-x border-border bg-transparent text-center font-mono text-[12px] tabular-nums focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           />
                           <button
                             type="button"
                             onClick={() => setQuantity(item.productId, item.quantity + 1)}
                             aria-label="Increase quantity"
-                            className="flex h-8 w-8 items-center justify-center text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+                            className="flex h-7 w-7 items-center justify-center text-ink-muted transition-colors hover:bg-surface-sunken hover:text-foreground"
                           >
                             <Plus className="size-3.5" aria-hidden="true" />
                           </button>
                         </div>
                       </TableCell>
-                      <TableCell className="text-ink-muted">
+                      <TableCell className="px-3 py-2.5 text-right font-mono tabular-nums text-foreground">
                         {item.unitPrice != null ? formatPrice(unit * item.quantity, item.currency) : 'Free'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-3 py-2.5">
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="size-7"
                           aria-label="Remove from basket"
                           onClick={() => remove(item.productId)}
                         >
-                          <Trash2 className="size-4" aria-hidden="true" />
+                          <Trash2 className="size-3.5" aria-hidden="true" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -133,25 +134,44 @@ function BasketPage() {
             </Table>
           </div>
 
-          <div className="flex flex-col items-end gap-3 rounded-lg border border-border bg-surface-elevated p-4">
-            <div className="space-y-1 text-right">
-              <div className="text-xs uppercase tracking-wide text-ink-subtle">Order total</div>
+          <aside className="self-start rounded-md border border-border bg-card p-4 shadow-card">
+            <h2 className="text-[13px] font-semibold text-foreground">Summary</h2>
+            <dl className="mt-3 space-y-2 text-[12.5px]">
               {totals.map((t) => (
-                <div key={t.currency} className="font-display text-xl font-semibold text-ink">
-                  {formatPrice(t.amount, t.currency)}
+                <div key={`sub-${t.currency}`} className="flex items-center justify-between">
+                  <dt className="text-ink-muted">Subtotal</dt>
+                  <dd className="font-mono tabular-nums">{formatPrice(t.amount, t.currency)}</dd>
                 </div>
               ))}
-            </div>
-            <div className="flex gap-2">
-              <Button asChild variant="outline">
-                <Link to="/portal/products">Keep shopping</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/portal/checkout">Proceed to checkout</Link>
-              </Button>
-            </div>
-          </div>
-        </>
+              <div className="flex items-center justify-between">
+                <dt className="text-ink-muted">Tax</dt>
+                <dd className="font-mono tabular-nums text-ink-muted">-</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-ink-muted">Discount</dt>
+                <dd className="font-mono tabular-nums text-ink-muted">-</dd>
+              </div>
+              <div className="border-t border-border pt-2.5">
+                {totals.map((t) => (
+                  <div key={`tot-${t.currency}`} className="flex items-center justify-between">
+                    <dt className="font-semibold text-foreground">Total</dt>
+                    <dd className="font-mono text-[14px] font-semibold tabular-nums text-foreground">
+                      {formatPrice(t.amount, t.currency)}
+                    </dd>
+                  </div>
+                ))}
+              </div>
+            </dl>
+            <Button asChild className="mt-4 w-full justify-center gap-1.5">
+              <Link to="/portal/checkout">
+                Proceed to checkout <ArrowRight className="size-3.5" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" className="mt-1.5 w-full justify-center text-[12px]">
+              <Link to="/portal/products">Keep shopping</Link>
+            </Button>
+          </aside>
+        </div>
       )}
     </div>
   );

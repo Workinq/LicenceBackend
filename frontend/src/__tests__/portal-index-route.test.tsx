@@ -10,10 +10,8 @@ import {
 } from '@tanstack/react-router';
 
 vi.mock('../api/me-licences', () => ({ fetchMyLicences: vi.fn() }));
-vi.mock('../api/products', () => ({ fetchProducts: vi.fn() }));
 
 import { fetchMyLicences } from '../api/me-licences';
-import { fetchProducts } from '../api/products';
 import { Route as PortalIndexRoute } from '../routes/portal/index';
 import { useAccessTokenStore } from '../auth/access-token-store';
 
@@ -27,8 +25,9 @@ function renderPortalIndex() {
   });
   const licencesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/portal/licences', component: () => null });
   const productsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/portal/products', component: () => null });
+  const ordersRoute = createRoute({ getParentRoute: () => rootRoute, path: '/portal/orders', component: () => null });
   const router = createRouter({
-    routeTree: rootRoute.addChildren([indexRoute, licencesRoute, productsRoute]),
+    routeTree: rootRoute.addChildren([indexRoute, licencesRoute, productsRoute, ordersRoute]),
     history: createMemoryHistory({ initialEntries: ['/portal'] }),
   });
   render(
@@ -40,7 +39,6 @@ function renderPortalIndex() {
 
 beforeEach(() => {
   vi.mocked(fetchMyLicences).mockReset();
-  vi.mocked(fetchProducts).mockReset();
   useAccessTokenStore.getState().setSession('tok', new Date(Date.now() + 900_000), {
     id: 'u1',
     email: 'user@example.com',
@@ -56,31 +54,20 @@ afterEach(() => {
 });
 
 describe('PortalOverview', () => {
-  it('greets the user by display name and renders summary cards', async () => {
-    vi.mocked(fetchMyLicences).mockResolvedValue({ items: [], total: 3, limit: 1, offset: 0 });
-    vi.mocked(fetchProducts).mockResolvedValue({ items: [], total: 7, limit: 1, offset: 0 });
+  it('greets the user by display name and renders metric cards', async () => {
+    vi.mocked(fetchMyLicences).mockResolvedValue({ items: [], total: 3, limit: 50, offset: 0 });
     renderPortalIndex();
     expect(await screen.findByRole('heading', { name: /welcome, alex/i })).toBeInTheDocument();
-    expect(screen.getByText('Your licences')).toBeInTheDocument();
-    expect(screen.getByText('Browse products')).toBeInTheDocument();
-    expect(await screen.findByText('3')).toBeInTheDocument();
-    expect(await screen.findByText('7')).toBeInTheDocument();
+    expect(screen.getByText(/active licences/i)).toBeInTheDocument();
+    expect(screen.getByText(/devices bound/i)).toBeInTheDocument();
+    expect(screen.getByText(/next renewal/i)).toBeInTheDocument();
   });
 
-  it('links to the licences and products pages', async () => {
-    vi.mocked(fetchMyLicences).mockResolvedValue({ items: [], total: 0, limit: 1, offset: 0 });
-    vi.mocked(fetchProducts).mockResolvedValue({ items: [], total: 0, limit: 1, offset: 0 });
+  it('renders the Your licences section and quick action links', async () => {
+    vi.mocked(fetchMyLicences).mockResolvedValue({ items: [], total: 0, limit: 50, offset: 0 });
     renderPortalIndex();
-    const viewAll = await screen.findByRole('link', { name: /view all/i });
-    const openCatalog = await screen.findByRole('link', { name: /open catalog/i });
-    expect(viewAll).toHaveAttribute('href', '/portal/licences');
-    expect(openCatalog).toHaveAttribute('href', '/portal/products');
-  });
-
-  it('shows a failure message when a summary query errors', async () => {
-    vi.mocked(fetchMyLicences).mockRejectedValue(new Error('boom'));
-    vi.mocked(fetchProducts).mockResolvedValue({ items: [], total: 2, limit: 1, offset: 0 });
-    renderPortalIndex();
-    expect(await screen.findByText(/failed to load\./i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /your licences/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute('href', '/portal/licences');
+    expect(screen.getByText(/browse catalogue/i)).toBeInTheDocument();
   });
 });

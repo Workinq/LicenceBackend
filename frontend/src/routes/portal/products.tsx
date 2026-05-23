@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -142,46 +141,82 @@ function CardsView({ isPending, items, total }: ViewProps) {
     return (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: CARD_PAGE_SIZE }, (_, i) => i).map((i) => (
-          <Card key={i} className="overflow-hidden py-0 gap-0">
-            <Skeleton className="aspect-video w-full" />
-            <CardHeader className="p-3">
+          <div key={i} className="overflow-hidden rounded-md border border-border bg-card">
+            <Skeleton className="aspect-[16/8] w-full" />
+            <div className="p-3">
               <Skeleton className="h-4 w-2/3" />
-            </CardHeader>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     );
   }
 
   if (total === 0) {
-    return <p className="text-sm text-ink-muted">No products are available yet.</p>;
+    return <p className="text-[12.5px] text-ink-muted">No products are available yet.</p>;
   }
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((p) => (
-        <Card key={p.id} className="overflow-hidden py-0 gap-0">
-          <Link to="/portal/products/$id" params={{ id: p.id }} aria-label={p.displayName} className="block">
-            {p.imageUrl ? (
-              <img src={`/api${p.imageUrl}`} alt="" className="aspect-video w-full object-cover" />
-            ) : (
-              <div className="flex aspect-video w-full items-center justify-center bg-surface-sunken text-ink-subtle">
-                <ImageOff className="size-5" aria-hidden="true" />
-              </div>
-            )}
-            <CardHeader className="p-3 gap-1">
-              <CardTitle className="truncate text-sm">{p.displayName}</CardTitle>
-              <CardDescription className="font-mono text-[11px]">{p.slug}</CardDescription>
-              {p.tagline && <span className="block text-xs text-ink-muted">{p.tagline}</span>}
-            </CardHeader>
+        <div
+          key={p.id}
+          className="group overflow-hidden rounded-md border border-border bg-card shadow-card transition-shadow hover:shadow-md"
+        >
+          <Link
+            to="/portal/products/$id"
+            params={{ id: p.id }}
+            aria-label={p.displayName}
+            className="block"
+          >
+            <div
+              className="relative aspect-[16/8] w-full overflow-hidden bg-surface-sunken"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(135deg, color-mix(in oklab, var(--foreground) 5%, transparent) 0 1px, transparent 1px 9px)',
+              }}
+            >
+              {p.imageUrl ? (
+                <img
+                  src={`/api${p.imageUrl}`}
+                  alt=""
+                  className="absolute inset-0 size-full object-cover"
+                />
+              ) : null}
+              <span className="absolute left-2 top-2 rounded-[3px] bg-card/80 px-1.5 py-0.5 font-mono text-[11px] leading-none text-foreground backdrop-blur">
+                {p.slug}
+              </span>
+              <span
+                className={cn(
+                  'absolute bottom-2 right-2 rounded-[3px] border px-1.5 py-0.5 font-mono text-[10.5px] leading-none backdrop-blur',
+                  p.isPublic
+                    ? 'border-status-active-fg/30 bg-status-active-bg text-status-active-fg'
+                    : 'border-border bg-card/80 text-ink-muted',
+                )}
+              >
+                {p.isPublic ? 'public' : 'private'}
+              </span>
+            </div>
+            <div className="space-y-1 p-3">
+              <h3 className="truncate text-[13.5px] font-semibold text-foreground">{p.displayName}</h3>
+              {p.tagline && (
+                <p className="line-clamp-2 text-[11.5px] text-ink-muted">{p.tagline}</p>
+              )}
+            </div>
           </Link>
-          <CardContent className="px-3 pb-3 flex items-center justify-between gap-2 text-xs">
-            <span>
-              {p.price != null ? formatPrice(p.price, p.currency) : <span className="text-ink-subtle">Free</span>}
+          <div className="flex items-center justify-between border-t border-border px-3 py-2.5">
+            <span className="font-medium tabular-nums">
+              {p.price != null ? (
+                <>
+                  <span className="text-[13.5px]">{formatPrice(p.price, p.currency)}</span>
+                </>
+              ) : (
+                <span className="text-[12px] text-ink-subtle">Free</span>
+              )}
             </span>
             <AddToBasketButton product={p} variant="compact" />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );
