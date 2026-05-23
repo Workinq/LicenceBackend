@@ -43,14 +43,14 @@ public sealed class OrderFulfillmentService(
 
             var now = time.GetUtcNow();
             var orderId = Guid.NewGuid();
+            var context = new FulfillmentContext(connection, transaction, attempt, orderId, now);
 
             var productById = await LoadProductsAsync(items, cancellationToken);
-            var (orderItemEntities, createdLicences) = await CreateLicencesAndOrderItemsAsync(
-                connection, transaction, attempt, items, productById, orderId, now, cancellationToken);
+            var (orderItemEntities, createdLicences) = await CreateLicencesAndOrderItemsAsync(context, items, productById, cancellationToken);
 
-            await PersistOrderAsync(connection, transaction, attempt, orderItemEntities, orderId, now, cancellationToken);
-            await PersistInvoiceAsync(connection, transaction, attempt, orderItemEntities, createdLicences, orderId, now, cancellationToken);
-            await RecordAuditEventsAsync(connection, transaction, attempt, orderItemEntities, createdLicences, orderId, now, cancellationToken);
+            await PersistOrderAsync(context, orderItemEntities, cancellationToken);
+            await PersistInvoiceAsync(context, orderItemEntities, createdLicences, cancellationToken);
+            await RecordAuditEventsAsync(context, orderItemEntities, createdLicences, cancellationToken);
 
             await checkoutAttempts.MarkFulfilledInTxAsync(connection, transaction, attempt.Id, orderId, now, cancellationToken);
 
@@ -95,13 +95,9 @@ public sealed class OrderFulfillmentService(
     }
 
     private async Task<(List<OrderItem> OrderItems, List<(Licence Licence, Product Product)> CreatedLicences)> CreateLicencesAndOrderItemsAsync(
-        Npgsql.NpgsqlConnection connection,
-        Npgsql.NpgsqlTransaction transaction,
-        CheckoutAttempt attempt,
+        FulfillmentContext context,
         IReadOnlyList<CheckoutAttemptItem> items,
         Dictionary<Guid, Product> productById,
-        Guid orderId,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var orderItemEntities = new List<OrderItem>();
@@ -113,16 +109,16 @@ public sealed class OrderFulfillmentService(
             for (var unit = 0; unit < item.Quantity; unit++)
             {
                 var label = ResolveLabel(item.Labels, unit);
-                var licence = await CreateLicenceAsync(connection, transaction, attempt.UserId, item.ProductId, label, now, cancellationToken);
+                var licence = await CreateLicenceAsync(context.Connection, context.Transaction, context.Attempt.UserId, item.ProductId, label, context.Now, cancellationToken);
 
                 orderItemEntities.Add(new OrderItem(
                     Guid.NewGuid(),
-                    orderId,
+                    context.OrderId,
                     item.ProductId,
                     licence.Id,
                     item.UnitPrice,
                     item.Currency,
-                    now));
+                    context.Now));
                 createdLicences.Add((licence, product));
             }
         }
@@ -179,27 +175,19 @@ public sealed class OrderFulfillmentService(
     }
 
     private async Task PersistOrderAsync(
-        Npgsql.NpgsqlConnection connection,
-        Npgsql.NpgsqlTransaction transaction,
-        CheckoutAttempt attempt,
+        FulfillmentContext context,
         List<OrderItem> orderItemEntities,
-        Guid orderId,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var order = new Order(orderId, attempt.UserId, attempt.ContactEmail, OrderStatus.Completed, now);
-        await orders.CreateInTxAsync(connection, transaction, order, cancellationToken);
-        await orderItems.BulkCreateInTxAsync(connection, transaction, orderItemEntities, cancellationToken);
+        var order = new Order(context.OrderId, context.Attempt.UserId, context.Attempt.ContactEmail, OrderStatus.Completed, context.Now);
+        await orders.CreateInTxAsync(context.Connection, context.Transaction, order, cancellationToken);
+        await orderItems.BulkCreateInTxAsync(context.Connection, context.Transaction, orderItemEntities, cancellationToken);
     }
 
     private async Task PersistInvoiceAsync(
-        Npgsql.NpgsqlConnection connection,
-        Npgsql.NpgsqlTransaction transaction,
-        CheckoutAttempt attempt,
+        FulfillmentContext context,
         List<OrderItem> orderItemEntities,
         List<(Licence Licence, Product Product)> createdLicences,
-        Guid orderId,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var invoiceId = Guid.NewGuid();
@@ -220,10 +208,10 @@ public sealed class OrderFulfillmentService(
 
         var invoice = new Invoice(
             invoiceId,
-            orderId,
+            context.OrderId,
             InvoiceNumber: 0,
-            IssuedAt: now,
-            ContactEmail: attempt.ContactEmail,
+            IssuedAt: context.Now,
+            ContactEmail: context.Attempt.ContactEmail,
             BuyerName: null,
             BuyerAddressLine1: null,
             BuyerAddressLine2: null,
@@ -231,17 +219,13 @@ public sealed class OrderFulfillmentService(
             BuyerRegion: null,
             BuyerPostalCode: null,
             BuyerCountry: null);
-        await invoices.CreateInTxAsync(connection, transaction, invoice, invoiceLineItems, cancellationToken);
+        await invoices.CreateInTxAsync(context.Connection, context.Transaction, invoice, invoiceLineItems, cancellationToken);
     }
 
     private async Task RecordAuditEventsAsync(
-        Npgsql.NpgsqlConnection connection,
-        Npgsql.NpgsqlTransaction transaction,
-        CheckoutAttempt attempt,
+        FulfillmentContext context,
         List<OrderItem> orderItemEntities,
         List<(Licence Licence, Product Product)> createdLicences,
-        Guid orderId,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var totals = orderItemEntities
@@ -253,13 +237,13 @@ public sealed class OrderFulfillmentService(
         var orderPlacedEvt = AuditEvent.Create(new AuditEventDraft(
             AuditEventTypes.OrderPlaced,
             AuditSubjectTypes.Order,
-            orderId,
+            context.OrderId,
             AuditActorTypes.User,
-            attempt.UserId,
+            context.Attempt.UserId,
             Reason: null,
-            new OrderPlacedPayload(orderItemEntities.Count, totals, attempt.ContactEmail),
-            now));
-        await auditEvents.RecordInTxAsync(connection, transaction, orderPlacedEvt, cancellationToken);
+            new OrderPlacedPayload(orderItemEntities.Count, totals, context.Attempt.ContactEmail),
+            context.Now));
+        await auditEvents.RecordInTxAsync(context.Connection, context.Transaction, orderPlacedEvt, cancellationToken);
 
         foreach (var entry in createdLicences)
         {
@@ -268,14 +252,21 @@ public sealed class OrderFulfillmentService(
                 AuditSubjectTypes.Licence,
                 entry.Licence.Id,
                 AuditActorTypes.User,
-                attempt.UserId,
+                context.Attempt.UserId,
                 Reason: null,
-                new LicenceCreatedPayload(orderId, entry.Product.Id, entry.Product.Price, entry.Product.Currency, entry.Licence.Label),
-                now));
-            await auditEvents.RecordInTxAsync(connection, transaction, licenceCreatedEvt, cancellationToken);
+                new LicenceCreatedPayload(context.OrderId, entry.Product.Id, entry.Product.Price, entry.Product.Currency, entry.Licence.Label),
+                context.Now));
+            await auditEvents.RecordInTxAsync(context.Connection, context.Transaction, licenceCreatedEvt, cancellationToken);
         }
     }
 
     private static string BuildKeyPrefix(string rawKey)
         => rawKey.Length > 12 ? $"{rawKey[..12]}..." : $"{rawKey}...";
+
+    private sealed record FulfillmentContext(
+        NpgsqlConnection Connection,
+        NpgsqlTransaction Transaction,
+        CheckoutAttempt Attempt,
+        Guid OrderId,
+        DateTimeOffset Now);
 }

@@ -61,12 +61,21 @@ public sealed class PaymentsController(
         var items = resolved.Select(r => new CheckoutAttemptItem(
             Guid.NewGuid(), attemptId, r.Product.Id, r.Quantity, r.Labels, r.Product.Price, r.Product.Currency)).ToList();
 
+        var draft = new CheckoutDraft(attemptId, buyerId, contactEmail, currency, amountTotal, now);
         return amountTotal <= 0m
-            ? await FulfillFreeOrderAsync(attemptId, buyerId, contactEmail, currency, items, now, cancellationToken)
-            : await CreatePaidCheckoutAsync(attemptId, buyerId, contactEmail, currency, amountTotal, items, now, cancellationToken);
+            ? await FulfillFreeOrderAsync(draft, items, cancellationToken)
+            : await CreatePaidCheckoutAsync(draft, items, cancellationToken);
     }
 
-    private IActionResult? ValidateItems(IReadOnlyList<CreateOrderItemRequest> requestItems)
+    private sealed record CheckoutDraft(
+        Guid AttemptId,
+        Guid BuyerId,
+        string ContactEmail,
+        string Currency,
+        decimal AmountTotal,
+        DateTimeOffset Now);
+
+    private ObjectResult? ValidateItems(IReadOnlyList<CreateOrderItemRequest> requestItems)
     {
         if (requestItems.Count == 0)
             return Problem(statusCode: StatusCodes.Status400BadRequest, title: ProblemTitles.EmptyOrder,
@@ -142,41 +151,32 @@ public sealed class PaymentsController(
     }
 
     private async Task<IActionResult> FulfillFreeOrderAsync(
-        Guid attemptId,
-        Guid buyerId,
-        string contactEmail,
-        string currency,
+        CheckoutDraft draft,
         List<CheckoutAttemptItem> items,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var freeAttempt = new CheckoutAttempt(
-            attemptId, buyerId, contactEmail, currency, 0m,
-            $"free_{attemptId:N}", CheckoutAttemptStatus.Pending, null, now, null);
+            draft.AttemptId, draft.BuyerId, draft.ContactEmail, draft.Currency, 0m,
+            $"free_{draft.AttemptId:N}", CheckoutAttemptStatus.Pending, null, draft.Now, null);
         await checkoutAttempts.CreateAsync(freeAttempt, items, cancellationToken);
-        var orderId = await fulfillment.FulfillAsync(attemptId, cancellationToken);
+        var orderId = await fulfillment.FulfillAsync(draft.AttemptId, cancellationToken);
         return Ok(new CheckoutSessionResponse(null, null, orderId, Free: true));
     }
 
     private async Task<IActionResult> CreatePaidCheckoutAsync(
-        Guid attemptId,
-        Guid buyerId,
-        string contactEmail,
-        string currency,
-        decimal amountTotal,
+        CheckoutDraft draft,
         List<CheckoutAttemptItem> items,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        var amountMinorUnits = (long)Math.Round(amountTotal * 100m, MidpointRounding.AwayFromZero);
-        var intent = await paymentGateway.CreatePaymentIntentAsync(amountMinorUnits, currency, cancellationToken);
+        var amountMinorUnits = (long)Math.Round(draft.AmountTotal * 100m, MidpointRounding.AwayFromZero);
+        var intent = await paymentGateway.CreatePaymentIntentAsync(amountMinorUnits, draft.Currency, cancellationToken);
 
         var attempt = new CheckoutAttempt(
-            attemptId, buyerId, contactEmail, currency, amountTotal,
-            intent.PaymentIntentId, CheckoutAttemptStatus.Pending, null, now, null);
+            draft.AttemptId, draft.BuyerId, draft.ContactEmail, draft.Currency, draft.AmountTotal,
+            intent.PaymentIntentId, CheckoutAttemptStatus.Pending, null, draft.Now, null);
         await checkoutAttempts.CreateAsync(attempt, items, cancellationToken);
 
-        return Ok(new CheckoutSessionResponse(intent.ClientSecret, attemptId, null, Free: false));
+        return Ok(new CheckoutSessionResponse(intent.ClientSecret, draft.AttemptId, null, Free: false));
     }
 
     [HttpGet("checkout/{id:guid}")]
