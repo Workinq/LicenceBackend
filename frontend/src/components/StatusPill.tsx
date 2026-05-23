@@ -1,21 +1,24 @@
 import { cn } from '@/lib/utils';
 
-const PALETTE: Record<string, string> = {
-  active: 'bg-status-active-bg text-status-active-fg',
-  suspended: 'bg-status-suspended-bg text-status-suspended-fg',
-  revoked: 'bg-status-revoked-bg text-status-revoked-fg',
+const COLOR: Record<string, string> = {
+  active: '#16a34a',
+  suspended: '#d97706',
+  revoked: '#dc2626',
 };
 
 export function StatusPill({ status, className }: { status: string; className?: string }) {
+  const color = COLOR[status] ?? '#71717a';
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize',
-        PALETTE[status] ?? 'bg-surface-sunken text-ink-muted',
-        className,
-      )}
-    >
-      {status}
+    <span className={cn('inline-flex items-center gap-2', className)}>
+      <span
+        aria-hidden
+        className="size-1.5 rounded-full"
+        style={{
+          background: color,
+          boxShadow: `0 0 0 2px color-mix(in oklab, ${color} 20%, transparent)`,
+        }}
+      />
+      <span className="text-xs font-medium capitalize text-foreground">{status}</span>
     </span>
   );
 }

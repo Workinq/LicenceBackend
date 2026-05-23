@@ -8,30 +8,28 @@ describe('StatusPill', () => {
     expect(screen.getByText('active')).toBeInTheDocument();
   });
 
-  it('applies the active palette classes', () => {
-    render(<StatusPill status="active" />);
-    const el = screen.getByText('active');
-    expect(el.className).toContain('bg-status-active-bg');
-    expect(el.className).toContain('text-status-active-fg');
+  it('renders a colored dot for active', () => {
+    const { container } = render(<StatusPill status="active" />);
+    const dot = container.querySelector('span[aria-hidden]');
+    expect(dot).not.toBeNull();
+    expect(dot?.getAttribute('style')).toContain('#16a34a');
   });
 
-  it('applies the suspended palette classes', () => {
-    render(<StatusPill status="suspended" />);
-    const el = screen.getByText('suspended');
-    expect(el.className).toContain('bg-status-suspended-bg');
-    expect(el.className).toContain('text-status-suspended-fg');
+  it('renders a colored dot for suspended', () => {
+    const { container } = render(<StatusPill status="suspended" />);
+    const dot = container.querySelector('span[aria-hidden]');
+    expect(dot?.getAttribute('style')).toContain('#d97706');
   });
 
-  it('applies the revoked palette classes', () => {
-    render(<StatusPill status="revoked" />);
-    const el = screen.getByText('revoked');
-    expect(el.className).toContain('bg-status-revoked-bg');
-    expect(el.className).toContain('text-status-revoked-fg');
+  it('renders a colored dot for revoked', () => {
+    const { container } = render(<StatusPill status="revoked" />);
+    const dot = container.querySelector('span[aria-hidden]');
+    expect(dot?.getAttribute('style')).toContain('#dc2626');
   });
 
-  it('falls back to a neutral palette for unknown statuses', () => {
-    render(<StatusPill status="weird" />);
-    const el = screen.getByText('weird');
-    expect(el.className).toContain('bg-surface-sunken');
+  it('falls back to a neutral dot for unknown statuses', () => {
+    const { container } = render(<StatusPill status="weird" />);
+    const dot = container.querySelector('span[aria-hidden]');
+    expect(dot?.getAttribute('style')).toContain('#71717a');
   });
 });

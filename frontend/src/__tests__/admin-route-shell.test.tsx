@@ -7,11 +7,13 @@ import {
   createMemoryHistory,
   RouterProvider,
 } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('../auth/use-silent-refresh', () => ({ useSilentRefresh: vi.fn() }));
 vi.mock('../auth/api-client', () => ({
   API_BASE: '/api',
-  apiClient: vi.fn().mockResolvedValue(undefined),
+  apiClient: vi.fn().mockResolvedValue({ data: { items: [], total: 0, limit: 0, offset: 0 }, status: 200, headers: new Headers() }),
+  authedFetch: vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'ok', db: 'ok', version: '0.0.0' }), { status: 200 })),
 }));
 
 import { Route as AdminShellRoute } from '../routes/admin/route';
@@ -33,7 +35,12 @@ function renderShell(initialPath = '/admin') {
     routeTree: rootRoute.addChildren([shellRoute.addChildren([indexRoute])]),
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   });
-  render(<RouterProvider router={router} />);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
 }
 
 afterEach(() => {

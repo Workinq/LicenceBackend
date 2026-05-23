@@ -7,11 +7,13 @@ import {
   createMemoryHistory,
   RouterProvider,
 } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('../auth/use-silent-refresh', () => ({ useSilentRefresh: vi.fn() }));
 vi.mock('../auth/api-client', () => ({
   API_BASE: '/api',
-  apiClient: vi.fn().mockResolvedValue(undefined),
+  apiClient: vi.fn().mockResolvedValue({ data: { items: [], total: 0, limit: 0, offset: 0 }, status: 200, headers: new Headers() }),
+  authedFetch: vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'ok', db: 'ok', version: '0.0.0' }), { status: 200 })),
 }));
 
 import { Route as PortalShellRoute } from '../routes/portal/route';
@@ -33,7 +35,12 @@ function renderShell(initialPath = '/portal') {
     routeTree: rootRoute.addChildren([shellRoute.addChildren([indexRoute])]),
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   });
-  render(<RouterProvider router={router} />);
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
 }
 
 afterEach(() => {
@@ -41,9 +48,10 @@ afterEach(() => {
 });
 
 describe('PortalRouteShell', () => {
-  it('renders the My account header brand', async () => {
+  it('renders the LicenceBackend wordmark and a portal badge in the header', async () => {
     renderShell();
-    expect(await screen.findByText(/my account/i)).toBeInTheDocument();
+    expect(await screen.findByText(/licencebackend/i)).toBeInTheDocument();
+    expect(screen.getByText('portal')).toBeInTheDocument();
   });
 
   it('renders the portal sidebar with overview, licences, products and orders links', async () => {
