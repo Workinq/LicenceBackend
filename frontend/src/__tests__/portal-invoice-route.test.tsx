@@ -15,7 +15,7 @@ vi.mock('../api/invoices', () => ({
 }));
 
 import { fetchMyInvoice } from '../api/invoices';
-import { Route as PortalInvoiceRoute } from '../routes/portal/orders_.$id.invoice';
+import { Route as PortalInvoiceRoute } from '../routes/portal/orders_.$id_.invoice';
 import type { InvoiceResponse } from '../api/generated/api.schemas';
 
 function invoice(over: Partial<InvoiceResponse> = {}): InvoiceResponse {

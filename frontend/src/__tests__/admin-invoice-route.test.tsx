@@ -15,7 +15,7 @@ vi.mock('../api/invoices', () => ({
 }));
 
 import { fetchAdminInvoice } from '../api/invoices';
-import { Route as AdminInvoiceRoute } from '../routes/admin/orders_.$id.invoice';
+import { Route as AdminInvoiceRoute } from '../routes/admin/orders_.$id_.invoice';
 import type { InvoiceResponse } from '../api/generated/api.schemas';
 
 function invoice(over: Partial<InvoiceResponse> = {}): InvoiceResponse {

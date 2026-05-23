@@ -22,7 +22,7 @@ vi.mock('../components/products/ProductPageEditor', () => ({
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import { fetchProduct } from '../api/products';
-import { Route as PageEditRoute } from '../routes/admin/products_.$id.page';
+import { Route as PageEditRoute } from '../routes/admin/products_.$id_.page';
 
 function makeProduct(over: Record<string, unknown> = {}) {
   return {

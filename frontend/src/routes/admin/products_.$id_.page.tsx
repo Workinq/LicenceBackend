@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { fetchProduct } from '@/api/products';
 import { ProductPageEditor } from '@/components/products/ProductPageEditor';
 
-export const Route = createFileRoute('/admin/products_/$id/page')({
+export const Route = createFileRoute('/admin/products_/$id_/page')({
   component: ProductPageEditRoute,
 });
 

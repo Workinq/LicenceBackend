@@ -3,24 +3,24 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceDocument } from '@/components/InvoiceDocument';
-import { fetchMyInvoice } from '@/api/invoices';
+import { fetchAdminInvoice } from '@/api/invoices';
 
-export const Route = createFileRoute('/portal/orders_/$id/invoice')({
-  component: PortalInvoicePage,
+export const Route = createFileRoute('/admin/orders_/$id_/invoice')({
+  component: AdminInvoicePage,
 });
 
-function PortalInvoicePage() {
+function AdminInvoicePage() {
   const { id } = Route.useParams();
   const query = useQuery({
-    queryKey: ['portal', 'orders', id, 'invoice'],
-    queryFn: () => fetchMyInvoice(id),
+    queryKey: ['admin', 'orders', id, 'invoice'],
+    queryFn: () => fetchAdminInvoice(id),
   });
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="print:hidden">
         <Button asChild variant="outline" size="sm">
-          <Link to="/portal/orders/$id" params={{ id }}>
+          <Link to="/admin/orders/$id" params={{ id }}>
             Back to order
           </Link>
         </Button>
