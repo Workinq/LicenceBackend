@@ -88,7 +88,7 @@ public sealed class OrdersEndpointTests : IntegrationTestBase
         Assert.Null(fetched.Items[0].LicenceKey);
     }
 
-    private async Task<OrderPayload> PlaceOrderAsync(HttpClient client, Guid productId, string? label = null)
+    private static async Task<OrderPayload> PlaceOrderAsync(HttpClient client, Guid productId, string? label = null)
     {
         var resp = await client.PostAsJsonAsync("/payments/checkout", new
         {

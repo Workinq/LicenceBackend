@@ -186,7 +186,7 @@ public sealed class LicenceKeysEndpointTests : IntegrationTestBase
         Assert.Single(keyRevokedHistory);
     }
 
-    private HttpRequestMessage BuildRevokeRequest(Guid licenceId, Guid keyId, string? reason)
+    private static HttpRequestMessage BuildRevokeRequest(Guid licenceId, Guid keyId, string? reason)
     {
         var request = new HttpRequestMessage(HttpMethod.Delete, $"/licences/{licenceId}/keys/{keyId}")
         {
