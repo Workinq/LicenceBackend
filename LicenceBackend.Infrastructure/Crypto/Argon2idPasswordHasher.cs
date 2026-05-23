@@ -81,13 +81,31 @@ public sealed class Argon2IdPasswordHasher : IPasswordHasher
         hash = [];
 
         var parts = encoded.Split('$');
+        if (!HasValidHeader(parts)) return false;
+
+        if (!TryParseParameters(parts[3], out memoryKiB, out iterations, out parallelism)) return false;
+
+        if (!TryDecodeSaltAndHash(parts[4], parts[5], out salt, out hash)) return false;
+
+        return salt.Length > 0 && hash.Length > 0;
+    }
+
+    private static bool HasValidHeader(string[] parts)
+    {
         if (parts.Length != 6 || parts[0].Length != 0) return false;
         if (parts[1] != "argon2id") return false;
         if (!parts[2].StartsWith("v=", StringComparison.Ordinal)) return false;
-        if (!int.TryParse(parts[2][2..], out var version) || version != ArgonVersion) return false;
+        return int.TryParse(parts[2][2..], out var version) && version == ArgonVersion;
+    }
+
+    private static bool TryParseParameters(string segment, out int memoryKiB, out int iterations, out int parallelism)
+    {
+        memoryKiB = 0;
+        iterations = 0;
+        parallelism = 0;
 
         var paramDict = new Dictionary<string, int>(3);
-        foreach (var kv in parts[3].Split(','))
+        foreach (var kv in segment.Split(','))
         {
             var eq = kv.IndexOf('=');
             if (eq <= 0) return false;
@@ -99,18 +117,23 @@ public sealed class Argon2IdPasswordHasher : IPasswordHasher
         if (!paramDict.TryGetValue("m", out memoryKiB) || memoryKiB <= 0) return false;
         if (!paramDict.TryGetValue("t", out iterations) || iterations <= 0) return false;
         if (!paramDict.TryGetValue("p", out parallelism) || parallelism <= 0) return false;
+        return true;
+    }
 
+    private static bool TryDecodeSaltAndHash(string saltSegment, string hashSegment, out byte[] salt, out byte[] hash)
+    {
         try
         {
-            salt = Base64FromNoPad(parts[4]);
-            hash = Base64FromNoPad(parts[5]);
+            salt = Base64FromNoPad(saltSegment);
+            hash = Base64FromNoPad(hashSegment);
+            return true;
         }
         catch (FormatException)
         {
+            salt = [];
+            hash = [];
             return false;
         }
-
-        return salt.Length > 0 && hash.Length > 0;
     }
 
     private static string Base64NoPad(byte[] bytes)

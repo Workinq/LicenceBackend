@@ -45,80 +45,32 @@ public sealed class LicenceCheckoutController(
         [FromBody] CheckoutLicenceRequest request,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.LicenceKey)
-            || request.ProductId is not { } productId
-            || string.IsNullOrWhiteSpace(request.ClientNonce)
-            || request.ClientNonce.Length < MinClientNonceLength
-            || request.ClientNonce.Length > MaxClientNonceLength
-            || string.IsNullOrWhiteSpace(request.InstanceId)
-            || request.InstanceId.Length < _options.MinInstanceIdLength
-            || request.InstanceId.Length > _options.MaxInstanceIdLength)
-        {
-            return InvalidLicence();
-        }
+        if (!IsCheckoutRequestShapeValid(request, out var productId)) return InvalidLicence();
 
         var rateLimitDecision = await checkoutRateLimiter.TryAcquireAsync(request.LicenceKey!, request.InstanceId!, cancellationToken);
         if (!rateLimitDecision.Acquired) return RateLimitRejection.AsResult(HttpContext, rateLimitDecision.RetryAfter);
 
-        IReadOnlyList<byte[]> keyHmacCandidates;
-        try
-        {
-            keyHmacCandidates = keyHasher.HashAllVersions(request.LicenceKey);
-        }
-        catch (ArgumentException)
-        {
-            return InvalidLicence();
-        }
+        var resolved = await ResolveLicenceForCheckoutAsync(request, productId, cancellationToken);
+        if (resolved is null) return InvalidLicence();
+        var (key, licence, product) = resolved.Value;
 
-        var key = await licenceKeys.FindActiveByKeyHmacAsync(keyHmacCandidates, cancellationToken);
-        if (key is null) return InvalidLicence();
-        var licence = await licences.FindByIdAsync(key.LicenceId, cancellationToken);
-        if (licence is null) return InvalidLicence();
-        if (licence.ProductId != productId) return InvalidLicence();
-
-        var now = time.GetUtcNow();
-        if (!licence.IsUsableAt(now)) return InvalidLicence();
-
-        var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
-        if (owner is null || owner.Status != UserStatus.Active) return InvalidLicence();
+        var hwidResolution = TryResolveHwid(request.Hwid, licence);
+        if (!hwidResolution.IsValid) return InvalidLicence();
+        var hwidPepperedHmac = hwidResolution.Hmac;
 
         var remote = HttpContext.Connection.RemoteIpAddress ?? IPAddress.None;
-        if (!licence.IsIpAllowed(remote)) return InvalidLicence();
+        var instanceIdHash = SHA256.HashData(Encoding.UTF8.GetBytes(request.InstanceId!));
 
-        var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
-        if (product is null) return InvalidLicence();
-
-        PepperedHmac? hwidPepperedHmac = null;
-        if (!string.IsNullOrWhiteSpace(request.Hwid))
-        {
-            try
-            {
-                hwidPepperedHmac = hwidHasher.HashWithActive(request.Hwid);
-            }
-            catch (ArgumentException)
-            {
-                return InvalidLicence();
-            }
-        }
-
-        if (licence.HwidHmac is not null)
-        {
-            if (hwidPepperedHmac is null) return InvalidLicence();
-            if (!licence.IsHwidAllowed(hwidPepperedHmac.Value.Hmac)) return InvalidLicence();
-        }
-
-        var instanceIdHash = SHA256.HashData(Encoding.UTF8.GetBytes(request.InstanceId));
-
-        var outcome = await checkouts.OpenAsync(
-            licence.Id,
-            instanceIdHash,
-            memberUserId: null,
-            hwidHmac: hwidPepperedHmac?.Hmac,
-            hwidHmacPepperVersion: hwidPepperedHmac?.PepperVersion,
-            sourceIp: remote.ToString(),
-            issuedWithLicenceKeyId: key.Id,
-            leaseDuration: TimeSpan.FromSeconds(_options.LeaseSeconds),
-            cancellationToken);
+        var openParameters = new OpenCheckoutParameters(
+            LicenceId: licence.Id,
+            InstanceIdHash: instanceIdHash,
+            MemberUserId: null,
+            HwidHmac: hwidPepperedHmac?.Hmac,
+            HwidHmacPepperVersion: hwidPepperedHmac?.PepperVersion,
+            SourceIp: remote.ToString(),
+            IssuedWithLicenceKeyId: key.Id,
+            LeaseDuration: TimeSpan.FromSeconds(_options.LeaseSeconds));
+        var outcome = await checkouts.OpenAsync(openParameters, cancellationToken);
 
         return outcome switch
         {
@@ -127,6 +79,85 @@ public sealed class LicenceCheckoutController(
             OpenCheckoutOutcome.Opened opened => Ok(BuildSignedResponse(licence, product.Slug, opened.Result.Checkout, request.ClientNonce!)),
             _ => InvalidLicence()
         };
+    }
+
+    private bool IsCheckoutRequestShapeValid(CheckoutLicenceRequest request, out Guid productId)
+    {
+        productId = default;
+        if (string.IsNullOrWhiteSpace(request.LicenceKey)) return false;
+        if (request.ProductId is not { } pid) return false;
+        if (string.IsNullOrWhiteSpace(request.ClientNonce)) return false;
+        if (request.ClientNonce.Length < MinClientNonceLength) return false;
+        if (request.ClientNonce.Length > MaxClientNonceLength) return false;
+        if (string.IsNullOrWhiteSpace(request.InstanceId)) return false;
+        if (request.InstanceId.Length < _options.MinInstanceIdLength) return false;
+        if (request.InstanceId.Length > _options.MaxInstanceIdLength) return false;
+        productId = pid;
+        return true;
+    }
+
+    private async Task<(LicenceKey Key, Licence Licence, Product Product)?> ResolveLicenceForCheckoutAsync(
+        CheckoutLicenceRequest request,
+        Guid productId,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<byte[]> keyHmacCandidates;
+        try
+        {
+            keyHmacCandidates = keyHasher.HashAllVersions(request.LicenceKey!);
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+
+        var key = await licenceKeys.FindActiveByKeyHmacAsync(keyHmacCandidates, cancellationToken);
+        if (key is null) return null;
+        var licence = await licences.FindByIdAsync(key.LicenceId, cancellationToken);
+        if (licence is null || licence.ProductId != productId) return null;
+
+        var now = time.GetUtcNow();
+        if (!licence.IsUsableAt(now)) return null;
+
+        var owner = await users.FindByIdAsync(licence.UserId, cancellationToken);
+        if (owner is null || owner.Status != UserStatus.Active) return null;
+
+        var remote = HttpContext.Connection.RemoteIpAddress ?? IPAddress.None;
+        if (!licence.IsIpAllowed(remote)) return null;
+
+        var product = await products.FindByIdAsync(licence.ProductId, cancellationToken);
+        if (product is null) return null;
+
+        return (key, licence, product);
+    }
+
+    private HwidResolution TryResolveHwid(string? hwid, Licence licence)
+    {
+        PepperedHmac? hwidPepperedHmac = null;
+        if (!string.IsNullOrWhiteSpace(hwid))
+        {
+            try
+            {
+                hwidPepperedHmac = hwidHasher.HashWithActive(hwid);
+            }
+            catch (ArgumentException)
+            {
+                return HwidResolution.Invalid;
+            }
+        }
+
+        if (licence.HwidHmac is not null)
+        {
+            if (hwidPepperedHmac is null) return HwidResolution.Invalid;
+            if (!licence.IsHwidAllowed(hwidPepperedHmac.Value.Hmac)) return HwidResolution.Invalid;
+        }
+
+        return new HwidResolution(true, hwidPepperedHmac);
+    }
+
+    private readonly record struct HwidResolution(bool IsValid, PepperedHmac? Hmac)
+    {
+        public static HwidResolution Invalid => new(false, null);
     }
 
     [EnableRateLimiting(RateLimiterPolicyNames.CheckoutCheckin)]
