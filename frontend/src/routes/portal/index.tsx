@@ -5,23 +5,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAccessTokenStore } from '@/auth/access-token-store';
 import { fetchMyLicences } from '@/api/me-licences';
 import { Metric } from '@/components/dashboard/Metric';
-import { Sparkline } from '@/components/dashboard/Sparkline';
 import { StatusPill } from '@/components/StatusPill';
 import { formatRelative } from '@/lib/format';
 
 export const Route = createFileRoute('/portal/')({
   component: PortalOverview,
 });
-
-const trend = (seed: number): number[] => {
-  const out: number[] = [];
-  let v = seed;
-  for (let i = 0; i < 18; i++) {
-    v += Math.sin(i * 0.5 + seed) * 4 + Math.sin(i * 2.1 + seed * 1.7) * 1.5;
-    out.push(Math.max(0, v));
-  }
-  return out;
-};
 
 function PortalOverview() {
   const user = useAccessTokenStore((s) => s.user);
@@ -48,15 +37,8 @@ function PortalOverview() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Active licences" value={String(total)} delta={0}>
-          <Sparkline data={trend(total + 6)} />
-        </Metric>
-        <Metric label="Devices bound" value={String(boundDevices)} delta={0}>
-          <Sparkline data={trend(boundDevices + 4)} />
-        </Metric>
-        <Metric label="Verifications (7d)" value="-" delta={0}>
-          <Sparkline data={trend(12)} />
-        </Metric>
+        <Metric label="Active licences" value={String(total)} />
+        <Metric label="Devices bound" value={String(boundDevices)} />
         <Metric label="Next renewal" value={nextRenewalDays !== undefined ? `${nextRenewalDays}d` : '-'} />
       </div>
 

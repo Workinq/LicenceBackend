@@ -50,8 +50,8 @@ describe('AdminIndexRoute', () => {
     renderAdminIndex();
     expect(await screen.findByRole('heading', { name: /overview/i })).toBeInTheDocument();
     expect(screen.getAllByText(/active licences/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/verifications \/ 24h/i)).toBeInTheDocument();
-    expect(screen.getByText('MRR')).toBeInTheDocument();
+    expect(screen.getByText(/revoked licences/i)).toBeInTheDocument();
+    expect(screen.getByText(/total licences/i)).toBeInTheDocument();
   });
 
   it('renders the recent activity feed section', async () => {
