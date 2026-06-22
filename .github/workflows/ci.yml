@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -53,7 +53,7 @@ jobs:
       LICENCEBACKEND_TEST_POSTGRES: "Host=localhost;Port=5432;Database=licencebackend_test;Username=postgres;Password=postgres"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v5
@@ -99,7 +99,7 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v5
